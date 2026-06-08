@@ -102,6 +102,36 @@ ComputedChannel {
 log *before* any mapping. A wrong or edited mapping only re-interprets data; it never
 loses it. The structured store is keyed by channel id and can be rebuilt from the raw log.
 
+## Recording, live, and raw — three separate concerns
+
+Easy to conflate, deliberately independent:
+
+- **Raw capture is always on.** Every byte is appended to the raw log the moment it
+  arrives, regardless of everything below. Pure durability; never gated.
+- **The live readout is always live.** While the pump is on, the cementer always sees
+  current values. The live view never pauses and is unaffected by recording state.
+- **Recording is the cementer's start/stop** and bounds *what becomes the job* — what the
+  chart plots and what the job log covers — so idle / warmup / cleanup periods don't
+  obfuscate the relevant data.
+
+**Recording model — always store; start/stop are markers.** Structured samples are stored
+continuously (not gated). A recording segment is a marker over that continuous store:
+
+```
+RecordingSegment { job_id, id, started_at, stopped_at? }   // stopped_at null = open
+```
+
+The chart and job log default to showing only data inside segments. Because nothing is
+discarded, boundaries are **adjustable after the fact** (nudge a start earlier, trim a
+stop) and a forgotten "start" is fully recoverable. A job may have **multiple segments**.
+
+**Stages are a separate concept.** Stage volume (`vol.stage`) resets per stage, job volume
+(`vol.job`) is cumulative — but stages are driven independently (by the pump/DAQ or a
+separate stage marker), **not** by the record start/stop button. Do not reset stage volume
+on record-start; recording segments and stages are orthogonal and may not line up.
+
+Lands with the Job concept in Phase 2.
+
 ## Two chart-config scopes
 
 1. **Cementer's live view** (personal) — what *he* sees in his client: which channels/
@@ -128,6 +158,7 @@ loses it. The structured store is keyed by channel id and can be rebuilt from th
    set; theme toggle; storage env. None of this depends on the real format.
 2. (after the Intellisense CSV) Define the Intellisense `DaqFormat` preset; build the
    format mechanism (mapping + compute) on the Pi.
-3. Pump Profile CRUD + the hello/profile message + scope-grouped display.
-4. Charting (uPlot) with the two config scopes; printing with the company default + per-job
-   overrides.
+3. Job CRUD (company/casing/…) + **recording segments (start/stop markers)**; Pump Profile
+   CRUD + the hello/profile message + scope-grouped display.
+4. Charting (uPlot) with the two config scopes (chart shows only recorded segments by
+   default); printing with the company default + per-job overrides.
