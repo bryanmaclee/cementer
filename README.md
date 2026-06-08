@@ -61,6 +61,16 @@ Run manually:
 Key flags: `-serial` / `-source` (one required), `-baud`, `-replay-interval`,
 `-replay-loop`, `-data-dir`, `-batch-interval`, `-addr`.
 
+**Storage location is trivially flippable** between the Pi's built-in storage (dev)
+and an SSD (prod): `-data-dir`, else `$CEMENTER_DATA_DIR`, else `./data`. One value.
+
+## Design
+
+The pump-specific, configuration-driven model (pump profiles, no-code DAQ formats,
+per-unit vs aggregate channels, the two chart-config scopes) is described in
+[`docs/design/data-model.md`](docs/design/data-model.md). The privileged user is **the
+cementer** (crew foreman). Each Pi is a standalone island; the pump self-describes.
+
 ## Deploy to a Raspberry Pi (single binary, no C toolchain)
 
 ```sh

@@ -1,0 +1,133 @@
+# cementer — configuration-driven data model
+
+This captures the architecture decided after the Phase-1 readout, once the real
+shape of cement pumps was clarified. It supersedes the fixed 4-channel assumption.
+
+## Roles & topology
+
+- **The cementer** is the privileged user — the crew foreman (what we earlier called
+  "admin"). He carries a laptop and moves between pumps during/across jobs.
+- **The Pi is pump-mounted** and **self-describing**. Each Pi is a **standalone
+  island** — there is no central server. A pump's spec and DAQ format are configured
+  **once on the Pi** and persist there; whichever cementer links gets the right
+  channels and interpretation automatically.
+- **The laptop is a browser client.** It carries only *personal* preferences (theme,
+  personal live-chart view). It does not hold pump definitions.
+
+```
+cementer's laptop (browser)  ──HTTP/WS──►  pump-mounted Pi (cementer binary)
+  - theme (local)                            - pump profile      (persisted here)
+  - personal live-chart view (local)         - DAQ format        (persisted here)
+                                             - raw log + SQLite  (durable)
+                                             - company print default (bundled in deploy)
+                                             - per-job print overrides (with the job)
+```
+
+On link, the Pi sends the client a **hello/profile** message describing its channels;
+the client renders fields aligned to *that* pump. Stream values are keyed by channel id.
+
+## Pump Profile — *what sensors this pump has*
+
+Configured per pump, stored on the Pi. Pumps vary: 1 or 2 pumping units; variable
+counts of pressure transducers, densitometers, rate counters.
+
+```
+PumpProfile {
+  id, name
+  units: int                      // number of pumping units (1, 2, ...)
+  channels: Channel[]
+}
+
+Channel {
+  id            // stable key, e.g. "unit1.pressure", "agg.rate", "vol.stage", "density.1"
+  role          // pressure | rate | density | volume | temperature | ... (extensible)
+  scope         // unit:N | aggregate | stage | job
+  unitIndex?    // set when scope = unit:N
+  label         // display label, e.g. "Unit 1 Pressure"
+  uom           // unit of measure, e.g. "psi", "bbl/min", "ppg", "bbl"
+  decimals      // display precision
+  source        // how this channel is produced — see DAQ Format
+}
+```
+
+### Scope model (multi-unit pumps)
+
+- With multiple pumping units, **psi / rate / volume are almost always per-unit**
+  (`scope = unit:N`), plus there are **aggregate** fields (`scope = aggregate`).
+- **Volume always has at least two job-level counters:** `vol.stage` (stage volume)
+  and `vol.job` (job volume), both `scope = stage|job`. Per-unit volume may also exist.
+- Densitometers / rate counters / pressure transducers may be multiple → they are just
+  multiple channels in the list (`density.1`, `density.2`, …).
+
+## DAQ Format — *how the wire maps to those channels* (no-code)
+
+The serial format is a property of the pump (the Pi is pump-mounted, so it stays put
+until the Pi moves). Two presets are common in the wild — **Intellisense** and
+**MD Totco** — with a growing tail of boutique one-offs. Adapting to a new format must
+be **manual configuration, strictly no code.**
+
+```
+DaqFormat {
+  id, name                 // "Intellisense", "MD Totco", or a custom name
+  delimiter                // e.g. ","   (ASCII text lines — confirmed)
+  hasHeader: bool
+  timestamp?               // field index/name + parse hint, or "server stamps"
+  fields: FieldMap[]       // raw column -> channel
+}
+
+FieldMap {
+  column        // index or header name in the raw line
+  channelId     // which Channel this column feeds
+  transform?    // optional, no-code: scale, offset
+}
+
+// Derived channels (aggregates a pump does NOT emit) are computed, not mapped:
+ComputedChannel {
+  channelId     // e.g. "agg.rate"
+  op            // sum | mean | ...
+  inputs        // [ "unit1.rate", "unit2.rate" ]
+  // plus scale/offset
+}
+```
+
+- **Field mapping** covers pumps that already emit a value (incl. aggregates they
+  provide).
+- **Compute layer** (sum / scale / offset, configured in the UI — still no-code) covers
+  pumps that *don't* emit aggregates: `agg.rate = sum(unit1.rate, unit2.rate)`, etc.
+- Presets (Intellisense, MD Totco) ship as starting templates the cementer can clone and
+  adjust. **The Intellisense preset will be defined from a real CSV** (incoming) — until
+  then we stay format-agnostic and define nothing concrete.
+
+**Durability is unaffected by format changes:** the Pi appends every raw line to the raw
+log *before* any mapping. A wrong or edited mapping only re-interprets data; it never
+loses it. The structured store is keyed by channel id and can be rebuilt from the raw log.
+
+## Two chart-config scopes
+
+1. **Cementer's live view** (personal) — what *he* sees in his client: which channels/
+   lines, time window, colors. Stored client-side (per laptop). Does not affect others.
+2. **Company printed-chart standard** — what every job's printout looks like. A **company
+   default** template (bundled with the deploy, since Pis are islands) that the cementer
+   can **tweak per job**; per-job overrides are stored with the job on the Pi. The company
+   default is change-controlled (updated via deploy/config), not casually editable.
+
+## Client customization
+
+- **Theme:** dark (default) / light, plus room for small niceties. A per-client local
+  preference (localStorage); not synced.
+
+## Storage location — trivially flippable
+
+- `-data-dir` flag (and `CEMENTER_DATA_DIR` env) selects where the SQLite DB + raw logs
+  live. **Dev:** the Pi's built-in storage (e.g. `./data`). **Prod:** an external SSD
+  (e.g. `/mnt/ssd/cementer-data`). One value to change; nothing else moves.
+
+## Build order implied by this model
+
+1. (now, agnostic) Client renders **dynamic channels** from the stream instead of a fixed
+   set; theme toggle; storage env. None of this depends on the real format.
+2. (after the Intellisense CSV) Define the Intellisense `DaqFormat` preset; build the
+   format mechanism (mapping + compute) on the Pi.
+3. Pump Profile CRUD + the hello/profile message + scope-grouped display.
+4. Charting (uPlot) with the two config scopes; printing with the company default + per-job
+   overrides.

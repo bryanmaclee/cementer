@@ -49,7 +49,7 @@ func run() error {
 		replayPath     = flag.String("source", "", "replay file of ASCII lines (dev source); overridden by -serial")
 		replayInterval = flag.Duration("replay-interval", 250*time.Millisecond, "delay between replayed lines")
 		replayLoop     = flag.Bool("replay-loop", true, "loop the replay file when exhausted")
-		dataDir        = flag.String("data-dir", "./data", "directory for the SQLite DB and raw logs")
+		dataDir        = flag.String("data-dir", "", "directory for the SQLite DB and raw logs (default $CEMENTER_DATA_DIR or ./data)")
 		batchInterval  = flag.Duration("batch-interval", 250*time.Millisecond, "SQLite commit / live-broadcast cadence")
 	)
 	flag.Parse()
@@ -58,7 +58,16 @@ func run() error {
 		return errors.New("provide -serial <device> or -source <replay-file>")
 	}
 
-	if err := os.MkdirAll(*dataDir, 0o755); err != nil {
+	// Storage location is trivially flippable: -data-dir, else $CEMENTER_DATA_DIR,
+	// else ./data. Dev uses the Pi's built-in storage; prod points at an SSD.
+	dir := *dataDir
+	if dir == "" {
+		dir = os.Getenv("CEMENTER_DATA_DIR")
+	}
+	if dir == "" {
+		dir = "./data"
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("data dir: %w", err)
 	}
 
@@ -80,14 +89,14 @@ func run() error {
 	}
 
 	// --- store (durability layer 2) ---
-	dbPath := filepath.Join(*dataDir, "cementer.db")
+	dbPath := filepath.Join(dir, "cementer.db")
 	st, err := store.Open(dbPath, *batchInterval, onCommit)
 	if err != nil {
 		return fmt.Errorf("open store: %w", err)
 	}
 
 	// --- raw log (durability layer 1) ---
-	rawPath := filepath.Join(*dataDir, "raw-"+time.Now().Format("20060102-150405")+".log")
+	rawPath := filepath.Join(dir, "raw-"+time.Now().Format("20060102-150405")+".log")
 	rl, err := rawlog.Open(rawPath, time.Second)
 	if err != nil {
 		return fmt.Errorf("open raw log: %w", err)

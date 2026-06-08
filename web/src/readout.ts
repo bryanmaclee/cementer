@@ -1,20 +1,5 @@
 import type { Reading } from "./types.ts";
-
-interface ChannelSpec {
-  key: string;
-  label: string;
-  unit: string;
-  decimals: number;
-}
-
-// Phase-1 channel set. Order here is display order. Unknown channels that arrive
-// in a reading are ignored for now (the chart phase makes channels dynamic).
-const CHANNELS: ChannelSpec[] = [
-  { key: "pressure", label: "Pressure", unit: "psi", decimals: 0 },
-  { key: "rate", label: "Rate", unit: "bbl/min", decimals: 2 },
-  { key: "density", label: "Density", unit: "ppg", decimals: 2 },
-  { key: "volume", label: "Volume", unit: "bbl", decimals: 1 },
-];
+import { initTheme, toggleTheme } from "./theme.ts";
 
 const STALE_MS = 3000;
 
@@ -27,10 +12,76 @@ function el(tag: string, className?: string, text?: string): El {
   return e;
 }
 
-// Readout owns the live value screen: a status header and one big-number card per
-// channel. It builds the DOM once and mutates text nodes on each reading.
+// --- channel description ---------------------------------------------------
+// Until the pump profile (with real labels/units) arrives over the wire, infer a
+// reasonable label, unit, and precision from the channel id. Channel ids are flat
+// today (e.g. "pressure") and will become scoped later (e.g. "unit1.pressure").
+
+interface ChannelSpec {
+  label: string;
+  uom: string;
+  decimals: number;
+  order: number; // role priority for display ordering
+}
+
+const ROLE_INFO: Record<string, { uom: string; decimals: number; order: number }> = {
+  pressure: { uom: "psi", decimals: 0, order: 0 },
+  rate: { uom: "bbl/min", decimals: 2, order: 1 },
+  density: { uom: "ppg", decimals: 2, order: 2 },
+  volume: { uom: "bbl", decimals: 1, order: 3 },
+  temperature: { uom: "°F", decimals: 0, order: 4 },
+};
+
+const PART_LABEL: Record<string, string> = {
+  agg: "Aggregate",
+  vol: "Volume",
+  stage: "Stage",
+  job: "Job",
+};
+
+function titleize(part: string): string {
+  if (PART_LABEL[part]) return PART_LABEL[part];
+  // "unit1" -> "Unit 1"
+  const m = /^([a-z]+)(\d+)$/i.exec(part);
+  if (m) return `${cap(m[1])} ${m[2]}`;
+  return cap(part);
+}
+
+function cap(s: string): string {
+  return s.length ? s[0].toUpperCase() + s.slice(1) : s;
+}
+
+function describeChannel(id: string): ChannelSpec {
+  const parts = id.split(".");
+  let role = "";
+  for (const p of parts) {
+    const key = p === "vol" ? "volume" : p;
+    if (ROLE_INFO[key]) role = key;
+  }
+  const info = ROLE_INFO[role] ?? { uom: "", decimals: 2, order: 99 };
+  return {
+    label: parts.map(titleize).join(" "),
+    uom: info.uom,
+    decimals: info.decimals,
+    order: info.order,
+  };
+}
+
+// --- readout ---------------------------------------------------------------
+
+interface Card {
+  card: El;
+  value: El;
+  spec: ChannelSpec;
+}
+
+// Readout renders the live value screen. Channels are DYNAMIC: a card appears for
+// whatever channel ids arrive in the stream, so the display aligns to the pump.
 export class Readout {
-  private valueEls = new Map<string, El>();
+  private grid: El;
+  private placeholder: El;
+  private cards = new Map<string, Card>();
+
   private statusDot: El;
   private statusText: El;
   private seqEl: El;
@@ -40,6 +91,7 @@ export class Readout {
   private lastReadingAt = 0;
 
   constructor(root: El) {
+    initTheme();
     root.replaceChildren();
 
     // --- header ---
@@ -47,26 +99,23 @@ export class Readout {
     const brand = el("div", "brand");
     brand.append(el("span", "brand-mark", "●"), el("span", "brand-name", "cementer"));
 
+    const right = el("div", "topbar-right");
     const status = el("div", "status");
     this.statusDot = el("span", "dot");
     this.statusText = el("span", "status-text", "connecting…");
     status.append(this.statusDot, this.statusText);
 
-    header.append(brand, status);
+    const themeBtn = el("button", "theme-btn", "◐");
+    themeBtn.title = "Toggle dark / light";
+    themeBtn.addEventListener("click", () => toggleTheme());
+
+    right.append(status, themeBtn);
+    header.append(brand, right);
 
     // --- value grid ---
-    const grid = el("main", "grid");
-    for (const ch of CHANNELS) {
-      const card = el("section", "card");
-      card.append(el("div", "card-label", ch.label));
-      const valueRow = el("div", "card-valuerow");
-      const value = el("span", "card-value", "—");
-      const unit = el("span", "card-unit", ch.unit);
-      valueRow.append(value, unit);
-      card.append(valueRow);
-      grid.append(card);
-      this.valueEls.set(ch.key, value);
-    }
+    this.grid = el("main", "grid");
+    this.placeholder = el("div", "placeholder", "waiting for data…");
+    this.grid.append(this.placeholder);
 
     // --- footer meta ---
     const footer = el("footer", "meta");
@@ -74,7 +123,7 @@ export class Readout {
     this.updatedEl = el("span", "meta-item", "no data yet");
     footer.append(this.seqEl, this.updatedEl);
 
-    root.append(header, grid, footer);
+    root.append(header, this.grid, footer);
 
     this.applyStatus();
     window.setInterval(() => this.applyStatus(), 1000);
@@ -87,20 +136,50 @@ export class Readout {
 
   update(r: Reading): void {
     this.lastReadingAt = Date.now();
-    for (const ch of CHANNELS) {
-      const v = r.values[ch.key];
-      const target = this.valueEls.get(ch.key);
-      if (!target) continue;
-      target.textContent =
+
+    let added = false;
+    for (const [id, v] of Object.entries(r.values)) {
+      let card = this.cards.get(id);
+      if (!card) {
+        card = this.createCard(id);
+        this.cards.set(id, card);
+        added = true;
+      }
+      card.value.textContent =
         v === undefined || Number.isNaN(v)
           ? "—"
           : v.toLocaleString(undefined, {
-              minimumFractionDigits: ch.decimals,
-              maximumFractionDigits: ch.decimals,
+              minimumFractionDigits: card.spec.decimals,
+              maximumFractionDigits: card.spec.decimals,
             });
     }
+    if (added) this.reorder();
+
     this.seqEl.textContent = `seq ${r.seq}`;
     this.applyStatus();
+  }
+
+  private createCard(id: string): Card {
+    if (this.placeholder.isConnected) this.placeholder.remove();
+    const spec = describeChannel(id);
+    const card = el("section", "card");
+    card.append(el("div", "card-label", spec.label));
+    const valueRow = el("div", "card-valuerow");
+    const value = el("span", "card-value", "—");
+    valueRow.append(value);
+    if (spec.uom) valueRow.append(el("span", "card-unit", spec.uom));
+    card.append(valueRow);
+    this.grid.append(card);
+    return { card, value, spec };
+  }
+
+  // Re-order cards by role priority then id when a new channel shows up.
+  private reorder(): void {
+    const sorted = [...this.cards.entries()].sort((a, b) => {
+      const o = a[1].spec.order - b[1].spec.order;
+      return o !== 0 ? o : a[0].localeCompare(b[0]);
+    });
+    for (const [, card] of sorted) this.grid.append(card.card);
   }
 
   private applyStatus(): void {
