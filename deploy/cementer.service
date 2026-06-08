@@ -1,0 +1,29 @@
+# systemd unit for the cementer Pi service.
+#
+# Install:
+#   sudo cp deploy/cementer.service /etc/systemd/system/cementer.service
+#   sudo systemctl daemon-reload && sudo systemctl enable --now cementer
+#
+# Edit ExecStart for your environment:
+#   - Use a STABLE serial path (/dev/serial/by-id/...), not /dev/ttyUSB0.
+#   - Put --data-dir on an external SSD, not the SD card (SD wear is the real
+#     long-running failure mode).
+[Unit]
+Description=cementer cement-pump data acquisition
+After=multi-user.target
+
+[Service]
+Type=simple
+User=cementer
+Group=cementer
+WorkingDirectory=/opt/cementer
+ExecStart=/opt/cementer/cementer \
+    -serial /dev/serial/by-id/CHANGEME \
+    -baud 9600 \
+    -data-dir /mnt/ssd/cementer-data \
+    -addr :80
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,18 @@
+# Go binary
+/cementer
+
+# Runtime data (durable store + raw logs) — never commit
+/data/
+*.db
+*.db-wal
+*.db-shm
+raw-*.log
+
+# Node / client build
+/web/node_modules/
+# Embedded at build time via go:embed; rebuilt by `npm run build` (see Makefile)
+/web/dist/
+
+# Editor / OS
+*.swp
+.DS_Store
