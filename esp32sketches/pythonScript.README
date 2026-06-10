@@ -1,0 +1,5 @@
+Need Python 3.14 or newer to run script. 
+
+In terminal >> 'cd' to the folder containing send_csv.py >> run script via "python send_csv.py"
+
+Edit file name as needed. File listed in script must be in same folder as script. 

@@ -1,0 +1,122 @@
+Below are the credentials and breakdown of progress:
+
+credentials:
+
+SSH:
+pi username: serial123
+pi password: serial123
+
+InfluxDB:
+Port 8086
+username: serial123
+password: serial123
+
+Grafana:
+Access at http://[PI_IP]:3000
+username: admin
+password: serial123
+
+
+## Current Data Flow
+
+**Laptop (CSV File)**
+- Python script reads CSV line by line
+- Sends via USB serial at 115200 baud
+  ↓
+**ESP32 #1 (DAQ Simulator)**
+- Receives serial data from laptop USB
+- Validates data (filters boot noise)
+- Forwards clean data via TX2 (GPIO17)
+  ↓
+**Raspberry Pi 4B**
+- Receives via RX (GPIO15) at 115200 baud
+- Python script parses CSV format
+- Writes each row to InfluxDB
+  ↓
+**InfluxDB (cement_data bucket)**
+- Stores time-series data
+- 15 columns per data point
+  ↓
+**Grafana Dashboard**
+- Queries InfluxDB via Flux
+- Displays live graphs and charts
+  ↓
+**WiFi Network**
+- Any device on network can access Grafana
+- Browser at http://[PI_IP]:3000
+
+---
+
+## Hardware Connections
+
+**Laptop → ESP32 #1**
+- USB cable (COM3)
+
+**ESP32 #1 → Raspberry Pi**
+- ESP32 TX2 (GPIO17) → Pi RX (GPIO15)
+- ESP32 GND → Pi GND
+
+---
+
+## Software Stack
+
+- **InfluxDB 2.9.1** — Time-series database
+- **Grafana 13.0.2** — Dashboard and visualization
+- **Python 3** — Data ingestion script
+- **PySerial** — Serial communication
+- **influxdb-client** — InfluxDB API
+
+---
+
+## Data Format (15 Columns)
+
+- _00_LOGTIME
+- _01_DENSITY
+- _02_PRESS
+- _03_PUMP_RATE
+- _04_PUMP_TTL
+- _05_PRESS_1
+- _06_PRESS_2
+- _07_RATE_1
+- _08_RATE_2
+- _09_WTR_RATE
+- _10_DENS_BKUP
+- _11_WATER_STG_TTL
+- _12_PUMP_STG_TTL
+- _13_JOB_NUMBER
+- _14_MARKER
+
+---
+
+## Installation Summary
+
+**InfluxDB**
+- `sudo apt update && sudo apt install influxdb2 -y`
+- `influx setup` (username: serial123, org: CementSerial, bucket: cement_data)
+
+**Grafana**
+- `sudo apt install grafana -y`
+- `sudo systemctl start grafana-server`
+- Access at http://[PI_IP]:3000
+
+**Python Libraries**
+- `pip3 install influxdb-client pyserial`
+- `sudo usermod -a -G dialout $USER`
+
+---
+
+## Running the System
+
+1. Ensure ESP32 #1 is powered and connected to laptop via USB
+2. Run Python script on laptop: `python3 daq_to_influx.py`
+3. Start Pi ingestion script: `python3 ~/daq_to_influx.py`
+4. Open Grafana in browser: `http://[PI_IP]:3000`
+5. Create dashboard and add visualizations from InfluxDB
+
+---
+
+## Next Phases
+
+- Replace ESP32 simulator with real DAQ unit
+- Implement RS232 splitter for dual output (hardwire + WiFi)
+- Customize UI and charting (collaborator handoff)
