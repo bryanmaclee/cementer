@@ -1,9 +1,10 @@
 # Hand-off — live
 
-`as of: Session 1 · 2026-06-12`
+`as of: Session 1 WRAPPED · 2026-06-12`
 
 > Optimize for the NEXT session's pickup, not this session's terseness. Bloat is acceptable;
-> under-documentation is not. Rotate to `docs/pa/archive/hand-off-<date>.md` at next session start.
+> under-documentation is not. **NEXT SESSION START: rotate this to `docs/pa/archive/hand-off-2026-06-12.md`
+> and open a fresh hand-off** (session-start step 6). Session 1 is wrapped + pushed; tree clean, 0/0.
 
 ## Open questions (top of mind)
 
@@ -28,9 +29,11 @@
 | PA contract | ✅ `pa.md` (overlay v1) + `pa-base.md` (vendored `pa-base v1`) landed |
 | Scaffolding | ✅ `docs/pa/{status,hand-off,user-voice,design-insights,changelog,anti-patterns}.md` + dirs |
 | Topology | Standalone single repo (§10 N/A) |
-| Nav-maps | ❌ not generated (`/map` pending) |
-| Commit gate | ❌ none installed (`core.hooksPath` unset) |
-| Git | synced to `ddf8ada` (was 1 behind; clean ff). `pa-base.md` + new `pa.md` + `docs/pa/**` + `docs/{deep-dives,changes}/` UNTRACKED; **nothing committed this session** (no auth given) |
+| Nav-maps | ✅ generated (`.claude/maps/`, 13 maps + non-compliance report); current (no source changed since) |
+| Commit gate | ❌ none installed (`core.hooksPath` unset) — parked debt |
+| Tests (wrap) | ✅ `go build ./...` ok · `go vet ./...` ok · `go test ./...` ok (parser passes; other pkgs no test files) |
+| Git | all work committed + pushed through wrap; `origin/main` synced **0/0**; tree clean |
+| Dev agent | ✅ `cementer-go-engineer` forged (`~/.claude/agents/`) — **activates next session** |
 
 ## Project state (verified at init)
 

@@ -113,3 +113,6 @@ the preset name with the user. Files: `esp32sketches/EnbridgeCC4-16-CICR@344.csv
 ## Test surface
 
 - `go test ./...` — only `internal/parser/parser_test.go` exists. Web has no tests.
+- **Last full run (2026-06-12 wrap):** `go build ./...` ✅ · `go vet ./...` ✅ · `go test ./...` ✅
+  (parser passes; all other packages report "no test files"). `web/dist` was present so the
+  embed-dependent root + `cmd/cementer` compiled.
