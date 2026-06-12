@@ -25,8 +25,10 @@ prose — but keep this doc honest at every wrap._
 
 ## In-flight
 
-- _(none — Session 1 init complete; architecture fork ratified.)_ Next build target: **Phase 2** —
-  define the Intellisense `DaqFormat` preset from the Enbridge CSVs + the no-code mapping/compute layer.
+- **Phase 2 SCOPED** — [`docs/changes/phase2-intellisense-daqformat/scope.md`](../changes/phase2-intellisense-daqformat/scope.md).
+  Generic `DaqFormat` engine + Intellisense preset + minimal channel set; model/store already fit (no
+  change). 4 open decisions (D1 engine placement · D2 timestamp policy · D3 meta channels · **D4
+  live-serial vs CSV-export RISK**). Awaiting decisions before dispatch.
 
 ## ✅ RESOLVED FORK — storage engine + viz (RATIFIED 2026-06-12)
 
