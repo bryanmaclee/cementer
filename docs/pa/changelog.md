@@ -44,5 +44,13 @@ the human-discoverable session narrative). Newest block on top.
   format = **Intellisense**. Retention/downsampling → Phase 3/4. Marked the deep-dive RATIFIED; updated
   status.md (fork resolved, Phase 2 = Intellisense), hand-off, user-voice.
 - **Tests:** not run this session (no source changed — docs/maps only).
-- **Git:** `e290b8d` (init) → `ee446c3` (deep-dive) → `b0fef5f` (maps) → ratification updates pushed.
-  All on `origin/main`, synced 0/0.
+- **Phase 2 scoped** → `docs/changes/phase2-intellisense-daqformat/scope.md` (curated from real CSVs;
+  model/store already fit; 8-step work breakdown; E2E-verify strategy). Pushed `e395623`.
+- **Phase 2 decisions locked (user):** D1 new `internal/daqformat` pkg · D2 embedded LOGTIME (Excel-serial)
+  + server fallback · D3 map `meta.*` channels now, semantics → Phase 3 · **D4: get a live-serial capture
+  before "done"** (build GATED) → drafted `live-serial-capture-request.md` for the collaborator.
+- **Forged the canonical dev agent** `~/.claude/agents/cementer-go-engineer.md` (effective NEXT session;
+  Go/SQLite/Pi/vanilla-TS, axiom-aware, modeled on scrml-js-codegen-engineer). Per §5, dispatch Phase 2
+  through it next session.
+- **Git:** `e290b8d` (init) → `ee446c3` (deep-dive) → `b0fef5f` (maps) → `92113fc` (ratify) → `e395623`
+  (scope) → Phase-2 decisions/agent updates. All on `origin/main`, synced 0/0.

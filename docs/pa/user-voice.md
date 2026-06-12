@@ -20,3 +20,9 @@ island".)_
 _(Ratified the storage+viz deep-dive: adopt stack A (Go single-binary + SQLite + custom uPlot UI);
 retire stack B (Python/InfluxDB/Grafana) to a dev/diagnostic bench. The real 15-column `_NN_` DAQ
 format is **Intellisense**. Retention/downsampling scoped to Phase 3/4.)_
+
+> scope phase 2
+
+_(Phase 2 decisions, via AskUserQuestion: D2 timestamp = embedded LOGTIME + server fallback; D4
+live-serial fidelity = get a live-serial capture FIRST (build gated on it); dev agent = forge
+`cementer-go-engineer` before the build.)_

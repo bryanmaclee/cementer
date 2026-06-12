@@ -104,7 +104,24 @@ contain **multiple jobs** (`_13_JOB_NUMBER` went 1→2→3 within `Shoe344.csv`)
    sanity, **not** "unit tests pass".
 8. Update README/data-model preset note + the nav-maps (`schema`, `api`, `state`, `structure`).
 
-## Open design decisions (ladder-classified — confirm before dispatch)
+## DECISIONS (resolved 2026-06-12)
+
+- **D1 — engine placement: new `internal/daqformat` package** (PA recommendation, not vetoed). `parser`
+  stays the tokenizer; `daqformat` does map+compute.
+- **D2 — timestamp: embedded `_00_LOGTIME` (Excel-serial) as `Reading.TS`, server-stamp fallback** via
+  `TimestampSpec{kind: server}` when a format carries no timestamp. (USER.)
+- **D3 — `meta.job` / `meta.marker`: mapped as channels now; semantics deferred to Phase 3** (PA
+  recommendation, not vetoed).
+- **D4 — live-serial fidelity: GET A LIVE-SERIAL CAPTURE FIRST (USER).** The engine + preset may be
+  built (format-agnostic), but **Phase 2 is GATED: not "done" until validated against a real
+  live-serial dump.** Capture request drafted: [`live-serial-capture-request.md`](./live-serial-capture-request.md)
+  — relay to the hardware collaborator. The build dispatch waits on (or runs in parallel with, but does
+  not close before) that capture.
+- **Dev agent: forge `cementer-go-engineer` (DONE — effective next session).** The canonical cementer
+  source-change dev agent now exists at `~/.claude/agents/cementer-go-engineer.md`; it activates at the
+  NEXT session start (harness caches agent defs at start). Dispatch Phase 2 through it then.
+
+## Original decision write-ups (for provenance)
 
 - **D1 — engine placement (R1, PA-recommend):** new `internal/daqformat` package; `parser` becomes a
   thin tokenizer or is absorbed. *Recommend: new package; keep `parser` as the tokenizer it already is,

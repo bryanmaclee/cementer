@@ -53,15 +53,22 @@ created the live scaffolding. Verified state directly: store schema, embed direc
 
 - None. (Init session; no dispatches, no leaks, no crashes.)
 
-## Next priority
+## Next priority (Phase 2 — scoped, decisions locked, GATED)
 
-1. **Phase 2 — Intellisense `DaqFormat` preset + no-code mapping/compute layer.** Define the preset
-   from the Enbridge CSVs (15-col `_NN_`, Excel-serial `_00_LOGTIME`, per-unit `_05/06_PRESS_*` +
-   `_07/08_RATE_*`, stage totals `_11/12_*`, `_13_JOB_NUMBER`, `_14_MARKER`). Map columns → channels;
-   compute layer for aggregates the pump doesn't emit. **No parser edits** (axiom #2). Verify
-   `parser.DefaultConfig` (synthetic 4-channel) is replaced by config, not code.
-2. Consider `/forge go` for a dedicated `cementer-go-engineer` before substantial Phase 2 source churn.
-3. Pick off a debt: install the commit gate; resolve the `docs/plan` reference; README Go-version.
+Scope: [`docs/changes/phase2-intellisense-daqformat/scope.md`](../changes/phase2-intellisense-daqformat/scope.md).
+Decisions locked: D1 new `internal/daqformat` pkg · D2 embedded LOGTIME (+server fallback) · D3 map
+`meta.*` now / semantics Phase 3 · **D4 GATE: live-serial capture before "done"**.
+
+1. **Relay the live-serial capture request** ([`live-serial-capture-request.md`](../changes/phase2-intellisense-daqformat/live-serial-capture-request.md))
+   to the hardware collaborator (Peter Oliver). Phase 2 cannot close until validated against it (or the
+   user ratifies the CSV-export shape as the wire contract).
+2. **NEXT SESSION: dispatch the engine+preset build** via the now-forged canonical dev agent
+   **`cementer-go-engineer`** (`~/.claude/agents/cementer-go-engineer.md`, effective next session;
+   `model:opus`, `isolation:"worktree"`). Brief = the scope doc's 8-step work breakdown + maps
+   (`schema`,`state`,`api`,`structure`). The generic engine is format-agnostic → buildable in parallel
+   with the capture; just don't flip Phase 2 "done" without the E2E live-serial verify (D4).
+3. Parked debts (non-blocking): commit gate; `docs/plan` reference; README "Go 1.22+" vs 1.26.4;
+   committed-credentials hygiene flag.
 
 ## File-modification inventory (this session)
 

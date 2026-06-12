@@ -25,10 +25,13 @@ prose — but keep this doc honest at every wrap._
 
 ## In-flight
 
-- **Phase 2 SCOPED** — [`docs/changes/phase2-intellisense-daqformat/scope.md`](../changes/phase2-intellisense-daqformat/scope.md).
-  Generic `DaqFormat` engine + Intellisense preset + minimal channel set; model/store already fit (no
-  change). 4 open decisions (D1 engine placement · D2 timestamp policy · D3 meta channels · **D4
-  live-serial vs CSV-export RISK**). Awaiting decisions before dispatch.
+- **Phase 2 SCOPED + decisions locked; build GATED.** [`scope.md`](../changes/phase2-intellisense-daqformat/scope.md).
+  Generic `internal/daqformat` engine + Intellisense preset + minimal channel set; model/store already
+  fit (no change). Decisions: D1 new package · D2 embedded LOGTIME (+server fallback) · D3 map `meta.*`
+  now / semantics Phase 3 · **D4 GATE: get a live-serial capture before "done"**
+  ([capture request](../changes/phase2-intellisense-daqformat/live-serial-capture-request.md) — relay
+  to collaborator). Canonical dev agent **`cementer-go-engineer` forged** (effective NEXT session).
+  **Next: dispatch the engine+preset build (via the new agent next session) + obtain the live capture.**
 
 ## ✅ RESOLVED FORK — storage engine + viz (RATIFIED 2026-06-12)
 
