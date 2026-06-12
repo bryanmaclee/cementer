@@ -79,16 +79,20 @@ the preset name with the user. Files: `esp32sketches/EnbridgeCC4-16-CICR@344.csv
   `internal/store/store.go` (only `samples`). Lands with Phase 3.
 - Pump Profile / DAQ Format / hello-profile WS message: designed, no code yet.
 - Computed/derived channels (`agg.rate = sum(...)`): designed, no code yet.
-- **Parser vs real format (UNVERIFIED):** `internal/parser` (`parser.DefaultConfig()`) was written
-  against the synthetic `testdata/sample-stream.txt`; whether it handles the real 15-column Enbridge
-  CSV is unverified. Don't hard-code this format into the parser — project axiom #2 says format
-  adaptation is the no-code mapping/compute layer, not parser edits.
+- **Parser vs real format (CONFIRMED MISMATCH):** `parser.DefaultConfig()` is the synthetic **4-channel**
+  layout (pressure/rate/density/volume) — NOT the real **15-column** Enbridge format. Adaptation is the
+  no-code mapping/compute layer (project axiom #2), not parser edits. (Surfaced by nav-map cold-start.)
+- `internal/api/` and `web/src/chart/` are **empty placeholder dirs** for unbuilt phases (per nav-maps).
 
 ## Doc-currency / hygiene debts
 
 - **Stale `docs/plan` reference.** `cmd/cementer/main.go` (pkg-doc line ~7 and a comment ~145) and
   `README.md` cite a build-plan doc that **does not exist**. Fix: create `docs/plan` OR correct the
   references to point at `data-model.md` § Build-order + this doc.
+- **README Go version drift.** `README.md` says "Go 1.22+"; `go.mod` is `go 1.26.4`. (nav-map catch.)
+- **Nav-maps generated** (`.claude/maps/`, 13 maps + non-compliance report, stamp `ee446c3`). Note:
+  the mapper is scrml-flavored — its flag that the deep-dive "belongs in scrml-support" is a FALSE
+  POSITIVE; this standalone repo keeps deep-dives in `docs/deep-dives/` by overlay design.
 - **⚠ Plaintext credentials committed** in `pi4b & test db/credetials&currentDB.README` (commit
   `ddf8ada`): SSH / InfluxDB / Grafana logins (weak identical test passwords). Test-rig creds on a LAN
   Pi, but committing credentials is a flag — rotate + move to a non-committed secret if this repo is
