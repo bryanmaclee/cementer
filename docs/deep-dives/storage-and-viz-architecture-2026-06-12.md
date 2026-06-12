@@ -1,12 +1,19 @@
 ---
 status: current
 last-reviewed: 2026-06-12
+decision: RATIFIED 2026-06-12 — adopt (A); retire (B) to dev bench
 topic: storage-engine + visualization architecture
 trigger: collaborator commit ddf8ada surfaced a parallel Python→InfluxDB→Grafana stack vs the repo's Go→SQLite→custom-UI stack
-rung: R2 (one approach dominates on the decisive axes; USER rules)
+rung: R2 (one approach dominates on the decisive axes; USER ruled)
 ---
 
 # Deep-dive: storage engine + visualization architecture
+
+> **✅ RATIFIED 2026-06-12 (user).** Adopt **(A) Go single-binary + SQLite(WAL) + custom uPlot UI**.
+> Retire **(B) Python→InfluxDB→Grafana** to a **dev/diagnostic bench only** — no claim on the shipped
+> product (`esp32sketches/`, `pi4b & test db/` are bench artifacts). Retention/downsampling (rider #3)
+> scoped to **Phase 3/4**. The real DAQ format is **Intellisense** (the 15-column `_NN_` layout) — define
+> the `DaqFormat` preset from the Enbridge CSVs in Phase 2.
 
 **Question.** For a single Raspberry Pi 4B that is the *entire* compute of an offline oilfield
 cement-pump DAQ "island" — durably capturing ~15 channels of ASCII serial at ~4–20 Hz over multi-hour

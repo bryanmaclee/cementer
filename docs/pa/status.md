@@ -19,19 +19,24 @@ prose — but keep this doc honest at every wrap._
 | P1 | Durable ingest → WS → dark-mode readout | ✅ **DONE** | `cmd/cementer/main.go` wires source→rawlog→parser→store→hub→WS + embedded SPA; `internal/store` SQLite WAL single-writer |
 | 1 | Config-driven dynamic channels + theme + storage env | ✅ **DONE** | store `samples` keyed by `channel`; `web/src/theme.ts`; `-data-dir`/`$CEMENTER_DATA_DIR` in `main.go` |
 | — | Recording start/stop model | 🟡 **DESIGNED, not built** | `data-model.md` § Recording (commit 94f02b6); **no `recording_segments` table** — store has only `samples` |
-| 2 | Real DAQ format + format mechanism (mapping + compute) | 🟢 **UNBLOCKED** — real data arrived | commit `ddf8ada` added 3 real Enbridge CSVs; format decoded below. Mechanism still unbuilt |
-| 3 | Job CRUD + recording segments + Pump Profile CRUD + hello/profile message + scope-grouped display | ⬜ **NOT STARTED** | no job/profile/segment tables; no auth |
-| 4 | uPlot charting (two config scopes) + printing (company default + per-job overrides) | ⬜ **NOT STARTED** | — |
+| 2 | **Intellisense** `DaqFormat` preset + format mechanism (mapping + compute) | 🟢 **UNBLOCKED** | format = **Intellisense** (ratified); define the preset from the 15-column Enbridge CSVs (`ddf8ada`), decoded below. Mechanism still unbuilt |
+| 3 | Job CRUD + recording segments + Pump Profile CRUD + hello/profile message + scope-grouped display | ⬜ **NOT STARTED** | no job/profile/segment tables; no auth. Includes **retention/downsampling-as-code** (DD rider #3) |
+| 4 | uPlot charting (two config scopes) + printing (company default + per-job overrides) | ⬜ **NOT STARTED** | print artifact = uPlot-at-high-DPI + print-CSS (not a dashboard export) |
 
 ## In-flight
 
-- **PA workflow init (Session 1)** — instantiating `pa-base v1` into the cementer contract +
-  scaffolding. See changelog 2026-06-12.
+- _(none — Session 1 init complete; architecture fork ratified.)_ Next build target: **Phase 2** —
+  define the Intellisense `DaqFormat` preset from the Enbridge CSVs + the no-code mapping/compute layer.
 
-## ⚠ MAJOR FORK — needs deliberation (≥R2, axiom-level: storage engine + viz)
+## ✅ RESOLVED FORK — storage engine + viz (RATIFIED 2026-06-12)
 
-Commit `ddf8ada` (collaborator Peter Oliver, 2026-06-09) revealed a **parallel, different stack** built
-to prove the hardware data flow end-to-end — and it does NOT match the cementer Go binary's stack:
+**Decision (user, R2):** adopt **(A) Go single-binary + SQLite(WAL) + custom uPlot UI**; **(B)
+Python→InfluxDB→Grafana is retired to a dev/diagnostic bench** (`esp32sketches/`, `pi4b & test db/` —
+real-data injection + ad-hoc exploration only, no claim on the product). Full rationale + sources:
+[`docs/deep-dives/storage-and-viz-architecture-2026-06-12.md`](../deep-dives/storage-and-viz-architecture-2026-06-12.md)
+(RATIFIED). **Engineering riders folded into the build plan:** explicit `PRAGMA synchronous=FULL` +
+chosen commit cadence; retention/downsampling as scoped code → **Phase 3/4**; the print artifact is
+uPlot-at-high-DPI + print-CSS (not a dashboard export). Background (kept for provenance):
 
 | Concern | cementer Go binary (this repo's code) | Collaborator's working prototype (`ddf8ada`) |
 |---|---|---|
@@ -42,16 +47,8 @@ to prove the hardware data flow end-to-end — and it does NOT match the cemente
 
 Collaborator's note: hardware flow "**Working!**"; "get proper DB in place and **serve it in whatever
 way you feel best**"; "**Customize UI and charting (collaborator handoff)**". The ESP32 rig
-(`csvToSerialSend.ino`, `send_csv.py`) is a reusable real-data injector regardless of which way the
-fork resolves — it feeds real CSV over serial into whatever ingests it.
-
-**→ DEEP-DIVE RAN (2026-06-12, R2):** [`docs/deep-dives/storage-and-viz-architecture-2026-06-12.md`](../deep-dives/storage-and-viz-architecture-2026-06-12.md).
-Sourced research converges: **adopt (A) Go single-binary + SQLite + custom uPlot UI; retire (B)
-Influx/Grafana to a dev/diagnostic bench.** Decisive axes (offline power-loss durability, the printable
-company-standard per-job chart, single-binary no-IT field ops, ARM footprint, multi-year longevity, fit
-to shipped code + axioms) all favor (A); (B)'s wins are off-centerpiece. **Status: recommendation
-PENDING USER RATIFICATION.** Engineering riders if ratified: explicit `synchronous=FULL` + commit
-cadence; retention/downsampling as scoped code; uPlot-at-high-DPI + print-CSS for the print artifact.
+(`csvToSerialSend.ino`, `send_csv.py`) is a reusable real-data injector — it stays as the dev bench's
+real-CSV-over-serial feed for stack (A).
 
 ## Real DAQ format (decoded from `ddf8ada` CSVs)
 

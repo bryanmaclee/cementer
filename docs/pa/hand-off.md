@@ -7,15 +7,19 @@
 
 ## Open questions (top of mind)
 
-- **⚠ MAJOR FORK — DD ran, awaiting ratification.** `docs/deep-dives/storage-and-viz-architecture-2026-06-12.md`
-  (R2, sourced). Recommendation: **adopt (A) Go+SQLite+uPlot; retire (B) Influx/Grafana to a dev
-  bench.** PENDING USER RATIFICATION. If ratified, fold in the engineering riders (explicit
-  `synchronous=FULL`, retention-as-code, uPlot-print-CSS) and mark (B) superseded.
 - **Forge `cementer-go-engineer`?** No dedicated Go dev-agent exists; interim canonical = `general-purpose`
   (worktree-isolated, `model: opus`). Decide whether to `/forge go` now or wait for source churn.
+  (Becomes relevant as Phase 2 source work starts.)
 - **`docs/plan` debt:** create the file or fix the `main.go` / README references? (See status.md.)
 - **Commit gate:** install the baseline pre-commit now, or defer? (See status.md near-term action 2.)
 - **Committed credentials** in `pi4b & test db/...README` — rotate / gitignore? (hygiene flag, status.md)
+
+## Resolved this session
+
+- **✅ Architecture fork RATIFIED** — adopt (A) Go+SQLite+uPlot; retire (B) Influx/Grafana to dev bench.
+  Engineering riders folded into the plan (status.md): `synchronous=FULL`, retention-as-code → Phase 3/4,
+  uPlot-print-CSS for the print artifact.
+- **✅ DAQ format named: Intellisense** (the 15-column `_NN_` layout) — unblocks Phase 2 preset work.
 
 ## State as of close (Session 1)
 
@@ -51,9 +55,13 @@ created the live scaffolding. Verified state directly: store schema, embed direc
 
 ## Next priority
 
-1. Commit + (if authorized) push the workflow init.
-2. Run `/map` to generate `.claude/maps/`.
-3. Pick off a debt: install the commit gate and/or resolve the `docs/plan` reference.
+1. **Phase 2 — Intellisense `DaqFormat` preset + no-code mapping/compute layer.** Define the preset
+   from the Enbridge CSVs (15-col `_NN_`, Excel-serial `_00_LOGTIME`, per-unit `_05/06_PRESS_*` +
+   `_07/08_RATE_*`, stage totals `_11/12_*`, `_13_JOB_NUMBER`, `_14_MARKER`). Map columns → channels;
+   compute layer for aggregates the pump doesn't emit. **No parser edits** (axiom #2). Verify
+   `parser.DefaultConfig` (synthetic 4-channel) is replaced by config, not code.
+2. Consider `/forge go` for a dedicated `cementer-go-engineer` before substantial Phase 2 source churn.
+3. Pick off a debt: install the commit gate; resolve the `docs/plan` reference; README Go-version.
 
 ## File-modification inventory (this session)
 
