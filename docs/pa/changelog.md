@@ -32,5 +32,10 @@ the human-discoverable session narrative). Newest block on top.
   (2) Phase 2 **unblocked** — real DAQ format decoded into status.md.
   (3) ⚠ Plaintext credentials committed in the README — hygiene flag logged.
   (4) Parser-vs-real-format handling unverified.
-- **Tests:** not run this session (no source changed). **Git:** synced to `ddf8ada`; nothing committed
-  (no authorization); `pa.md` + `pa-base.md` + `docs/pa/**` + `docs/{deep-dives,changes}/` untracked.
+- **Committed + pushed** the workflow init (`e290b8d`).
+- **Deep-dive ran (R2)** on the storage+viz fork: 3 parallel sourced research agents (InfluxDB-on-Pi,
+  Grafana-printable-charts, SQLite-TS + single-binary-ops) → `docs/deep-dives/storage-and-viz-architecture-2026-06-12.md`.
+  Recommendation: **adopt (A) Go+SQLite+uPlot, retire (B) Influx/Grafana to dev bench** — pending user
+  ratification. Recorded INS-002.
+- **Tests:** not run this session (no source changed). **Git:** init pushed (`e290b8d`); DD doc + maps
+  pending commit.

@@ -41,12 +41,17 @@ to prove the hardware data flow end-to-end — and it does NOT match the cemente
 | DAQ feed | replay file / real serial | laptop CSV → USB → **ESP32** → UART2 → Pi |
 
 Collaborator's note: hardware flow "**Working!**"; "get proper DB in place and **serve it in whatever
-way you feel best**"; "**Customize UI and charting (collaborator handoff)**". Read most plausibly: the
-Python+InfluxDB+Grafana stack was a throwaway proof-of-concept, and the Go binary IS the
-productization handoff — but the DB choice is left **explicitly open**. **Do not resolve silently.**
-This is the storage-engine + visualization axiom (project fundamentally IS): surface as a deliberation
-point. The ESP32 rig (`csvToSerialSend.ino`, `send_csv.py`) is a reusable real-data injector
-regardless of which way the fork resolves — it feeds real CSV over serial into whatever ingests it.
+way you feel best**"; "**Customize UI and charting (collaborator handoff)**". The ESP32 rig
+(`csvToSerialSend.ino`, `send_csv.py`) is a reusable real-data injector regardless of which way the
+fork resolves — it feeds real CSV over serial into whatever ingests it.
+
+**→ DEEP-DIVE RAN (2026-06-12, R2):** [`docs/deep-dives/storage-and-viz-architecture-2026-06-12.md`](../deep-dives/storage-and-viz-architecture-2026-06-12.md).
+Sourced research converges: **adopt (A) Go single-binary + SQLite + custom uPlot UI; retire (B)
+Influx/Grafana to a dev/diagnostic bench.** Decisive axes (offline power-loss durability, the printable
+company-standard per-job chart, single-binary no-IT field ops, ARM footprint, multi-year longevity, fit
+to shipped code + axioms) all favor (A); (B)'s wins are off-centerpiece. **Status: recommendation
+PENDING USER RATIFICATION.** Engineering riders if ratified: explicit `synchronous=FULL` + commit
+cadence; retention/downsampling as scoped code; uPlot-at-high-DPI + print-CSS for the print artifact.
 
 ## Real DAQ format (decoded from `ddf8ada` CSVs)
 

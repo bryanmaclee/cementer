@@ -7,11 +7,10 @@
 
 ## Open questions (top of mind)
 
-- **⚠ MAJOR FORK (axiom-level, ≥R2):** collaborator commit `ddf8ada` shows a working **Python →
-  InfluxDB → Grafana** prototype that competes with this repo's **Go → SQLite → custom-vanilla-TS**
-  stack. DB choice left explicitly open ("serve it whatever way you feel best"). Resolve as a
-  deliberation point — see status.md "MAJOR FORK". Most plausible read: Influx/Grafana was throwaway
-  PoC; the Go binary is the productization handoff — but confirm with the user.
+- **⚠ MAJOR FORK — DD ran, awaiting ratification.** `docs/deep-dives/storage-and-viz-architecture-2026-06-12.md`
+  (R2, sourced). Recommendation: **adopt (A) Go+SQLite+uPlot; retire (B) Influx/Grafana to a dev
+  bench.** PENDING USER RATIFICATION. If ratified, fold in the engineering riders (explicit
+  `synchronous=FULL`, retention-as-code, uPlot-print-CSS) and mark (B) superseded.
 - **Forge `cementer-go-engineer`?** No dedicated Go dev-agent exists; interim canonical = `general-purpose`
   (worktree-isolated, `model: opus`). Decide whether to `/forge go` now or wait for source churn.
 - **`docs/plan` debt:** create the file or fix the `main.go` / README references? (See status.md.)
