@@ -55,3 +55,33 @@ install Go on this machine + cross-compile to ARM64.)_
 _(Bench-top validation verified on both serial paths before logging, per the hold above. Cross-machine
 concern → wrote the FIELD RUNBOOK into hand-off.md + committed/pushed so the field laptop picks up via
 `git pull`.)_
+
+---
+
+## Session 3 — 2026-06-14
+
+> read pa.md and readme.md and start session
+
+> leave it pending for now
+
+_(Re: the uncommitted Session-2→3 hand-off rotation. Left uncommitted, not authorized to commit.)_
+
+> field-trip for raw-data
+
+> COM6; data interval 1/4 sec; Protocol 1;
+
+> 9600 baud; parity enabled N; odd parity: n
+
+> For simplicities sake, I would like to plug the raw-data USB adapter directly to the laptop and have you look at it directly. How can we make that work?
+
+> Note: we are going to test two DAQs, 1st is the Totco system & 2nd will be the Intellisense
+
+_(Pivot to direct-laptop serial capture — no Pi/Go/build. Confirmed Totco = COM6, 9600 8N1, Protocol 1,
+1/4-sec interval. Two DAQs to capture: Totco then Intellisense → defines both Phase-2 presets.)_
+
+> try again
+
+> I am out of time for today, so I will have to try again next time
+
+_(Session paused mid-diagnostic. BLOCKER: total silence on COM6 across all bauds → physical/electrical,
+not settings. Exact next steps captured in hand-off.md.)_

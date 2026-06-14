@@ -54,6 +54,11 @@ Build provenance: Go 1.26.4 on the garage desktop; web `dist/` stubbed (Node 18 
   the Pi + RS-232→USB adapter in hand, field runbook ready in `hand-off.md`. Canonical dev agent
   **`cementer-go-engineer` active**. **Next: dispatch the engine+preset build (agent) + obtain the
   real-DAQ capture in the field.**
+  **D4 status (2026-06-14):** approach pivoted to **direct-laptop serial capture** (adapter → laptop,
+  read via `tools/serial-read.ps1`; no Pi/Go/build). **Two** DAQs to capture: Totco then Intellisense →
+  both Phase-2 presets. Totco confirmed COM6 / 9600 8N1 / Protocol 1 / 250 ms. **BLOCKED:** total
+  silence on COM6 at every baud → physical/electrical (null-modem cable? DAQ not transmitting? adapter?),
+  NOT a settings issue. Resume steps in `hand-off.md` (loopback self-test → cable → DAQ output).
 
 ## ✅ RESOLVED FORK — storage engine + viz (RATIFIED 2026-06-12)
 
