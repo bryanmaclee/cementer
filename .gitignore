@@ -1,5 +1,6 @@
 # Go binary
 /cementer
+/cementer-arm64
 
 # Runtime data (durable store + raw logs) — never commit
 /data/

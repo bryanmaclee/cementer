@@ -5,6 +5,40 @@ the human-discoverable session narrative). Newest block on top.
 
 ---
 
+## 2026-06-13 — Session 2 · bench-top hardware validation (Go+SQLite Pi stack)
+
+- **Machine:** Peter's garage desktop (Windows). FULL profile read (pa.md + pa-base.md + data-model.md +
+  README + status + hand-off + user-voice + git-sync); rotated S1 hand-off → `archive/hand-off-2026-06-12.md`.
+- **Goal (user):** deploy Bryan's Go binary to the Pi 4B to bench-test the hardware before driving to the
+  real DAQ unit.
+- **Built the Pi binary on the desktop:** installed **Go 1.26.4** (`winget GoLang.Go`); Node 18.12.1 too
+  old for Vite ^8 → **stubbed `web/dist/index.html`** (gitignored) to satisfy `//go:embed all:web/dist`
+  (Rule-3 shortcut, surfaced — UI placeholder is fine for a hardware test). Cross-compiled
+  `CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o cementer-arm64 ./cmd/cementer` → 14.8 MB static
+  aarch64 ELF (verified via `file`). `scp`'d to `serial123@10.0.0.105`.
+- **Verified against CODE, not README:** `-addr` default `:8080` (README said `:80`); raw log =
+  `<data-dir>/raw-<ts>.log` (appended before parse); endpoints `/ws/live`, `/debug/stats`, `/`; Go 1.26.4
+  required (README said 1.22+); `serialreader` hard-wired **8N1**, only baud is a flag.
+- **✅ BENCH-TOP PASS (both serial paths)** on `CementSerial` (10.0.0.105), topology laptop `send_csv.py`
+  → ESP32 (`csvToSerialSend`) → [path] → Pi `cementer`, **simulated transport** (recorded Enbridge CSV):
+  - **GPIO UART** (`/dev/serial0`→`ttyS0` @115200): raw log filled (15-col lines), SQLite WAL 2.24 MB,
+    `/debug/stats` → **2,812 rows**, HTTP 200 from the laptop.
+  - **CP2102 USB adapter** (`/dev/ttyUSB0`, by-id @115200): fresh `~/cementer-usbtest` db → **4,404 rows**.
+    This is the exact Pi-side path the real RS-232→USB adapter will use.
+- **Debug recovered:** "Pi not capturing" was a false alarm — `cementer` is silent on stdout, capture
+  shows in the raw log / `/debug/stats` (logged under hand-off anomalies).
+- **Scope boundaries stated honestly (user-aligned):** transport/plumbing/columns = REAL; **wire contract
+  + channel semantics still UNPROVEN** → real DAQ (Phase 2 D4 / no-code mapping). User held logging until
+  results were verified ("don't convolute the logs with maybes") — honored; logged only after both passes.
+- **Authored the ⚡ FIELD RUNBOOK** in `hand-off.md` (cold-start DAQ procedure + gotchas: get DAQ serial
+  settings before driving, 8N1-only limitation, by-id paths, silent-stdout) so the field LAPTOP (different
+  machine) can execute via `git pull`.
+- **Hygiene:** added `/cementer-arm64` to `.gitignore` (build artifact was untracked-but-not-ignored).
+- **No source code changed** (docs + a cross-compile only). **Committed + pushed** to `origin/main` (user
+  authorized: "go ahead and push it").
+
+---
+
 ## 2026-06-12 — Session 1 · PA workflow init
 
 - Read `pa-base.md` (`pa-base v1`) in full + surveyed the real project state.

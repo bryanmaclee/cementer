@@ -1,6 +1,6 @@
 ---
 status: current
-last-reviewed: 2026-06-12
+last-reviewed: 2026-06-13
 ---
 
 # cementer — live status (the SoT)
@@ -23,15 +23,37 @@ prose — but keep this doc honest at every wrap._
 | 3 | Job CRUD + recording segments + Pump Profile CRUD + hello/profile message + scope-grouped display | ⬜ **NOT STARTED** | no job/profile/segment tables; no auth. Includes **retention/downsampling-as-code** (DD rider #3) |
 | 4 | uPlot charting (two config scopes) + printing (company default + per-job overrides) | ⬜ **NOT STARTED** | print artifact = uPlot-at-high-DPI + print-CSS (not a dashboard export) |
 
+## ✅ Bench-top stack validation — VERIFIED 2026-06-13 (Peter, on `CementSerial` / 10.0.0.105)
+
+The Go+SQLite Pi stack is proven on **both** serial-ingress paths, single static aarch64 binary, no
+recompile to switch source (only the `-serial` flag). Topology = laptop `send_csv.py` → ESP32
+(`csvToSerialSend`) → [GPIO UART **or** CP2102 USB] → Pi `cementer`. **Simulated transport** (recorded
+Enbridge CSV, not a live DAQ).
+
+| Ingress | Device | rows | result |
+|---|---|---|---|
+| GPIO UART | `/dev/serial0`→`ttyS0` @115200 | 2,812 | ✅ raw log + SQLite WAL + `/debug/stats` 200 |
+| USB adapter | CP2102→`/dev/ttyUSB0` (by-id) @115200 | 4,404 | ✅ fresh `~/cementer-usbtest` db |
+
+**Proven:** serial RX, raw-log durability (L1), SQLite commit (L2), HTTP/WS serve across LAN, aarch64
+binary. **NOT proven (still open):** real-DAQ **wire contract** (framing/timing/serial params — only
+confirmed at the unit, this is the Phase 2 **D4** item) and **channel semantics** (4-col parser vs 15-col
+format → Phase 2 no-code mapping). Field runbook + gotchas live in `hand-off.md` (⚡ FIELD RUNBOOK).
+Build provenance: Go 1.26.4 on the garage desktop; web `dist/` stubbed (Node 18 < Vite 8); cross-compiled
+`GOOS=linux GOARCH=arm64`; binary on the Pi (gitignored, not in repo).
+
 ## In-flight
 
 - **Phase 2 SCOPED + decisions locked; build GATED.** [`scope.md`](../changes/phase2-intellisense-daqformat/scope.md).
   Generic `internal/daqformat` engine + Intellisense preset + minimal channel set; model/store already
   fit (no change). Decisions: D1 new package · D2 embedded LOGTIME (+server fallback) · D3 map `meta.*`
   now / semantics Phase 3 · **D4 GATE: get a live-serial capture before "done"**
-  ([capture request](../changes/phase2-intellisense-daqformat/live-serial-capture-request.md) — relay
-  to collaborator). Canonical dev agent **`cementer-go-engineer` forged** (effective NEXT session).
-  **Next: dispatch the engine+preset build (via the new agent next session) + obtain the live capture.**
+  ([capture request](../changes/phase2-intellisense-daqformat/live-serial-capture-request.md)).
+  **D4 status (2026-06-13):** bench-top capture DONE but **simulated transport** (ESP32-replayed CSV — see
+  bench-validation block above); the **real-DAQ wire capture is still pending** — collaborator Peter has
+  the Pi + RS-232→USB adapter in hand, field runbook ready in `hand-off.md`. Canonical dev agent
+  **`cementer-go-engineer` active**. **Next: dispatch the engine+preset build (agent) + obtain the
+  real-DAQ capture in the field.**
 
 ## ✅ RESOLVED FORK — storage engine + viz (RATIFIED 2026-06-12)
 
