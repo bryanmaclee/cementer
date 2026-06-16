@@ -5,6 +5,78 @@ the human-discoverable session narrative). Newest block on top.
 
 ---
 
+## 2026-06-16 — Session 4 · Intellisense DAQ live wire captured (D4 CLOSED for Intellisense)
+
+- **Machine:** field LAPTOP (Windows, this checkout). FULL profile read (pa.md + pa-base.md +
+  data-model.md + README + status + hand-off + full user-voice + git-sync). Skipped the deep `internal/*`
+  package-doc reads — not load-bearing for a direct-laptop serial arc (no Go pipeline involved).
+- **Start-state correction:** the Session-3 hand-off header said "PAUSED, uncommitted, nothing committed
+  this session," but git showed commit `04ba031` had in fact committed + pushed Session-3's work (origin
+  = local, 0/0). The only dirty file was an uncommitted Session-3 changelog block (accurate; folded in
+  here). Verified against git STATE, not the hand-off narrative.
+- **Goal (user):** capture real raw-data from the **Intellisense** DAQ (Totco deferred — not accessible).
+  Different rig from the Session-3 Totco attempt: **Prolific PL2303GT adapter on COM7**.
+- **Found the wire contract empirically:** first read @ 9600 8N1 → 43% printable (garbage); a printable-
+  ratio baud sweep found **19200 8N1 → 100%**. Format = comma-delimited, **no header**, **14 fields**,
+  `<CR><LF>`, ~1 line/s, timestamp = **`HH:MM:SS` uptime** (resets to `00:00:00` on power-up).
+- **No header from the unit** — confirmed on both a record pause/unpause and a full power-cycle. Mapping
+  is therefore empirical.
+- **Mapped columns by actuating the rig** (per-action captures, comparing which column moved):
+  - rate → cols 3 & 7; volume totals → cols 4 (job) & 12 (stage); both pairs track together (1 unit).
+  - pressure → col 5 (unit 1, 0→1306 on slow valve close); **col 2 = aggregate = sum(col 5, col 6)**
+    proven (col 6 flat, no 2nd unit) — confirms the user's hypothesis + the data-model aggregate concept.
+  - **density → col 1 = 8.21, matching the unit's own interface readout** (ground truth).
+  - water rate (col 9) never moved — this pump has no flow meter (user-confirmed).
+  - 6 flat columns (6, 8, 9, 10, 11, 13) all explained by this 1-unit / no-backup-density / no-flow-meter
+    rig; identities fixed by the column order, which matches the earlier-decoded Enbridge CSV.
+- **Corrected an earlier call:** the live wire differs from the 15-col Enbridge **CSV** in *framing*
+  (HH:MM:SS vs Excel-serial, no header, 14 vs 15 cols) but the **column order/semantics match** — the CSV
+  is a valid identity guide; the preset to build is the live 14-col one.
+- **Parser note for Phase 2:** power interruption produced a torn `?,,,,...` fragment → the parser must
+  skip non-14-field lines (raw log keeps the bytes; structured store drops the bad line).
+- **Banked:** new findings doc `docs/changes/phase2-intellisense-daqformat/intellisense-wire-capture-2026-06-16.md`
+  (full map + Phase-2-ready DaqFormat preset); updated `status.md` (D4 closed for Intellisense, phase
+  board, real-format section), `data-model.md` (preset now from real wire), `user-voice.md` (Session 4),
+  hand-off. **10 raw `.bin` captures committed under `captures/`** (not gitignored → travel as provenance).
+- **No source code changed** (docs + captures only). **D4 wire-contract gate CLOSED for Intellisense;**
+  Phase 2 (`internal/daqformat` engine + Intellisense preset) is now fully unblocked. **Totco preset
+  still TODO** (unit not accessible this trip). **Push pending** — user pushes via GitHub Desktop (GCM
+  hang).
+
+---
+
+## 2026-06-14 — Session 3 · direct-laptop serial capture pivot + Totco diagnostic (BLOCKED, physical)
+
+- **Machine:** field LAPTOP (Windows, this checkout). FULL profile read (pa.md + pa-base.md +
+  data-model.md + README + status + hand-off + full user-voice + package docs + git-sync). Found a prior
+  Session-3 start (2026-06-13) had rotated the hand-off (S2 snapshot → `archive/hand-off-2026-06-13.md`)
+  but never committed it; verified the archive == committed S2 hand-off (pure CRLF/LF diff). Continued as
+  Session 3 rather than re-rotating.
+- **Goal (user):** capture the real DAQ raw-data feed. **Pivot:** plug the RS-232→USB adapter **directly
+  into the laptop** and read the wire there — no Pi, no Go build, no Node (D4 = wire contract; a raw byte
+  capture is the purest form). **Two DAQs to capture: Totco first, then Intellisense** → defines BOTH
+  Phase-2 presets.
+- **Verified the field runbook's serial claims against live code** before driving: `serialreader.
+  DefaultConfig` = 9600 8N1; `buildSource` overrides only `BaudRate`; `bufio.ScanLines` handles `\n`/`\r\n`
+  but not bare-`\r`. The `Config` struct already has DataBits/Parity/StopBits fields (unwired) → exposing
+  flags is small, not a refactor.
+- **Tooling:** added `tools/serial-read.ps1` (PowerShell `System.IO.Ports.SerialPort`; `-Sweep`,
+  `-Loopback`, normal read → hex/ASCII dump + `captures/*.bin`).
+- **Totco settings (from the DAQ config screen):** COM6 · 9600 8N1 (parity off) · Protocol 1 · 250 ms.
+- **⛔ BLOCKED — total silence on COM6.** 0 bytes at 9600 8N1 (±DTR/RTS), and **0 bytes across a full baud
+  sweep 2400→115200**. Wrong baud yields *garbage*, not silence → diagnosed as **physical/electrical, not
+  settings**: straight-through cable between two DTE ends (needs null-modem), or DAQ not transmitting, or
+  adapter fault. Modem lines CD/CTS/DSR all low throughout. Active loopback returned nothing (adapter not
+  jumpered → inconclusive about the adapter itself).
+- **Resume steps recorded** in hand-off (loopback self-test → null-modem cable → confirm Totco actually
+  streaming → capture Totco then Intellisense). **D4 still OPEN.**
+- **No source code changed** (docs + the PS tool only). **Committed + pushed** `04ba031` to `origin/main`
+  (user authorized "commit and push it"). Push hung on Git Credential Manager (interactive auth); user
+  completed it via the **GitHub Desktop app**; stuck `git-credential-manager`/`git-remote-https` procs
+  killed. Recorded the GCM-hang as a persistent memory.
+
+---
+
 ## 2026-06-13 — Session 2 · bench-top hardware validation (Go+SQLite Pi stack)
 
 - **Machine:** Peter's garage desktop (Windows). FULL profile read (pa.md + pa-base.md + data-model.md +

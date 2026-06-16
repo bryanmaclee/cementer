@@ -95,8 +95,10 @@ ComputedChannel {
 - **Compute layer** (sum / scale / offset, configured in the UI — still no-code) covers
   pumps that *don't* emit aggregates: `agg.rate = sum(unit1.rate, unit2.rate)`, etc.
 - Presets (Intellisense, MD Totco) ship as starting templates the cementer can clone and
-  adjust. **The Intellisense preset will be defined from a real CSV** (incoming) — until
-  then we stay format-agnostic and define nothing concrete.
+  adjust. **The Intellisense preset is now defined from real wire data** (captured 2026-06-16
+  off a live unit — 19200 8N1, 14 columns, no header, `HH:MM:SS`-uptime timestamp; column map
+  empirically confirmed): see `docs/changes/phase2-intellisense-daqformat/intellisense-wire-capture-2026-06-16.md`.
+  The **MD Totco** preset is still undefined (unit not yet accessible) — stay format-agnostic for it.
 
 **Durability is unaffected by format changes:** the Pi appends every raw line to the raw
 log *before* any mapping. A wrong or edited mapping only re-interprets data; it never

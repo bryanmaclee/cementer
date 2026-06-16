@@ -85,3 +85,43 @@ _(Pivot to direct-laptop serial capture — no Pi/Go/build. Confirmed Totco = CO
 
 _(Session paused mid-diagnostic. BLOCKER: total silence on COM6 across all bauds → physical/electrical,
 not settings. Exact next steps captured in hand-off.md.)_
+
+---
+
+## Session 4 — 2026-06-16
+
+> read pa.md and start session
+
+> This test is going to be raw-data from the Intellisense Dag unit through COM7
+
+> pretty confident that it is 9600 baup, not confirmed though. I do not have the Data / Parity / Stop info available like the Totco. The unit is active now and should be sending data. We can start with 9600 baud and do a sweep if that doesn't work. It is a different cable/adapter. Let's try it!
+
+> The truck is idle. I can try to pause and unpause the recording. hopefully that will give a header. Also, I can get the rate to move and I can toggle the density on/off which will jump to certain values and back down. but without having fluid on the unit, I cannot go through all tests, like pressure.
+
+> I am going to put water on the pump and get the rest if possible. it will take some time
+
+> I want to try to toggle the whole daq unit off/on and see if a header presents itself
+
+> hold off, let me fill water, then test again through remaining list.
+
+> this particular pumping unit only has 1 fluid pressure pump on it no backup density. there will be no way to test these. many of these systems do, so it is important to account for them in the future, but for now we can only do col 1, col 2, and maybe 9. we'll see if col 5 or col 6 respond. I believe col 2 would be for the total of col 5 & 6. We shall see what you come up with. The pump is still filling with water.
+
+> go, water is on the pump unit.
+
+> I will be pumping water and slowly close the valve to create pressure, then let off
+
+> I didn't want to do too many things at once. preesure is good, so now we will do density. This should read +/- 8.33 by a tenth or so. I will to water rate just before I kick density on
+
+> I don't think this pump has a flow meter for the water rate. but density on interface is reading 8.21
+
+> bank it now, Totco isn't accessible today. we can move forward with project without totco for now
+
+_(Captured the live **Intellisense** wire off a real unit via direct-laptop serial — **19200 8N1**, 14
+columns, no header, `HH:MM:SS`-uptime timestamp. Empirically confirmed 8/14 columns by actuating the rig:
+density (col 1 = 8.21, matched the unit's own interface), pressure (col 5 unit-1 0→1306, **col 2 aggregate
+= sum(col 5, col 6)** proven per the user's hypothesis), rate (cols 3/7), volume totals (cols 4/12). The
+6 flat columns are explained by this rig's hardware (1 unit, no backup density, no water flow meter) —
+the format keeps them for multi-unit rigs. **D4 wire-contract gate CLOSED for Intellisense.** Totco
+deferred (not accessible). Findings + Phase-2-ready preset banked in
+`docs/changes/phase2-intellisense-daqformat/intellisense-wire-capture-2026-06-16.md`; raw captures under
+`captures/`.)_

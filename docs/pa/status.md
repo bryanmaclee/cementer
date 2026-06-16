@@ -1,6 +1,6 @@
 ---
 status: current
-last-reviewed: 2026-06-13
+last-reviewed: 2026-06-16
 ---
 
 # cementer — live status (the SoT)
@@ -19,7 +19,7 @@ prose — but keep this doc honest at every wrap._
 | P1 | Durable ingest → WS → dark-mode readout | ✅ **DONE** | `cmd/cementer/main.go` wires source→rawlog→parser→store→hub→WS + embedded SPA; `internal/store` SQLite WAL single-writer |
 | 1 | Config-driven dynamic channels + theme + storage env | ✅ **DONE** | store `samples` keyed by `channel`; `web/src/theme.ts`; `-data-dir`/`$CEMENTER_DATA_DIR` in `main.go` |
 | — | Recording start/stop model | 🟡 **DESIGNED, not built** | `data-model.md` § Recording (commit 94f02b6); **no `recording_segments` table** — store has only `samples` |
-| 2 | **Intellisense** `DaqFormat` preset + format mechanism (mapping + compute) | 🟢 **UNBLOCKED** | format = **Intellisense** (ratified); define the preset from the 15-column Enbridge CSVs (`ddf8ada`), decoded below. Mechanism still unbuilt |
+| 2 | **Intellisense** `DaqFormat` preset + format mechanism (mapping + compute) | 🟢 **UNBLOCKED · wire captured** | **D4 wire contract CLOSED for Intellisense (real DAQ, 2026-06-16)**: 19200 8N1, 14-col, no header — preset characterized in [`intellisense-wire-capture-2026-06-16.md`](../changes/phase2-intellisense-daqformat/intellisense-wire-capture-2026-06-16.md). Mechanism still unbuilt. Totco preset still TODO (unit not accessible) |
 | 3 | Job CRUD + recording segments + Pump Profile CRUD + hello/profile message + scope-grouped display | ⬜ **NOT STARTED** | no job/profile/segment tables; no auth. Includes **retention/downsampling-as-code** (DD rider #3) |
 | 4 | uPlot charting (two config scopes) + printing (company default + per-job overrides) | ⬜ **NOT STARTED** | print artifact = uPlot-at-high-DPI + print-CSS (not a dashboard export) |
 
@@ -59,6 +59,14 @@ Build provenance: Go 1.26.4 on the garage desktop; web `dist/` stubbed (Node 18 
   both Phase-2 presets. Totco confirmed COM6 / 9600 8N1 / Protocol 1 / 250 ms. **BLOCKED:** total
   silence on COM6 at every baud → physical/electrical (null-modem cable? DAQ not transmitting? adapter?),
   NOT a settings issue. Resume steps in `hand-off.md` (loopback self-test → cable → DAQ output).
+  **D4 status (2026-06-16): ✅ CLOSED for Intellisense.** Captured the **Intellisense** unit live off a
+  different rig (Prolific PL2303GT, COM7) — **19200 8N1, 14-col, no header, `HH:MM:SS`-uptime timestamp**.
+  Empirically confirmed 8 of 14 columns by actuating the rig (density 8.21 = unit interface, pressure
+  unit1 0→1306 with `agg.pressure = sum(unit pressures)` proven, rate + volume totals); the 6 flat
+  columns are explained (1-unit rig, no backup density, no flow meter, idle). Full characterization +
+  Phase-2-ready preset: [`intellisense-wire-capture-2026-06-16.md`](../changes/phase2-intellisense-daqformat/intellisense-wire-capture-2026-06-16.md);
+  raw `.bin` captures committed under `captures/`. **Totco unit was not accessible — its preset is still
+  TODO** (same method when reachable). Phase 2 can proceed on Intellisense alone.
 
 ## ✅ RESOLVED FORK — storage engine + viz (RATIFIED 2026-06-12)
 
@@ -101,6 +109,14 @@ This is a **real DaqFormat** to define against (data-model.md said the preset wo
 CSV — incoming"). It is NOT confirmed to be "Intellisense" — it's this Enbridge job's format; classify
 the preset name with the user. Files: `esp32sketches/EnbridgeCC4-16-CICR@344.csv` (2.5k rows),
 `@3250.csv` (8.7k), `Shoe344.csv` (14.4k).
+
+**UPDATE 2026-06-16 — live Intellisense wire captured; framing differs, column order matches.** The
+*live wire* off a real Intellisense unit (see [`intellisense-wire-capture-2026-06-16.md`](../changes/phase2-intellisense-daqformat/intellisense-wire-capture-2026-06-16.md))
+is **14 columns, no header, `HH:MM:SS`-uptime timestamp** — NOT the 15-column, headered, Excel-serial CSV
+above. The CSV was a *file export*, the wire is its own shape (textbook corpus-is-artifact). BUT the
+**column order/semantics line up**: actuating the rig confirmed density(1), pressure(2 agg = 5+6, 5
+unit1), rate(3 agg, 7 unit1), volume(4 job, 12 stage). So the CSV is a valid identity guide for the
+idle-zero columns; the **preset to build is the live 14-col one**, not the CSV.
 
 ## Design ↔ code deltas (tracked TODOs)
 
