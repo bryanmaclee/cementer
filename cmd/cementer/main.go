@@ -4,7 +4,8 @@
 // fans the committed readings out to browser clients over WebSocket. It also
 // serves the embedded dark-mode web client.
 //
-// Pipeline (see docs/plan): source -> rawlog -> parser -> store -> (post-commit) hub.
+// Pipeline (see docs/design/data-model.md): source -> rawlog -> daqformat engine
+// -> store -> (post-commit) hub.
 package main
 
 import (
@@ -24,9 +25,9 @@ import (
 	"time"
 
 	cementer "github.com/bryanmaclee/cementer"
+	"github.com/bryanmaclee/cementer/internal/daqformat"
 	"github.com/bryanmaclee/cementer/internal/hub"
 	"github.com/bryanmaclee/cementer/internal/model"
-	"github.com/bryanmaclee/cementer/internal/parser"
 	"github.com/bryanmaclee/cementer/internal/rawlog"
 	"github.com/bryanmaclee/cementer/internal/serialreader"
 	"github.com/bryanmaclee/cementer/internal/source"
@@ -51,11 +52,17 @@ func run() error {
 		replayLoop     = flag.Bool("replay-loop", true, "loop the replay file when exhausted")
 		dataDir        = flag.String("data-dir", "", "directory for the SQLite DB and raw logs (default $CEMENTER_DATA_DIR or ./data)")
 		batchInterval  = flag.Duration("batch-interval", 250*time.Millisecond, "SQLite commit / live-broadcast cadence")
+		formatID       = flag.String("format", "intellisense", "DAQ format preset: intellisense | synthetic")
 	)
 	flag.Parse()
 
 	if *serialPort == "" && *replayPath == "" {
 		return errors.New("provide -serial <device> or -source <replay-file>")
+	}
+
+	format, err := resolveFormat(*formatID)
+	if err != nil {
+		return err
 	}
 
 	// Storage location is trivially flippable: -data-dir, else $CEMENTER_DATA_DIR,
@@ -102,15 +109,16 @@ func run() error {
 		return fmt.Errorf("open raw log: %w", err)
 	}
 
-	p := parser.New(parser.DefaultConfig())
+	eng := daqformat.New(format)
 
 	// handleLine is the head of the pipeline: capture raw bytes first (so nothing
-	// is ever lost), then parse and submit for durable storage.
+	// is ever lost), then map the line through the (config-driven) format engine
+	// and submit for durable storage. Raw capture is never gated on the parse.
 	handleLine := func(line []byte) {
 		if err := rl.Append(line); err != nil {
 			log.Printf("rawlog append: %v", err)
 		}
-		if r, ok := p.Parse(line, time.Now()); ok {
+		if r, ok := eng.Apply(line, time.Now()); ok {
 			st.Submit(r)
 		}
 	}
@@ -142,7 +150,7 @@ func run() error {
 
 	srv := &http.Server{Addr: *addr, Handler: mux}
 	go func() {
-		log.Printf("cementer listening on %s  (source: %s, db: %s, raw: %s)", *addr, srcDesc, dbPath, rawPath)
+		log.Printf("cementer listening on %s  (format: %s, source: %s, db: %s, raw: %s)", *addr, format.ID, srcDesc, dbPath, rawPath)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Printf("http server: %v", err)
 			stop()
@@ -168,6 +176,19 @@ func run() error {
 	}
 	log.Printf("bye")
 	return nil
+}
+
+// resolveFormat maps a -format preset id to its DaqFormat. Adapting to a new pump
+// format is configuration (a new preset value), not a code edit elsewhere.
+func resolveFormat(id string) (daqformat.DaqFormat, error) {
+	switch id {
+	case "intellisense":
+		return daqformat.Intellisense(), nil
+	case "synthetic":
+		return daqformat.Synthetic(), nil
+	default:
+		return daqformat.DaqFormat{}, fmt.Errorf("unknown -format %q (want: intellisense | synthetic)", id)
+	}
 }
 
 func buildSource(serialPort string, baud int, replayPath string, interval time.Duration, loop bool) (source.LineSource, string, error) {

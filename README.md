@@ -13,7 +13,7 @@ centerpiece of the project.
 ```
 pump ──RS232──►[USB adapter]──► Pi: cementer
                                    source ─► rawlog (append-only, durability layer 1)
-                                          ─► parser ─► store (SQLite WAL, layer 2)
+                                          ─► daqformat engine ─► store (SQLite WAL, layer 2)
                                                         └─ after commit ─► hub ─► WebSocket clients
                                    + serves the embedded dark-mode web client
 ```
@@ -31,7 +31,8 @@ lost on a multi-hour job. See `docs`/the plan for detail.
 | `internal/source/` | `LineSource` interface + replay (dev) source |
 | `internal/serialreader/` | production serial source (`go.bug.st/serial`) |
 | `internal/rawlog/` | append-only raw capture (durability layer 1) |
-| `internal/parser/` | ASCII line → `Reading` — **the only protocol-specific code** |
+| `internal/daqformat/` | generic, **config-driven** mapping + compute engine — a new pump format is a `DaqFormat` value (data), not code. Ships the Intellisense + synthetic presets |
+| `internal/parser/` | Phase-1 positional ASCII→`Reading` parser (superseded by `daqformat`; off the main path, kept for its tests) |
 | `internal/store/` | SQLite (modernc, pure-Go) single-writer (durability layer 2) |
 | `internal/hub/` | WebSocket fan-out (drops slow clients) |
 | `web/` | vanilla TS + Vite client (dark mode); built into `web/dist`, embedded |
@@ -51,15 +52,18 @@ make run                                # runs against the synthetic replay stre
 Run manually:
 
 ```sh
-# development (no pump): replay a captured/synthetic file
-./cementer -source testdata/sample-stream.txt -replay-interval 250ms
+# development (no pump): replay the synthetic 4-channel file
+./cementer -source testdata/sample-stream.txt -format synthetic -replay-interval 250ms
+
+# replay a real Intellisense wire capture (14-col, 19200 8N1)
+./cementer -source captures/capture-2026-06-16T161347-19200-8N1-pressure.bin -format intellisense
 
 # production (real pump on the Pi): a STABLE serial path, data on an SSD
-./cementer -serial /dev/serial/by-id/XXXX -baud 9600 -data-dir /mnt/ssd/cementer-data -addr :80
+./cementer -serial /dev/serial/by-id/XXXX -baud 19200 -format intellisense -data-dir /mnt/ssd/cementer-data -addr :80
 ```
 
-Key flags: `-serial` / `-source` (one required), `-baud`, `-replay-interval`,
-`-replay-loop`, `-data-dir`, `-batch-interval`, `-addr`.
+Key flags: `-serial` / `-source` (one required), `-baud`, `-format` (`intellisense` (default)
+| `synthetic`), `-replay-interval`, `-replay-loop`, `-data-dir`, `-batch-interval`, `-addr`.
 
 **Storage location is trivially flippable** between the Pi's built-in storage (dev)
 and an SSD (prod): `-data-dir`, else `$CEMENTER_DATA_DIR`, else `./data`. One value.
