@@ -1,51 +1,74 @@
 # api.map.md
 # project: cementer
-# updated: 2026-06-12T09:02:13-06:00  commit: ee446c3
+# updated: 2026-06-19T23:05:55Z  commit: 1465bd9
 
-All routes are registered on a single net/http ServeMux in cmd/cementer/main.go (no router library, no internal/api package). Method-prefixed patterns (Go 1.22+ ServeMux).
+All REST routes are registered by `api.API.Register(mux)` [internal/api/api.go:34]; WS and debug routes are registered directly in `cmd/cementer/main.go`. Go 1.22+ method-pattern ServeMux. No router library.
 
-## HTTP Endpoints
-GET /ws/live   [cmd/cementer/main.go:137 → serveWS]
-  Handler: serveWS(h) — upgrades to WebSocket (gorilla/websocket), registers a hub.Subscriber(256), starts writePump + readPump.
-  Auth: none (CheckOrigin returns true — LAN deployment; tighten when network posture changes)
-  Direction: server→client only; clients send nothing meaningful (readPump just detects disconnect).
-  Message shape (text frame): wsEnvelope { type: "reading", reading: Reading }
-  Ping/pong: server pings every 54s (pingPeriod), pongWait 60s, writeWait 10s, ReadLimit 4096.
+## WebSocket Endpoint
+| Route       | Handler    | Notes                                                                              |
+|-------------|------------|------------------------------------------------------------------------------------|
+| GET /ws/live| serveWS()  | Upgrades to WebSocket; sends hello/profile frame (enabled channels only) on connect BEFORE entering live read loop; registers hub.Subscriber(256). Ping every 54s, pongWait 60s, writeWait 10s, ReadLimit 4096. Auth: none (LAN). |
 
-GET /debug/stats   [main.go:138 → serveStats]
-  Handler: serveStats(st) — JSON snapshot from store.Stats()
-  Auth: none
-  Response: 200 application/json { rows: int64, latest_ts: RFC3339 } | 500 on error
+WebSocket frames are JSON `wsEnvelope { type, reading?, profile? }`:
+- `type: "profile"` — sent once per connection (and after reconnect): `{ type: "profile", profile: Profile }`.
+- `type: "reading"` — each committed batch reading: `{ type: "reading", reading: Reading }`.
 
-GET /   (and all unmatched paths)   [main.go:139 → mountSPA / spaFallback]
-  Handler: serves embedded web/dist via http.FileServerFS; unknown paths fall back to index.html (SPA routing, forward-looking).
-  Auth: none
-  Response: static assets (index.html, hashed JS/CSS)
+## REST Endpoints — Profile  [internal/api/api.go]
+| Method | Path                | Handler         | Notes                                                                     |
+|--------|---------------------|-----------------|---------------------------------------------------------------------------|
+| GET    | /api/profile        | getProfile      | Returns ALL channels (enabled + disabled) as EditorProfile. 404 if no active profile. |
+| PUT    | /api/profile        | putProfile      | Body: `{ units?: int, channels: [{id, enabled?, label?, uom?, decimals?, sortOrder?}] }`. Patches only sent fields. 400 on unknown channel id or out-of-range decimals. Returns refreshed EditorProfile. |
+| POST   | /api/profile/reset  | resetProfile    | Replaces active profile's channels with the active format's default vocab (all enabled, sort_order = preset order). Returns refreshed EditorProfile. |
 
-## Parser contract (ASCII line → Reading)  [internal/parser/parser.go]
-The wire-protocol boundary. parser.Parse(line []byte, ts time.Time) (model.Reading, ok bool):
-  - Trim line; skip if empty or starts with "#" (comment) → ok=false
-  - Split on cfg.Delimiter (default ","); for field index i map to cfg.Channels[i] (skip name=="" or i out of range)
-  - ParseFloat each field; unparseable field is omitted (not fatal)
-  - If zero usable values → ok=false; else increment seq and return Reading{seq, ts, values}
-  DefaultConfig channels (current, dev): ["pressure","rate","density","volume"], delimiter ",".
-  Note: ts is the server clock today (model.Reading.TS comment); a wire timestamp column is not yet used.
+## REST Endpoints — Jobs  [internal/api/jobs.go]
+| Method | Path                | Handler         | Notes                                                                     |
+|--------|---------------------|-----------------|---------------------------------------------------------------------------|
+| GET    | /api/jobs           | listJobs        | Returns all jobs, newest first. Always 200 (empty array if none).         |
+| POST   | /api/jobs           | createJob       | Body: `jobDTO` (name required; rest optional). 201 + created job. 400 if name empty. |
+| GET    | /api/jobs/{id}      | getJob          | 200 + job or 404.                                                         |
+| PUT    | /api/jobs/{id}      | updateJob       | Body: `jobDTO`. 200 + updated job. 404 / 400.                             |
+| GET    | /api/job/active     | getActiveJob    | 200 + active job or `{"active": null}` when none.                         |
+| PUT    | /api/job/active     | setActiveJob    | Body: `{ id: int64 }`. Makes job active. 409 if a DIFFERENT job is currently recording (stop recording first). |
 
-## Client WS contract  [web/src/ws.ts, web/src/types.ts]
-connectLive(onReading, onStatus): opens ws(s)://<host>/ws/live, capped exponential backoff reconnect (1s→10s).
-  Parses each frame as WSEnvelope; dispatches onReading only when env.type === "reading" && env.reading.
-  Dev: Vite proxies /ws → ws://localhost:8080 so the client runs on Vite's dev server.
+## REST Endpoints — Recording  [internal/api/jobs.go]
+| Method | Path                          | Handler          | Notes                                                              |
+|--------|-------------------------------|------------------|--------------------------------------------------------------------|
+| GET    | /api/recording/state          | recordingState   | Returns `{ recording, openSegmentId?, jobId? }`.                   |
+| POST   | /api/recording/start          | startRecording   | Opens segment under active job. 201 + Segment. 400 if no active job. 409 (+ open segment body) if already recording. |
+| POST   | /api/recording/stop           | stopRecording    | Closes open segment. 200 + Segment. 409 if not recording.          |
+| GET    | /api/recording/segments       | listSegments     | Query: `?job_id=N` (required). Returns all segments for that job, oldest first. |
+| PUT    | /api/recording/segments/{id}  | adjustSegment    | Body: `{ startedAtUs?: int64, stoppedAtUs?: int64 }`. Nudges endpoints. 404 / 400 (bad range). Returns refreshed Segment. |
 
-## Not present
-No REST CRUD, no GraphQL, no gRPC. Job / pump-profile / recording endpoints are DESIGNED (data-model.md) but unbuilt. The "type" field in wsEnvelope reserves room for future message kinds (e.g. hello/profile, job updates).
+## REST Endpoints — Series  [internal/api/series.go]
+| Method | Path                      | Handler      | Notes                                                                                  |
+|--------|---------------------------|--------------|----------------------------------------------------------------------------------------|
+| GET    | /api/samples              | getSamples   | Query: `from=<us>&to=<us>[&channels=a,b,c][&max=N]`. from/to in unix-microseconds. Returns `{ series: { channelId: [[ts_us, value], ...] } }`. Default max=4000/channel, cap=20000. |
+| GET    | /api/jobs/{id}/series     | getJobSeries | Query: `[channels=...][&max=N]`. Returns `{ segments: Segment[], series: {...} }`. 404 if job not found. Only in-segment samples returned (gaps between segments stay gaps). |
+
+## Debug Endpoint  [cmd/cementer/main.go]
+| Method | Path            | Notes                                            |
+|--------|-----------------|--------------------------------------------------|
+| GET    | /debug/stats    | JSON `{ rows: int64, latest_ts: string }`. 500 on error. |
+
+## SPA Fallback  [cmd/cementer/main.go]
+| Method | Path  | Notes                                                    |
+|--------|-------|----------------------------------------------------------|
+| GET    | /     | Serves embedded `web/dist` via `http.FileServerFS`. Unknown paths fall back to `index.html`. |
+
+## Auth
+None. All endpoints are unauthenticated (LAN deployment; CheckOrigin returns true for WS).
+
+## Request discipline
+All POST/PUT handlers call `json.NewDecoder.DisallowUnknownFields()` — unknown fields are rejected with 400.
 
 ## Tags
-#cementer #map #api #websocket #http #parser-contract #servemux
+#cementer #map #api #websocket #http #servemux #profile #jobs #recording #series #rest
 
 ## Links
 - [primary.map.md](./primary.map.md)
-- [events.map.md](./events.map.md)
 - [schema.map.md](./schema.map.md)
+- [events.map.md](./events.map.md)
 - [state.map.md](./state.map.md)
+- [error.map.md](./error.map.md)
 - [master-list.md](../../master-list.md)
 - [pa.md](../../pa.md)

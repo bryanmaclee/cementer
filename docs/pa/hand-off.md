@@ -1,118 +1,101 @@
 # Hand-off — live
 
-`as of: Session 4 close · 2026-06-16` (machine: field LAPTOP — `C:\Users\pjoli\...\cementer`, Windows)
+`as of: Session 5 close · 2026-06-19` (machine: Linux garage desktop — `/home/bryan-maclee/cementer`)
 
-> Optimize for the NEXT session's pickup. Session 4 captured the **Intellisense** DAQ wire live and
-> closed the Phase-2 **D4** gate for it. Prior hand-offs: Session-2 snapshot at
-> `archive/hand-off-2026-06-13.md`; Session-1 at `archive/hand-off-2026-06-12.md`.
+> Optimize for the NEXT session's pickup. Session 5 shipped **Phases 2, 3a, 3b, 4a** + collaborator
+> quickstart + chart fix-ups — six commits, all landed + pushed. The project now has the full pipeline:
+> serial/replay → daqformat engine → SQLite → WS (readings + hello/profile) → self-describing
+> scope-grouped client → jobs + recording segments → **uPlot live + historical charts**. Prior hand-offs:
+> S4 → `archive/hand-off-2026-06-16.md`; S2 → `archive/hand-off-2026-06-13.md`; S1 → `archive/hand-off-2026-06-12.md`.
 >
-> **Correction carried from S4 start:** the Session-3 hand-off said "PAUSED, uncommitted, nothing
-> committed." That was wrong — commit `04ba031` had committed + pushed S3's work. Don't trust a prior
-> hand-off's push/commit narrative; verify git STATE (`git status` + `git rev-list --count
-> origin/main...main`) at session start.
->
-> **Push pending at S4 close:** this session's doc edits + `captures/` + a leftover S3 changelog block
-> are committed-pending (user pushes via **GitHub Desktop** — `git push` hangs on Git Credential
-> Manager). Surface this; do not assume it's pushed.
+> **Git: all pushed.** `origin/main = local = 1465bd9`, tree clean, no worktrees. (Push works over SSH on
+> this Linux box; the GitHub-Desktop/credential-manager hang was a Windows-field-laptop-only issue.)
 
-## ✅ Session 4 result — Intellisense wire captured (D4 CLOSED for Intellisense)
+## ✅ Session 5 result — Phases 2 → 4a complete (commits, newest first)
 
-Captured **real raw-data off a live Intellisense unit** via direct-laptop serial (Prolific PL2303GT
-adapter, **COM7**; `tools/serial-read.ps1`). No Pi, no Go, no Node.
+| Commit | Arc | One-liner |
+|---|---|---|
+| `1465bd9` | 4a fix-ups | uPlot time axis ms→**seconds** (labels were 1000× off); varied `testdata/intellisense-demo.txt` for `make demo` |
+| `1f65c13` | quickstart | `make demo` + fixed `make run` (`-format synthetic`); README "Quick demo"; Go-1.26 currency |
+| `5c69e07` | **Phase 4a** | charting core — series API + uPlot live (replaces readout) + job-history chart w/ segment shading |
+| `cf46ab3` | **Phase 3b** | jobs + recording_segments + `/api/jobs*` + `/api/recording/*` + client controls |
+| `cd71beb` | **Phase 3a** | self-describing pump: profiles + hello/profile WS frame + `/api/profile` + scope-grouped client |
+| `83f036a` | **Phase 2** | `internal/daqformat` engine + Intellisense preset (from the live wire) + `-format` flag |
 
-**Wire contract:** **19200 8N1**, `<CR><LF>`, comma-delimited, **no header**, **14 fields**, ~1 line/s,
-timestamp = **`HH:MM:SS` uptime** (resets to `00:00:00` on boot — NOT a wall-clock date → server-stamp
-on ingest, per D2).
-
-**Column map** (8/14 empirically confirmed by actuating the rig):
-
-| # | channel | # | channel |
-|---|---|---|---|
-| 0 | time (uptime) ✅ | 7 | rate unit1 (=3) ✅ |
-| 1 | **density 8.21=interface** ✅ | 8 | rate unit2 (none) |
-| 2 | **pressure agg =5+6** ✅ | 9 | water rate (no flow meter) |
-| 3 | rate agg ✅ | 10 | backup density (none) |
-| 4 | volume job total ✅ | 11 | water stage total (idle) |
-| 5 | **pressure unit1 0→1306** ✅ | 12 | volume stage total (=4) ✅ |
-| 6 | pressure unit2 (none) | 13 | job number (idle) |
-
-The 6 flat columns are correct for this **1-unit, no-backup-density, no-flow-meter** rig; the format
-keeps them for multi-unit rigs (DaqFormat defines all 14; PumpProfile enables what a unit physically
-has). **`agg.pressure = sum(unit pressures)` proven.**
-
-**Full characterization + Phase-2-ready DaqFormat preset:**
-[`docs/changes/phase2-intellisense-daqformat/intellisense-wire-capture-2026-06-16.md`](../changes/phase2-intellisense-daqformat/intellisense-wire-capture-2026-06-16.md).
-Raw captures: `captures/*.bin` (10 files, committed — not gitignored).
+All built via `cementer-go-engineer` (worktree, opus); each PA-verified by independent E2E at landing.
 
 ## ▶ Next priority
 
-1. **Build Phase 2** — `internal/daqformat` engine (no-code field-mapping + compute layer) + the
-   **Intellisense preset** from the findings doc. Now **fully unblocked** (D4 closed for Intellisense).
-   Dispatch via `cementer-go-engineer` (canonical Go dev-agent), worktree-isolated, `model: opus`.
-   - **Parser robustness:** skip any line that isn't the 14-field shape (boot produces torn `?,,,,...`
-     fragments). Raw log keeps the bytes; structured store drops the bad line.
-   - **Timestamp:** treat embedded `HH:MM:SS` as uptime/hint; server-stamps the real date (D2).
-   - **UoM to confirm with user:** pressure (psi?), rate (bbl/min?), density (ppg — 8.21 fits), volume.
-2. **Totco preset — still TODO.** Unit was not accessible this trip. Same direct-laptop method applies;
-   resume steps for the prior Totco/COM6 blocker are in the §"Totco (deferred)" below.
+1. **Phase 4b — printing** (the last Phase-4 piece; project MVP after this). Scope is LOCKED:
+   [`docs/changes/phase4-charting-printing/scope.md`](../changes/phase4-charting-printing/scope.md) §4b.
+   - Company default print template (bundled, change-controlled) + **per-job overrides** stored on the Pi
+     (a `job_print_config` table or JSON column — engineer's call).
+   - Print-CSS view = the 3b job header (company/well/casing/job_type/location/cementer/date) + the chart
+     at high-DPI. **PDF = browser Save-as-PDF only** (D-pdf RESOLVED S5 — no server render, no Pi archival).
+   - Dispatch via `cementer-go-engineer` (worktree, opus); anti-patterns Part B (vanilla-TS, uPlot).
+   - **Fold in two known cosmetics while there:** (a) `web/src/controls.ts` new-job form renders expanded
+     by default (should be collapsed until "+ New job"); (b) `job.number` shows as a flat-0 chart trace
+     (its profile scope is `job` not `meta`, so the live chart's `scope!=="meta"` filter misses it).
+2. **Parser cleanup** — `internal/parser` is off the main path (daqformat replaced it); delete it or fold
+   its test cases into a daqformat test. Not urgent.
+3. **Commit gate** — still not installed (`core.hooksPath` unset). Baseline: gofmt+vet+build+test;
+   `make build` pre-push when `web/` changed.
+4. **Totco preset** — still TODO; unit not accessible. Same direct-laptop capture method (S4 runbook below).
 
-## 🔌 Direct-laptop serial capture — the proven method (reuse for Totco)
+## 🔍 How to run / demo / verify (reuse this)
 
-`tools/serial-read.ps1` (PowerShell `System.IO.Ports.SerialPort`):
-- normal read + hex/ASCII dump + save to `captures/`:
-  `powershell -File tools/serial-read.ps1 -Port COM7 -Baud 19200 -Seconds 15`
-- baud unknown → find it by **printable ratio** (the built-in `-Sweep` only counts bytes; the
-  per-baud-printable-ratio loop used this session is the better tool — 100% printable = right baud,
-  garbage = wrong baud, silence at ALL bauds = physical).
-- `-Loopback` (jumper DB9 pin 2↔3, unplugged) = adapter self-test.
+- **Demo (no pump):** `make demo` → replays `testdata/intellisense-demo.txt` (ten real captures
+  concatenated, varied multi-phase) at 200 ms → open `http://localhost:8080`. `make run` = synthetic
+  stream (`-format synthetic`). cementer is **silent on stdout when healthy** — watch the browser / the
+  raw log / `/debug/stats`, not the console.
+- **Headless visual verify (Playwright):** browsers are cached at `~/.cache/ms-playwright`; the npm pkg
+  is NOT in cementer (it's in `~/scrmlMaster/scrml`, a different repo — don't reach across). Temp-install:
+  `mkdir -p /tmp/pw && cd /tmp/pw && npm i playwright@1.60.0` (1.60.0 matches the cached 1223 browsers;
+  1.61.0 wants 1228 → fails). Drive a node script: `chromium.launch({headless:true})` → goto :8080 →
+  waitForTimeout → screenshot; Read the PNG. (A working `shot.js` was used this session.) Saved to memory.
+- **PA E2E pattern used every arc:** build to /tmp; replay `captures/...-pressure.bin -format intellisense`;
+  curl the new endpoints + assert via `/api/*` or a throwaway `_`-prefixed Go DB helper (sqlite3 NOT
+  installed) removed after; prove axiom #1 by polling `/debug/stats` rows-climb while hitting the new path.
 
-**Column-mapping recipe that worked:** capture per actuation (rate / pressure / density), parse 14-field
-lines, report which columns changed (distinct-count + min/max) — the moved column = the actuated channel.
-Narrate the action while capturing; give a wide window (60–90 s) so timing isn't tight.
+## ⚙ Architecture as-built (for fast orientation)
 
-## Totco (deferred — not accessible 2026-06-16)
+- Pipeline: `source` (serial/replay) → `rawlog` (L1) → **`daqformat` engine** (Apply: tokenize → field-
+  count guard → field-map + transform → compute pass → server-stamp TS) → `store` (SQLite WAL, **single
+  writer connection, sole DB owner** — axiom #4/D2) → `onCommit` → `hub` → WS.
+- WS `/ws/live`: sends ONE `{type:"profile"}` greeting per connection (enabled channels), then
+  `{type:"reading"}` frames. Profile/job/recording are **read/CRUD via `internal/api` HTTP**, store
+  methods only (no handler-side DB).
+- Client (`web/src/`, vanilla TS, NO framework): `readout.ts` = shell (header + Live|Job tabs + window
+  select + controls host + footer); `chart/livechart.ts` (rolling, role-grouped, legend = live values),
+  `chart/jobchart.ts` (segments + shading), `controls.ts` (job select + Record), `ws.ts`/`types.ts`.
+  uPlot bundled offline (no CDN). **uPlot x-axis is in SECONDS** (the fix this session).
+- Axioms held + proven: #1 (recording/chart never gate ingest — proven by rows-climb), #2 (format =
+  config; a new format = a new `DaqFormat` value), #3 (Pi self-describes via the profile), #4 (single
+  writer connection), #5 (no stage-reset on record).
 
-Totco settings from its config screen: **COM6 · 9600 8N1 · Protocol 1 · 250 ms**. Session-3 hit **total
-silence on COM6 at every baud** → diagnosed physical/electrical, not settings. Resume order when the unit
-is reachable: (1) loopback self-test (`-Loopback`, pin 2↔3 jumpered) — decisive about our side; (2)
-confirm a **null-modem/crossover** cable (two DTE ends); (3) confirm the Totco is actually **streaming**
-(not just configured). Then capture as for Intellisense.
+## Totco (deferred — unit not accessible since S3/S4)
 
-## ⚡ FIELD RUNBOOK — running the full cementer binary against a real DAQ (Pi deployment)
+Totco config screen: **COM6 · 9600 8N1 · Protocol 1 · 250 ms**. S3 hit total silence on COM6 at every
+baud → physical/electrical. Resume: (1) `-Loopback` self-test (jumper DB9 2↔3); (2) confirm a null-modem
+cable; (3) confirm the Totco is actually streaming. Then capture as for Intellisense and define the Totco
+preset (a new `DaqFormat` value — no engine change).
 
-Still valid for actual *deployment* (vs the laptop-direct *discovery* above). The Pi (`CementSerial`)
-carries the built binary at `~/cementer-arm64` (aarch64, static). At the DAQ: DAQ RS-232 → adapter →
-Pi USB.
-1. Find the stable device path: `ls -l /dev/serial/by-id/` (use the `usb-...-if00-port0` path, never
-   `/dev/ttyUSB0`).
-2. `./cementer-arm64 -serial /dev/serial/by-id/<adapter> -baud 19200 -data-dir ~/cementer-daqtest -addr :8080`
-   (Intellisense is **19200 8N1** — confirmed this session; note `-baud` is the only serial flag,
-   params are hard-wired 8N1; a non-8N1 DAQ would need a ~20-min flag addition).
-3. Verify: `tail -f ~/cementer-daqtest/raw-*.log` + `curl -s http://<pi-ip>:8080/debug/stats`.
-4. cementer is SILENT on stdout when healthy — check the raw log / `/debug/stats`, not the console.
-
-## Bench-top validation — VERIFIED 2026-06-13 (Peter, on CementSerial / 10.0.0.105)
-
-Go+SQLite Pi stack proven on both serial-ingress paths (GPIO UART @115200: 2,812 rows; CP2102 USB
-@115200: 4,404 rows) — raw log + SQLite WAL + `/debug/stats`. Transport was **simulated** (ESP32-replayed
-Enbridge CSV). The **real-DAQ wire contract is now confirmed for Intellisense** (this session) — the bench
-validated the stack, this session validated the wire.
-
-## State as of close (Session 4)
+## State as of close (Session 5)
 
 | Item | State |
 |---|---|
-| Intellisense wire contract (D4) | ✅ CLOSED — 19200 8N1, 14-col, mapped |
-| Totco wire contract | ⬜ TODO (unit not accessible) |
-| Phase 2 `internal/daqformat` build | ⬜ not started — now fully unblocked |
-| Source code | UNCHANGED since Phase 1 (this session = docs + captures, no source) |
-| Git | S3 committed+pushed (`04ba031`); **S4 push pending** (GitHub Desktop) |
-| Canonical Go dev-agent | `cementer-go-engineer` (active) |
+| Phases 1, 2, 3a, 3b, 4a | ✅ DONE + pushed (`1465bd9`) |
+| Phase 4b (printing) | ⬜ scoped, not started |
+| Phase 3c (retention) | ⬜ deferred by design |
+| Source build | `go test`/`vet`/`gofmt`/`make build` all green (CGO-free, uPlot offline) |
+| Git | clean, `origin = local = 1465bd9`, no worktrees |
+| Nav-maps | regenerated at S5 wrap (were stale `ee446c3`) |
+| Canonical dev agent | `cementer-go-engineer` (active) |
 
-## Parked debts (unchanged, non-blocking)
+## Parked debts (non-blocking)
 
-- No commit gate installed (`core.hooksPath` unset). Baseline: `gofmt -l` + `go vet` + `go build` +
-  `go test`; `make build` pre-push when `web/` changed.
-- Stale `docs/plan` reference in `cmd/cementer/main.go` + `README.md` (doc doesn't exist).
-- README "Go 1.22+" vs `go.mod` 1.26.4.
-- Plaintext test-rig credentials committed in `pi4b & test db/...README` (rotate if repo ever shared).
+- No commit gate (`core.hooksPath` unset).
+- `internal/parser` off-path (cleanup candidate).
+- `controls.ts` new-job form expanded-by-default; `job.number` flat chart trace (both → fold into 4b).
+- Plaintext test-rig creds committed in `pi4b & test db/...README` (rotate if repo ever shared).
+- In-UI DaqFormat editing + live WS profile/recording-state push = deferred niceties (Phase 5+).

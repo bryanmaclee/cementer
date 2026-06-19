@@ -1,106 +1,69 @@
 # non-compliance.report.md
 # project: cementer
-# generated: 2026-06-12T09:02:13-06:00
+# generated: 2026-06-19T23:05:55Z
 # scan mode: FULL_COLD_START
 
 ## Summary
 
-Total docs scanned: 13 (11 *.md + 2 *.README that function as docs)
-Compliant: 6
-Non-compliant: 5
-Uncertain: 2
+Total docs scanned: 27
+Compliant: 22
+Non-compliant: 1
+Uncertain: 4
 
 Scanned set (excluding .git/, node_modules/, .claude/): README.md, pa.md, pa-base.md,
-docs/design/data-model.md, docs/deep-dives/storage-and-viz-architecture-2026-06-12.md,
+docs/design/data-model.md,
+docs/deep-dives/storage-and-viz-architecture-2026-06-12.md,
 docs/pa/{status,changelog,hand-off,anti-patterns,design-insights,user-voice}.md,
-esp32sketches/pythonScript.README, "pi4b & test db/credetials&currentDB.README".
+docs/pa/archive/{hand-off-2026-06-12,hand-off-2026-06-13,hand-off-2026-06-16}.md,
+docs/pa/briefs/{phase2-intellisense-daqformat-engine,phase3-3a-self-describing-pump,phase3-3b-jobs-recording,phase4-4a-charting-core,phase4a-fixups-timeaxis-demo}.md,
+docs/changes/phase2-intellisense-daqformat/{scope,progress,intellisense-wire-capture-2026-06-16,live-serial-capture-request}.md,
+docs/changes/phase3-jobs-recording-profiles/{scope,progress}.md,
+docs/changes/phase4-charting-printing/{scope,progress}.md.
 
-Compliant (map-aligned, current truth): docs/pa/status.md (the SoT, verified against code),
+Compliant (map-aligned, current truth): docs/pa/status.md (SoT, verified against code at 1465bd9),
 docs/pa/changelog.md, docs/pa/hand-off.md, docs/pa/anti-patterns.md, docs/pa/design-insights.md,
-docs/pa/user-voice.md. pa.md and pa-base.md are the PA operating contract (primary-agent scope,
-not dev-map content) — not flagged.
+docs/pa/user-voice.md, docs/pa/archive/* (historical, correctly labelled archive),
+docs/pa/briefs/* (dispatched, past-tense, reference only),
+docs/changes/phase2-*, docs/changes/phase3-* (progress + scope verified as closed).
+docs/design/data-model.md (see Uncertain section — now substantially matches the landed code).
+pa.md, pa-base.md: PA operating contracts, out of dev-map scope, not flagged.
 
 ## Non-compliant docs
 
 ### README.md
-**Reason:** grep-mismatch (dead reference) + minor staleness
-**Detail:** References a build-plan doc that does not exist. Line 24 ("See `docs`/the plan for
-detail"), line 67-72 ("the two chart-config scopes... described in data-model.md"), and line 86
-("See the build plan for the phased roadmap") cite a "plan" that grep cannot find anywhere in the
-repo (no docs/plan, no PLAN.md). Separately, line 43 says "Requires Go 1.22+" while go.mod pins
-go 1.26.4. The architecture/layout/build sections themselves match the code and are accurate.
-**Suggested disposition:** update to match current — point "the build plan" at docs/pa/status.md
-(the live SoT) and docs/design/data-model.md § "Build order"; bump the Go version note. Do not
-delete; the doc is mostly current.
-
-### cmd/cementer/main.go  (pkg-doc comment — source file, reported as a doc-currency defect)
-**Reason:** grep-mismatch (dead reference in shipped source comment)
-**Detail:** The package doc (line ~7: "Pipeline (see docs/plan): ...") cites docs/plan, which does
-not exist. The pipeline description itself is accurate; only the path reference is dead. (This is a
-source file, not a doc — noted here because it is the same dead "docs/plan" reference and a dev
-agent following it will hit nothing.)
-**Suggested disposition:** update to match current — change "see docs/plan" to "see
-docs/design/data-model.md" (or remove the parenthetical). Source edit, for a human/dev agent.
-
-### docs/deep-dives/storage-and-viz-architecture-2026-06-12.md
-**Reason:** location
-**Detail:** A deep-dive research/decision artifact. Per scope rules, deep-dives belong in
-scrml-support, not the project repo. Content is internally accurate and marked `status: current`,
-and its recommendation (adopt the Go/SQLite/uPlot stack) matches the shipped code — so it is not
-stale, but it is out-of-place for a dev-scoped repo and describes a decision PENDING USER
-RATIFICATION (per status.md), i.e. not yet ratified truth.
-**Suggested disposition:** deref to scrml-support/docs/ (keep the artifact, move it out of the
-project repo). Leave a one-line pointer in docs/pa/status.md (already present).
-
-### "pi4b & test db/credetials&currentDB.README"
-**Reason:** combo (out-of-scope content + committed plaintext credentials + describes a non-product stack)
-**Detail:** Describes the collaborator's Python → ESP32 → InfluxDB 2.9.1 → Grafana 13.0.2 test rig
-— a stack the deep-dive explicitly recommends NOT shipping. None of the identifiers (InfluxDB,
-Grafana, cement_data bucket, daq_to_influx.py) exist in the Go source. It also commits plaintext
-SSH / InfluxDB / Grafana credentials (identical weak test passwords). This is a diagnostic bench
-artifact, not product source, AND a credential-exposure flag.
-**Suggested disposition:** deref to scrml-support/archive/ (bench artifact) AND rotate the
-credentials + remove from version control (gitignore the creds file). Do not map as product infra.
-NOTE: per identity rules, credential values are NOT reproduced here — only that they exist.
-
-### esp32sketches/pythonScript.README
-**Reason:** location / out-of-scope (describes the dev/diagnostic bench, not product)
-**Detail:** Operating notes for send_csv.py, part of the ESP32 CSV-injection rig. References Python
-3.14 + send_csv.py; no corresponding identifiers in the Go product. It is bench tooling
-documentation, correctly real for the bench but not part of the shipped product.
-**Suggested disposition:** deref to scrml-support/archive/ with the rest of the bench, OR keep
-co-located with esp32sketches/ but clearly labeled "dev bench, not product." Not product-map content.
+**Reason:** grep-mismatch (stale reference) + minor staleness
+**Detail:** The README still contains references and phrasing shaped for the Phase 1 state. Specifically:
+(a) Line ~24 ("See `docs`/the plan for detail") points to a non-existent "plan" doc (no docs/plan, no PLAN.md exists). (b) The Quick start section (`make run`) points at the synthetic stream only; `make demo` (the Intellisense multi-phase demo, now the canonical first-run) is absent. (c) The architecture section describes "live value readout" as the UI; the actual UI is now a uPlot rolling chart with legend. (d) The API section describes no REST endpoints; the real API now has ~15 routes (profile, jobs, recording, series). (e) Phase 4 status section and build plan are frozen at Phase 1 language.
+**Suggested disposition:** Update to match current — add `make demo` as the canonical quick start; replace "value readout" with "rolling chart"; note the REST API surface; fix the dead "docs/plan" reference to point at docs/pa/status.md. Do not delete; the architecture description and Pi deployment notes are largely accurate.
 
 ## Uncertain docs (needs human review)
 
 ### docs/design/data-model.md
-**Reason:** Marked `status: current` and is treated as the normative design doc, but the bulk of
-what it specifies (PumpProfile, Channel, DaqFormat, FieldMap, ComputedChannel, RecordingSegment,
-Job, hello/profile WS message, the two chart-config scopes, the compute layer) has NO code and NO
-tables. The store has only `samples`. By strict "current truth only" this is design-ahead-of-code;
-but the project intentionally keeps it as forward-looking normative design, and status.md tracks
-the deltas explicitly. So it is neither stale-and-wrong nor fully-implemented.
-**What to check:** Confirm the intent — should data-model.md remain a normative *design* doc
-(recommended: keep, it is the agreed Phase-2/3/4 spec and status.md is the "what's actually built"
-SoT), or be split into "shipped" vs "planned" sections? If kept, ensure every dev agent reads it as
-DESIGN, not as a description of current schema. The DESIGNED-not-built items are enumerated in
-schema.map.md and state.map.md so the maps do not mislead.
+**Reason:** Was flagged in the previous report as "design-ahead-of-code." As of commit 1465bd9, substantially all of the Phase 2/3/4a contracts it describes ARE now in the code: DaqFormat/FieldMap/ComputedChannel/TimestampSpec (internal/daqformat), pump_profiles/profile_channels/jobs/recording_segments tables (internal/store), hello/profile WS frame, GET/PUT /api/profile, jobs CRUD, recording segments, SeriesPoint + decimation, and uPlot live/job charts. Status.md records the remaining delta: Phase 4b (print/PDF) is NOT started; Phase 3c (retention) is deferred.
+**What to check:** Confirm the doc has been updated per the S5 landing discipline ("fold realized contracts into data-model.md at each sub-arc landing"). If it has been kept current, classify it compliant. If sections still describe unbuilt Phase 4b/5+ features as present, those sections should be annotated "NOT YET BUILT" or split into a separate forward-design annex.
 
-### docs/pa/status.md  (and the design ↔ code deltas it tracks)
-**Reason:** status.md is current and verified, but it documents a "MAJOR FORK" + a deep-dive whose
-recommendation is "PENDING USER RATIFICATION." The architectural direction is therefore documented
-but not formally ratified — a dev agent could read the recommendation as settled.
-**What to check:** Confirm whether stack (A) (Go + SQLite + uPlot) is now ratified. If yes, mark it
-ratified in status.md and the deep-dive can be archived to scrml-support. If not, ensure agents know
-the storage/viz architecture is the recommended-but-unratified direction. (status.md is otherwise
-the most accurate doc in the repo and is treated as compliant.)
+### docs/changes/phase4-charting-printing/scope.md
+**Reason:** content-heuristic — describes a mix of built and unbuilt features.
+**Detail:** Phase 4a items (live chart, job-history chart, series API, live-view localStorage config) are BUILT and in code. Phase 4b items (print-CSS, PDF, company print template, per-job overrides) are "NOT STARTED" per status.md. The scope doc conflates both.
+**What to check:** This is the project's own scope-locked doc (correctly used as a decision record, not aspirational freeform writing). As long as dev agents read it as a scope record — some items done, 4b not started — it is fine. If a dev agent might confuse it for "all of this is built," annotate the doc's "current state" section to make the done/not-done split explicit. Suggest adding a brief "Status as of 1465bd9: 4a done, 4b not started" header.
+
+### docs/deep-dives/storage-and-viz-architecture-2026-06-12.md
+**Reason:** location — deep-dive artifacts conventionally belong in scrml-support, not a standalone project repo.
+**Detail:** The content is accurate (the recommended stack — Go/SQLite/uPlot — is now the shipped stack, fully ratified). The stack is no longer "PENDING USER RATIFICATION" (status.md confirmed ratification at S3; Phase 4a is done). The doc is internally consistent with the code. The location rule was flagged in the previous report; disposition has not been actioned.
+**What to check:** The invocation for this mapping explicitly notes "deep-dives/scope docs living under docs/ are by overlay design, not a non-compliance issue" for this standalone repo. If that overlay design is the agreed policy, reclassify as compliant. If the original scrml-support convention still applies, deref to scrml-support/docs/.
+
+### docs/pa/briefs/phase4-4a-charting-core.md  (and phase4a-fixups-timeaxis-demo.md)
+**Reason:** uncertain — brief/dispatch docs whose work is now complete.
+**What to check:** If the briefs are archive-quality (read: the dispatched work is done, the brief is a historical record), they are correctly located in docs/pa/briefs/ and are compliant. If they are being treated as active spec, they should be annotated as closed. Status.md records Phase 4a as DONE. No action needed if briefs are treated as read-only history.
+
+## Note on "scrml-support" location flags
+The invoking instruction states: "deep-dives/scope docs living under docs/ are by overlay design, not a non-compliance issue (the mapper has previously false-flagged 'belongs in scrml-support' — that is a FALSE POSITIVE here)." Therefore docs/deep-dives/ and docs/changes/ are NOT flagged as location violations. Only the README.md content staleness is a clear non-compliance.
 
 ## Tags
-#non-compliance #project-mapper #cleanup #cementer #design-ahead-of-code #dead-reference #credentials
+#non-compliance #project-mapper #cleanup #cementer #stale-readme #data-model-current #design-ahead-of-code
 
 ## Links
 - [primary.map.md](./primary.map.md)
 - [master-list.md](../../master-list.md)
 - [pa.md](../../pa.md)
 - [project status SoT](../../docs/pa/status.md)
-- [scrml-support archive convention](../../../scrml-support/pa.md)

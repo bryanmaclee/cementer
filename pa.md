@@ -165,13 +165,13 @@ Each heading is a base `{{slot}}`; the fill is cementer's concrete instantiation
 > write-capable dev dispatch; pure-research/read-only agents are exempt.
 
 **`{{dev_agent_identity}}`**
-> **No dedicated Go dev-agent exists yet.** Interim canonical source-change agent = **`general-purpose`**
-> (maximal tools) dispatched with `model: opus` + `isolation: "worktree"`. **Recommended:** forge
-> `cementer-go-engineer` via `/forge go` (or `/forge go raspberry-pi-daq`) once source churn warrants
-> it — then it becomes the single canonical dev-agent and `general-purpose` reverts to generalist
-> fallback. No proliferation: one canonical agent; superseded agents go to cold storage, not deletion.
-> Cold-store: none yet. Agent-file edits take effect only at the NEXT session start (harness caches at
-> start) — plan dispatch strategy accordingly.
+> **Canonical dev agent = `cementer-go-engineer`** (forged; ACTIVE since Session 5 — it built Phases 2,
+> 3a, 3b, 4a). Dispatch with `model: opus` + `isolation: "worktree"`. It is the single canonical
+> source-change agent for Go (`internal/*`, `cmd/*`) AND the vanilla-TS client (`web/src/*`).
+> `general-purpose` reverts to generalist fallback only (non-classification-sensitive pure docs/config).
+> No proliferation: one canonical agent; superseded agents go to cold storage, not deletion. Cold-store:
+> none yet. Agent-file edits take effect only at the NEXT session start (harness caches at start) — plan
+> dispatch strategy accordingly.
 
 **`{{anti_pattern_briefing}}`**
 > [`docs/pa/anti-patterns.md`](docs/pa/anti-patterns.md) — two briefings: **idiomatic Go** (counter

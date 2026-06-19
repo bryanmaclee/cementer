@@ -125,3 +125,71 @@ the format keeps them for multi-unit rigs. **D4 wire-contract gate CLOSED for In
 deferred (not accessible). Findings + Phase-2-ready preset banked in
 `docs/changes/phase2-intellisense-daqformat/intellisense-wire-capture-2026-06-16.md`; raw captures under
 `captures/`.)_
+
+---
+
+## Session 5 — 2026-06-18/19
+
+> read pa.md and start session
+
+> go
+
+_(Via AskUserQuestion: proceed to **dispatch the Phase 2 daqformat build now**. Landed `83f036a`;
+chose **commit + push, no wrap**.)_
+
+> phase 3
+
+_(Via AskUserQuestion: **scope all of Phase 3 first** before any build; **defer auth**.)_
+
+> settle D2/D8 and 3a
+
+_(D2 = store sole DB owner / single-conn synchronous CRUD; D8 = job header fields proposed set; then
+dispatched 3a. Landed `cd71beb`; chose **commit + push, keep going**.)_
+
+> yes, update that, enough for now.
+
+_(Adopt the **landing discipline** — fold each realized contract into `data-model.md` at landing; no
+separate as-built spec doc. Recorded in pa.md §normative-source + status.md. NOTE: the rest of that
+message — flogeance/scrml "LSP for agents / FSP", naming dd+debate — was **misdirected** to this
+instance; the user corrected: "that last bit ... was not for you ... talking to the wrong claude
+instance." Flogeance/scrml is a SEPARATE ecosystem, out of scope for standalone cementer — not logged
+here per the this-repo-only rule.)_
+
+> 3b
+
+_(Job fields stood as settled; dispatched 3b — jobs + recording segments. Landed `cf46ab3`; **commit +
+push, keep going**.)_
+
+> phase 4
+
+_(Via AskUserQuestion: X-axis = **time**; traces = **all enabled channels auto-grouped by role**; live
+view = **replace the readout with a rolling chart**; printing = "**both, pdf for file sharing**".)_
+
+> server must have timed out, can you run it again
+
+> some cross hairs show up. is that what Im suppose to be looking for?
+
+> sure
+
+> yes, i didnt scrutinize heavily, but yes. but somewhere along the way it starts stacking identical segments and looks very wrong
+
+_(Demoing 4a. The "crosshairs/empty chart" = `make run` fed the synthetic stream under the now-default
+`-format intellisense` → field-count guard dropped every line. The "stacking identical segments" = the
+demo looping a single 12s capture; server data verified clean. PDF decision via AskUserQuestion:
+**browser Save-as-PDF only** (single-binary ethos); chose **commit + push, keep going** for 4a.)_
+
+> do both
+
+_(Fix the uPlot time-axis ms→seconds bug + build a varied `make demo` stream. Landed `1465bd9`.)_
+
+> then push when done.
+
+> for headless browser I believe we have been using playwright
+
+_(Unlocked headless verification — temp-installed `playwright@1.60.0`, screenshotted the live chart,
+confirmed the seconds fix + varied data + no stacking. Saved to auto-memory.)_
+
+> wrap
+
+_(Full 8-step wrap: tests green, status/changelog/hand-off/user-voice updated, nav-maps regenerated,
+committed + pushed.)_

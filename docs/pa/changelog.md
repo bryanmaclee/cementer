@@ -5,6 +5,50 @@ the human-discoverable session narrative). Newest block on top.
 
 ---
 
+## 2026-06-18/19 — Session 5 · Phases 2, 3a, 3b, 4a shipped (DAQ engine → self-describing pump → jobs/recording → charting)
+
+- **Machine:** Linux garage desktop. FULL profile read (pa.md + pa-base.md + data-model.md + README +
+  status + hand-off + full user-voice + package-doc reads + git-sync). Start-state: S4's "push pending
+  (GitHub Desktop)" had in fact landed — `origin/main = local = 2d28a3d`, verified by git STATE.
+- **Six commits landed + pushed** (each: canonical `cementer-go-engineer`, worktree-isolated, model opus;
+  PA independent E2E at landing; one PA-authored commit; worktree removed):
+  - `83f036a` **Phase 2** — `internal/daqformat` generic config-driven engine + **Intellisense preset**
+    built from the *live wire* (14-col, no header, `HH:MM:SS`-uptime → server-stamped), NOT the
+    superseded 15-col CSV export. Verified: 13 channels, `agg.pressure == unit1.pressure` sum proven E2E.
+  - `cd71beb` **Phase 3a** — self-describing pump: `pump_profiles`/`profile_channels` (seeded from the
+    Phase-2 vocab), per-connection **hello/profile** WS frame, `GET/PUT /api/profile` + reset,
+    scope-grouped vanilla-TS readout (enabled-only). Verified: WS greeting lists enabled-only after a PUT;
+    seed idempotent across restart.
+  - `cf46ab3` **Phase 3b** — `jobs` + `recording_segments`, `/api/jobs*` + `/api/recording/*`, minimal
+    client controls. **Axiom #1 PROVEN**: samples climb while recording STOPPED, RECORDING, and after STOP
+    — recording is a pure marker. Axiom #5 held (no stage reset).
+  - `5c69e07` **Phase 4a** — charting core: `store.Series`/`JobSeries` (spike-preserving min/max
+    decimation) + `GET /api/samples` + `GET /api/jobs/{id}/series` (read-only, single conn); **uPlot**
+    live rolling chart (replaces the value grid; role-grouped axes; legend keeps latest values) + job
+    history chart with segment shading; personal live-view config in localStorage.
+  - `1f65c13` **Collaborator quickstart** — `make demo` (real capture, correct format) + fixed `make run`
+    (`-format synthetic`, was silently dropping every line) + README "Quick demo" for Peter; Go 1.26+ /
+    `docs/the plan` currency fixes.
+  - `1465bd9` **Phase 4a fix-ups** — uPlot time axis fed **ms→seconds** (labels were off 1000×; line
+    shapes were already right) + `testdata/intellisense-demo.txt` (ten real captures concatenated → varied
+    multi-phase demo, no more sawtooth loop).
+- **Decisions (locked, in the scope docs):** Phase-2 D1–D4; Phase-3 D1–D10 (D2 single-conn CRUD = store
+  sole DB owner; D4 auth deferred; D8 job fields); Phase-4 X=time, all-enabled role-grouped, replace-
+  readout, **PDF = browser Save-as-PDF only**. Adopted the **landing discipline**: fold each realized
+  contract into `data-model.md` at the landing that ships it (applied every arc this session).
+- **Headless verification unlocked:** Playwright browsers are cached locally; temp-installed
+  `playwright@1.60.0` and **screenshotted the live chart** — confirmed the seconds-fix renders correct
+  2026 timestamps + varied traces + no stacking. The "stacking" the user saw was the old single-capture
+  demo loop, not a chart bug. (Saved to auto-memory.)
+- **Scope artifacts written:** `docs/changes/phase3-jobs-recording-profiles/scope.md`,
+  `docs/changes/phase4-charting-printing/scope.md`; six dispatch briefs archived under `docs/pa/briefs/`.
+- **Wrap:** `go test ./...` ✅ (api/daqformat/parser/store; others no-test) · `go vet` ✅ · `gofmt -l` clean
+  · `make build` ✅ (CGO-free, uPlot bundled offline). Nav-maps regenerated (were 5 phases stale).
+- **Left:** Phase **4b** (print template + per-job overrides + print-CSS/PDF) — not started; minor
+  `controls.ts` new-job-form-renders-expanded cosmetic; **3c** retention (deferred by design).
+
+---
+
 ## 2026-06-16 — Session 4 · Intellisense DAQ live wire captured (D4 CLOSED for Intellisense)
 
 - **Machine:** field LAPTOP (Windows, this checkout). FULL profile read (pa.md + pa-base.md +

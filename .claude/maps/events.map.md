@@ -1,38 +1,49 @@
 # events.map.md
 # project: cementer
-# updated: 2026-06-12T09:02:13-06:00  commit: ee446c3
+# updated: 2026-06-19T23:05:55Z  commit: 1465bd9
 
-The only "event bus" is the in-process hub that fans committed readings out to WebSocket clients. There is no Kafka/RabbitMQ/Redis/EventEmitter. Transport to clients is WebSocket (gorilla/websocket).
+The only "event bus" is the in-process hub that fans committed readings to WebSocket clients. No Kafka, RabbitMQ, Redis pub-sub, or EventEmitter. Client polling of the REST API (recording state, active job, jobs list) is not event-driven — it is interval-based pull.
 
 ## Bus Type
 In-process channel-based fan-out hub.  [internal/hub/hub.go]
-Hub channels: register (unbuffered), unregister (buf 16), broadcast (buf 256). One Run goroutine owns the subscriber set.
-Subscriber: a buffered Send chan []byte (buffer 256 as created in main.go serveWS).
+Hub channels: `register` (unbuffered), `unregister` (buf 16), `broadcast` (buf 256). One `Run` goroutine owns the subscriber map.
+Subscriber: a buffered `Send chan []byte` (buffer 256 as created in serveWS).
 
-## Message Topics (WebSocket frames)
-"reading" — the single message kind today. Payload: wsEnvelope { type: "reading", reading: Reading }. JSON text frame.
-  (wsEnvelope.type reserves room for future kinds — hello/profile, job updates, log entries — none implemented.)
+## WebSocket Message Topics
+| Type      | Payload                           | When sent                                       |
+|-----------|-----------------------------------|-------------------------------------------------|
+| "profile" | `{ type, profile: Profile }`      | Once per WS connection open (hello frame), written directly to the conn BEFORE the hub loop |
+| "reading" | `{ type, reading: Reading }`      | After each SQLite batch commit; via hub.Broadcast → all Subscriber.Send channels |
+
+(The `wsEnvelope` type field reserves room for future kinds — none currently besides these two.)
 
 ## Emitters
-store.writeLoop → onCommit(reading)   [internal/store/store.go:108] — fires once per reading AFTER its batch commits.
-onCommit closure (main.go:83) → json.Marshal(wsEnvelope) → hub.Broadcast(bytes)  [cmd/cementer/main.go:83-88]
-hub.Broadcast → broadcast channel; non-blocking (drops the message if the hub is overloaded, since data is already durable). [hub.go:91]
+| Emitter                            | Topic     | Notes                                                      |
+|------------------------------------|-----------|------------------------------------------------------------|
+| serveWS → conn.WriteMessage        | "profile" | Direct write to this connection only; NOT routed through hub |
+| store.writeLoop → onCommit closure | "reading" | fires once per reading post-commit; marshals + calls hub.Broadcast |
+| hub.Broadcast                      | —         | non-blocking enqueue to broadcast chan; drops if hub overloaded |
 
 ## Listeners
-hub.Run → for each Subscriber, non-blocking send to Subscriber.Send; if full, DROP + close (slow-client policy). [hub.go:62]
-writePump (main.go:225) drains Subscriber.Send → conn.WriteMessage(TextMessage); plus periodic Ping.
-Client: ws.onmessage → JSON.parse → if type==="reading" → onReading(reading) → Readout.update. [web/src/ws.ts:28]
+| Listener                       | Listens for | Notes                                                           |
+|--------------------------------|-------------|-----------------------------------------------------------------|
+| hub.Run → Subscriber.Send      | broadcast   | non-blocking send per subscriber; DROPS + closes slow subscriber |
+| WS writePump                   | Subscriber.Send | drains to conn.WriteMessage; pings every 54s              |
+| Client ws.onmessage            | both types  | parses env; routes to onProfile or onReading callback          |
 
-## Lifecycle / cleanup
-Register: serveWS creates NewSubscriber(256), h.Register(sub). [main.go:216]
-Unregister: readPump's deferred h.Unregister(sub) on any read error/disconnect → Run closes Send → writePump exits. [main.go:255]
-Shutdown: ctx cancel → hub.Run closes every Subscriber.Send and returns. [hub.go:49]
+## REST poll events (client-side, not hub)
+`Controls` polls `/api/recording/state` every 3s and `/api/jobs` + `/api/job/active` on init and after actions. No server push for job/recording state changes (polling only).
 
-## Reliability rule
-Ingestion is never blocked by a client. Both Broadcast (hub overload) and per-subscriber send (slow client) DROP rather than back up. Dropped clients reconnect and backfill from the durable store (backfill mechanism itself: designed, not yet built — currently a reconnected client just resumes live).
+## Lifecycle / Cleanup
+- Register: `serveWS` creates `NewSubscriber(256)`, calls `h.Register(sub)`.
+- Unregister: `readPump`'s deferred `h.Unregister(sub)` on any read error/disconnect → `Run` closes `Send` → `writePump` exits.
+- Shutdown: ctx cancel → `hub.Run` closes every `Subscriber.Send` and returns.
+
+## Reliability Rule
+Ingestion is NEVER blocked by a client. Both `hub.Broadcast` (hub overload) and per-subscriber send (slow client) DROP rather than back up. Dropped clients reconnect (auto-reconnect with exponential backoff 1s–10s) and will miss the dropped readings — those are already in SQLite; a future backfill mechanism could serve them.
 
 ## Tags
-#cementer #map #events #websocket #fan-out #pub-sub #drop-policy #hub
+#cementer #map #events #websocket #fan-out #pub-sub #drop-policy #hub #profile-frame
 
 ## Links
 - [primary.map.md](./primary.map.md)

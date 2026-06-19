@@ -1,6 +1,6 @@
 ---
 status: current
-last-reviewed: 2026-06-16
+last-reviewed: 2026-06-19
 ---
 
 # cementer — live status (the SoT)
@@ -10,113 +10,44 @@ The single live source of truth for **done · in-flight · left**. Frozen planni
 (`docs/design/data-model.md` + README architecture) → **this doc** → changelog → hand-off.
 
 _Verify "is it shipped" claims against code (grep / `go build` / the SQLite schema), not this doc's
-prose — but keep this doc honest at every wrap._
+prose — but keep this doc honest at every wrap. `data-model.md` now carries the **realized** Phase-2/3/4a
+contracts (landing discipline, adopted S5)._
 
 ## Phase board
 
-| # | Phase / step | State | Evidence (verified 2026-06-12) |
+| # | Phase / step | State | Evidence (verified 2026-06-19, tip `1465bd9`) |
 |---|---|---|---|
-| P1 | Durable ingest → WS → dark-mode readout | ✅ **DONE** | `cmd/cementer/main.go` wires source→rawlog→parser→store→hub→WS + embedded SPA; `internal/store` SQLite WAL single-writer |
-| 1 | Config-driven dynamic channels + theme + storage env | ✅ **DONE** | store `samples` keyed by `channel`; `web/src/theme.ts`; `-data-dir`/`$CEMENTER_DATA_DIR` in `main.go` |
-| — | Recording start/stop model | 🟡 **DESIGNED, not built** | `data-model.md` § Recording (commit 94f02b6); **no `recording_segments` table** — store has only `samples` |
-| 2 | **Intellisense** `DaqFormat` preset + format mechanism (mapping + compute) | 🟢 **UNBLOCKED · wire captured** | **D4 wire contract CLOSED for Intellisense (real DAQ, 2026-06-16)**: 19200 8N1, 14-col, no header — preset characterized in [`intellisense-wire-capture-2026-06-16.md`](../changes/phase2-intellisense-daqformat/intellisense-wire-capture-2026-06-16.md). Mechanism still unbuilt. Totco preset still TODO (unit not accessible) |
-| 3 | Job CRUD + recording segments + Pump Profile CRUD + hello/profile message + scope-grouped display | ⬜ **NOT STARTED** | no job/profile/segment tables; no auth. Includes **retention/downsampling-as-code** (DD rider #3) |
-| 4 | uPlot charting (two config scopes) + printing (company default + per-job overrides) | ⬜ **NOT STARTED** | print artifact = uPlot-at-high-DPI + print-CSS (not a dashboard export) |
+| P1 | Durable ingest → WS → dark-mode readout | ✅ **DONE** | `cmd/cementer/main.go` pipeline; `internal/store` SQLite WAL single-writer |
+| 1 | Config-driven dynamic channels + theme + storage env | ✅ **DONE** | store keyed by `channel`; `web/src/theme.ts`; `-data-dir`/`$CEMENTER_DATA_DIR` |
+| 2 | **Intellisense** `DaqFormat` preset + format engine (mapping + compute) | ✅ **DONE** (`83f036a`) | `internal/daqformat` generic engine + `Intellisense()`/`Synthetic()` presets + `IntellisenseChannels()`; `-format` flag; built from the **live wire** (14-col), not the CSV export |
+| 3a | Pump Profile persistence + hello/profile message + scope-grouped display | ✅ **DONE** (`cd71beb`) | `pump_profiles`/`profile_channels`; per-conn WS profile frame; `GET/PUT /api/profile` + reset; scope-grouped client (enabled-only) |
+| 3b | Job CRUD + recording segments + active-job | ✅ **DONE** (`cf46ab3`) | `jobs`/`recording_segments`; `/api/jobs*` + `/api/recording/*`; client controls; **axiom #1 proven** (recording is a marker, never gates ingest) |
+| 4a | uPlot charting core (series API + live + historical) | ✅ **DONE** (`5c69e07` + `1465bd9`) | `store.Series`/`JobSeries` (min/max decimation); `GET /api/samples` + `/api/jobs/{id}/series`; uPlot live rolling chart (replaces readout) + job-history chart w/ segment shading; live-view config in localStorage. Time axis in **seconds** (fixed). **Playwright-verified render.** |
+| 4b | Print template (company default + per-job overrides) + print-CSS + PDF | ⬜ **NOT STARTED** | scope locked: [`phase4-charting-printing/scope.md`](../changes/phase4-charting-printing/scope.md). PDF = browser Save-as-PDF only (D-pdf) |
+| 3c | Retention/downsampling-as-code (DD rider #3) | ⬜ **DEFERRED** (by design) | low urgency at ~7 rows/s; design sketched in the phase3 scope |
 
-## ✅ Bench-top stack validation — VERIFIED 2026-06-13 (Peter, on `CementSerial` / 10.0.0.105)
+## Decision records (locked)
 
-The Go+SQLite Pi stack is proven on **both** serial-ingress paths, single static aarch64 binary, no
-recompile to switch source (only the `-serial` flag). Topology = laptop `send_csv.py` → ESP32
-(`csvToSerialSend`) → [GPIO UART **or** CP2102 USB] → Pi `cementer`. **Simulated transport** (recorded
-Enbridge CSV, not a live DAQ).
+- **Phase 2:** [`phase2-intellisense-daqformat/scope.md`](../changes/phase2-intellisense-daqformat/scope.md) (D1–D4) + the live-wire findings doc.
+- **Phase 3:** [`phase3-jobs-recording-profiles/scope.md`](../changes/phase3-jobs-recording-profiles/scope.md) (D1–D10; D2 = store sole DB owner / single-conn CRUD; D4 auth deferred; D8 job fields).
+- **Phase 4:** [`phase4-charting-printing/scope.md`](../changes/phase4-charting-printing/scope.md) (X=time; all-enabled role-grouped axes; live chart replaces readout; PDF = browser Save-as-PDF only).
+- Dispatch briefs (6) archived under [`docs/pa/briefs/`](briefs/).
 
-| Ingress | Device | rows | result |
-|---|---|---|---|
-| GPIO UART | `/dev/serial0`→`ttyS0` @115200 | 2,812 | ✅ raw log + SQLite WAL + `/debug/stats` 200 |
-| USB adapter | CP2102→`/dev/ttyUSB0` (by-id) @115200 | 4,404 | ✅ fresh `~/cementer-usbtest` db |
+## Standing practices
 
-**Proven:** serial RX, raw-log durability (L1), SQLite commit (L2), HTTP/WS serve across LAN, aarch64
-binary. **NOT proven (still open):** real-DAQ **wire contract** (framing/timing/serial params — only
-confirmed at the unit, this is the Phase 2 **D4** item) and **channel semantics** (4-col parser vs 15-col
-format → Phase 2 no-code mapping). Field runbook + gotchas live in `hand-off.md` (⚡ FIELD RUNBOOK).
-Build provenance: Go 1.26.4 on the garage desktop; web `dist/` stubbed (Node 18 < Vite 8); cross-compiled
-`GOOS=linux GOARCH=arm64`; binary on the Pi (gitignored, not in repo).
+- **Landing discipline (S5):** at each sub-arc landing, fold the realized contract (schema/WS/API) into
+  `docs/design/data-model.md` so the normative doc stays the living spec — don't let deltas accumulate
+  here. No separate as-built spec doc (decided sufficient).
+- **Canonical dev agent:** `cementer-go-engineer` (worktree-isolated, `model: opus`) — used for every
+  source arc this session. `general-purpose` is the generalist fallback only.
+- **Headless verify:** Playwright browsers are cached; temp-install `playwright@1.60.0` to screenshot the
+  web UI (see auto-memory). The chart paint is no longer a USER-only check.
 
-## In-flight
+## ✅ Bench-top stack validation — VERIFIED 2026-06-13 (Peter, on `CementSerial`)
 
-- **Phase 2 SCOPED + decisions locked; build GATED.** [`scope.md`](../changes/phase2-intellisense-daqformat/scope.md).
-  Generic `internal/daqformat` engine + Intellisense preset + minimal channel set; model/store already
-  fit (no change). Decisions: D1 new package · D2 embedded LOGTIME (+server fallback) · D3 map `meta.*`
-  now / semantics Phase 3 · **D4 GATE: get a live-serial capture before "done"**
-  ([capture request](../changes/phase2-intellisense-daqformat/live-serial-capture-request.md)).
-  **D4 status (2026-06-13):** bench-top capture DONE but **simulated transport** (ESP32-replayed CSV — see
-  bench-validation block above); the **real-DAQ wire capture is still pending** — collaborator Peter has
-  the Pi + RS-232→USB adapter in hand, field runbook ready in `hand-off.md`. Canonical dev agent
-  **`cementer-go-engineer` active**. **Next: dispatch the engine+preset build (agent) + obtain the
-  real-DAQ capture in the field.**
-  **D4 status (2026-06-14):** approach pivoted to **direct-laptop serial capture** (adapter → laptop,
-  read via `tools/serial-read.ps1`; no Pi/Go/build). **Two** DAQs to capture: Totco then Intellisense →
-  both Phase-2 presets. Totco confirmed COM6 / 9600 8N1 / Protocol 1 / 250 ms. **BLOCKED:** total
-  silence on COM6 at every baud → physical/electrical (null-modem cable? DAQ not transmitting? adapter?),
-  NOT a settings issue. Resume steps in `hand-off.md` (loopback self-test → cable → DAQ output).
-  **D4 status (2026-06-16): ✅ CLOSED for Intellisense.** Captured the **Intellisense** unit live off a
-  different rig (Prolific PL2303GT, COM7) — **19200 8N1, 14-col, no header, `HH:MM:SS`-uptime timestamp**.
-  Empirically confirmed 8 of 14 columns by actuating the rig (density 8.21 = unit interface, pressure
-  unit1 0→1306 with `agg.pressure = sum(unit pressures)` proven, rate + volume totals); the 6 flat
-  columns are explained (1-unit rig, no backup density, no flow meter, idle). Full characterization +
-  Phase-2-ready preset: [`intellisense-wire-capture-2026-06-16.md`](../changes/phase2-intellisense-daqformat/intellisense-wire-capture-2026-06-16.md);
-  raw `.bin` captures committed under `captures/`. **Totco unit was not accessible — its preset is still
-  TODO** (same method when reachable). Phase 2 can proceed on Intellisense alone.
-
-## ✅ RESOLVED FORK — storage engine + viz (RATIFIED 2026-06-12)
-
-**Decision (user, R2):** adopt **(A) Go single-binary + SQLite(WAL) + custom uPlot UI**; **(B)
-Python→InfluxDB→Grafana is retired to a dev/diagnostic bench** (`esp32sketches/`, `pi4b & test db/` —
-real-data injection + ad-hoc exploration only, no claim on the product). Full rationale + sources:
-[`docs/deep-dives/storage-and-viz-architecture-2026-06-12.md`](../deep-dives/storage-and-viz-architecture-2026-06-12.md)
-(RATIFIED). **Engineering riders folded into the build plan:** explicit `PRAGMA synchronous=FULL` +
-chosen commit cadence; retention/downsampling as scoped code → **Phase 3/4**; the print artifact is
-uPlot-at-high-DPI + print-CSS (not a dashboard export). Background (kept for provenance):
-
-| Concern | cementer Go binary (this repo's code) | Collaborator's working prototype (`ddf8ada`) |
-|---|---|---|
-| Ingest | Go: serial → rawlog → parser → store | Python script on the Pi parses the CSV |
-| Store | **SQLite** (modernc, WAL, single-writer) | **InfluxDB 2.9.1** (`cement_data` bucket) |
-| Viz | **custom embedded vanilla-TS** dark-mode client | **Grafana 13.0.2** dashboards |
-| DAQ feed | replay file / real serial | laptop CSV → USB → **ESP32** → UART2 → Pi |
-
-Collaborator's note: hardware flow "**Working!**"; "get proper DB in place and **serve it in whatever
-way you feel best**"; "**Customize UI and charting (collaborator handoff)**". The ESP32 rig
-(`csvToSerialSend.ino`, `send_csv.py`) is a reusable real-data injector — it stays as the dev bench's
-real-CSV-over-serial feed for stack (A).
-
-## Real DAQ format (decoded from `ddf8ada` CSVs)
-
-Comma-delimited, **has header**, 15 columns. Maps cleanly onto `data-model.md`'s channel/scope model:
-
-```
-_00_LOGTIME      timestamp (Excel serial day-number, e.g. 46171.24 ≈ 2026; parse hint needed)
-_01_DENSITY      density            _08_RATE_2        rate    (unit 2)
-_02_PRESS        pressure (agg?)    _09_WTR_RATE      water rate
-_03_PUMP_RATE    rate     (agg?)    _10_DENS_BKUP     density (backup → density.2)
-_04_PUMP_TTL     volume   (job?)    _11_WATER_STG_TTL water stage total (scope=stage)
-_05_PRESS_1      pressure (unit 1)  _12_PUMP_STG_TTL  pump  stage total (scope=stage)
-_06_PRESS_2      pressure (unit 2)  _13_JOB_NUMBER    job number
-_07_RATE_1       rate     (unit 1)  _14_MARKER        marker (stage/recording marker?)
-```
-
-This is a **real DaqFormat** to define against (data-model.md said the preset would come "from a real
-CSV — incoming"). It is NOT confirmed to be "Intellisense" — it's this Enbridge job's format; classify
-the preset name with the user. Files: `esp32sketches/EnbridgeCC4-16-CICR@344.csv` (2.5k rows),
-`@3250.csv` (8.7k), `Shoe344.csv` (14.4k).
-
-**UPDATE 2026-06-16 — live Intellisense wire captured; framing differs, column order matches.** The
-*live wire* off a real Intellisense unit (see [`intellisense-wire-capture-2026-06-16.md`](../changes/phase2-intellisense-daqformat/intellisense-wire-capture-2026-06-16.md))
-is **14 columns, no header, `HH:MM:SS`-uptime timestamp** — NOT the 15-column, headered, Excel-serial CSV
-above. The CSV was a *file export*, the wire is its own shape (textbook corpus-is-artifact). BUT the
-**column order/semantics line up**: actuating the rig confirmed density(1), pressure(2 agg = 5+6, 5
-unit1), rate(3 agg, 7 unit1), volume(4 job, 12 stage). So the CSV is a valid identity guide for the
-idle-zero columns; the **preset to build is the live 14-col one**, not the CSV.
+Go+SQLite Pi stack proven on both serial-ingress paths (GPIO UART @115200: 2,812 rows; CP2102 USB
+@115200: 4,404 rows). Transport was **simulated** (ESP32-replayed CSV); the **real-DAQ wire contract is
+confirmed for Intellisense** (S4 capture). Field runbook lives in `hand-off.md`.
 
 ## Design ↔ code deltas (tracked TODOs)
 
@@ -124,43 +55,41 @@ _**Standing practice (adopted S5):** close each delta into `docs/design/data-mod
 landing that resolves it — fold the realized schema/WS/API contract into the normative doc so it stays
 the living spec; don't let deltas accumulate here. No separate as-built spec doc (decided sufficient)._
 
-
-- `recording_segments` (and `jobs`) tables: designed in `data-model.md`, absent from
-  `internal/store/store.go` (only `samples`). Lands with Phase 3.
-- Pump Profile / DAQ Format / hello-profile WS message: designed, no code yet.
-- Computed/derived channels (`agg.rate = sum(...)`): designed, no code yet.
-- **Parser vs real format (CONFIRMED MISMATCH):** `parser.DefaultConfig()` is the synthetic **4-channel**
-  layout (pressure/rate/density/volume) — NOT the real **15-column** Enbridge format. Adaptation is the
-  no-code mapping/compute layer (project axiom #2), not parser edits. (Surfaced by nav-map cold-start.)
-- `internal/api/` and `web/src/chart/` are **empty placeholder dirs** for unbuilt phases (per nav-maps).
+- ~~`recording_segments`/`jobs` tables~~ — ✅ built (3b).
+- ~~Pump Profile / DAQ Format / hello-profile WS message~~ — ✅ Profile + hello/profile built (3a); DaqFormat
+  stays a code preset (in-UI format CRUD still deferred — Phase 5+).
+- ~~Computed/derived channels~~ — ✅ engine has a sum/mean compute pass (no-op for Intellisense, which
+  field-maps its aggregates).
+- ~~Parser vs real format mismatch~~ — ✅ resolved: `internal/daqformat` is the format engine; `internal/parser`
+  is now **off the main path** (kept only for its Phase-1 test). **Cleanup candidate:** delete parser or
+  fold its cases into a daqformat test.
+- `internal/api/` and `web/src/chart/` are now **populated** (3a/3b/4a) — no longer placeholders.
+- **`job.number` charts as a flat trace** — its profile scope is `job` (role `meta`), so the live chart's
+  `scope!=="meta"` filter doesn't exclude it. Harmless flat-0 line; minor follow-up.
+- **`controls.ts` new-job form renders expanded by default** — cosmetic; fold into 4b.
 
 ## Doc-currency / hygiene debts
 
-- **Stale `docs/plan` reference.** `cmd/cementer/main.go` (pkg-doc line ~7 and a comment ~145) and
-  `README.md` cite a build-plan doc that **does not exist**. Fix: create `docs/plan` OR correct the
-  references to point at `data-model.md` § Build-order + this doc.
-- **README Go version drift.** `README.md` says "Go 1.22+"; `go.mod` is `go 1.26.4`. (nav-map catch.)
-- **Nav-maps generated** (`.claude/maps/`, 13 maps + non-compliance report, stamp `ee446c3`). Note:
-  the mapper is scrml-flavored — its flag that the deep-dive "belongs in scrml-support" is a FALSE
-  POSITIVE; this standalone repo keeps deep-dives in `docs/deep-dives/` by overlay design.
-- **⚠ Plaintext credentials committed** in `pi4b & test db/credetials&currentDB.README` (commit
-  `ddf8ada`): SSH / InfluxDB / Grafana logins (weak identical test passwords). Test-rig creds on a LAN
-  Pi, but committing credentials is a flag — rotate + move to a non-committed secret if this repo is
-  ever shared/public; consider `.gitignore` for the creds file. Surfaced, not changed (collaborator's
-  file).
+- ~~Stale `docs/plan` reference~~ — ✅ fixed in `main.go` pkg-doc + README (→ `data-model.md`).
+- ~~README "Go 1.22+"~~ — ✅ now "Go 1.26+ / Node 20+".
+- **Nav-maps regenerated at S5 wrap** (`.claude/maps/`, stamp = wrap HEAD) — were 5 phases stale.
+- **⚠ Plaintext credentials committed** in `pi4b & test db/credetials&currentDB.README` (`ddf8ada`):
+  test-rig SSH/Influx/Grafana logins. Rotate + gitignore if this repo is ever shared/public. Surfaced,
+  not changed (collaborator's file).
+- **No commit gate installed** (`core.hooksPath` unset). Baseline still recommended: `gofmt -l` + `go vet`
+  + `go build` + `go test`; `make build` pre-push when `web/` changed.
 
 ## Near-term actions (not yet done)
 
-1. **Generate nav-maps:** run `/map` (cold start) → `.claude/maps/` (structure, dependencies, build,
-   test, events, state, api). None exist yet.
-2. **Install the commit gate:** no pre-commit hook exists (`core.hooksPath` unset). Baseline:
-   `gofmt -l` + `go vet ./...` + `go build ./...` + `go test ./...`; `make build` pre-push when `web/`
-   changed.
-3. **Resolve the `docs/plan` debt** (above).
+1. **Phase 4b** — printing (company default template + per-job overrides + print-CSS view + browser
+   Save-as-PDF). Scope locked. Fold in the two minor cosmetics above (new-job form, job.number trace).
+2. **Install the commit gate** (above).
+3. **Parser cleanup** (delete/fold the off-path `internal/parser`).
+4. **Totco preset** — when a Totco unit is reachable (same direct-laptop capture method).
 
 ## Test surface
 
-- `go test ./...` — only `internal/parser/parser_test.go` exists. Web has no tests.
-- **Last full run (2026-06-12 wrap):** `go build ./...` ✅ · `go vet ./...` ✅ · `go test ./...` ✅
-  (parser passes; all other packages report "no test files"). `web/dist` was present so the
-  embed-dependent root + `cmd/cementer` compiled.
+- `go test ./...`: `internal/daqformat`, `internal/parser`, `internal/store`, `internal/api` have tests;
+  others report "no test files". Web has no unit suite (tsc-strict + Playwright screenshot are the checks).
+- **Last full run (2026-06-19 wrap):** `go test ./...` ✅ · `go vet ./...` ✅ · `gofmt -l` clean ·
+  `make build` ✅ (CGO-free, uPlot bundled offline).

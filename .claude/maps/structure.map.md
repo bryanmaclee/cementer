@@ -1,43 +1,51 @@
 # structure.map.md
 # project: cementer
-# updated: 2026-06-12T09:02:13-06:00  commit: ee446c3
+# updated: 2026-06-19T23:05:55Z  commit: 1465bd9
 
 ## Entry Points
-cmd/cementer/main.go: the single binary's `main`/`run` — parses flags, wires the pipeline (source → rawlog → parser → store → hub), mounts HTTP (`/ws/live`, `/debug/stats`, `/`), and serves the embedded web client. The whole product is this one process.
-assets.go (package `cementer`, repo root): `go:embed all:web/dist` + `WebDist()` — embeds the built web client into the binary.
-web/src/main.ts: browser client entry — instantiates `Readout`, opens the live WebSocket via `connectLive`.
+`cmd/cementer/main.go`: wires the full pipeline (source → rawlog → daqformat engine → store → hub), mounts HTTP mux (WebSocket, REST API, SPA), seeds the active pump profile on first run, runs ordered shutdown.
+`web/src/main.ts`: browser entry — instantiates Readout shell, Controls strip, and the live WebSocket connection.
+`assets.go`: root package `cementer`; `//go:embed all:web/dist` + `WebDist()` — embeds the built web client into the binary.
 
 ## Directory Ownership
-cmd/cementer/        — binary entrypoint: flag parsing, pipeline wiring, WebSocket pumps, embedded-SPA mounting, debug stats.
-internal/source/     — `LineSource` interface + `Replay` (dev file replay, with loop). Decouples ingest from where bytes come from.
-internal/serialreader/ — production `LineSource`: reads newline ASCII off a USB-serial port via `go.bug.st/serial`.
-internal/rawlog/     — durability layer 1: append-only raw-line file with periodic fsync. Captures every byte before parse/store.
-internal/parser/     — the ONLY protocol-specific code: ASCII line → `model.Reading`. Permissive (skips blank/comment/garbage). Has the only Go test.
-internal/model/      — shared data contracts: `Reading` (broadcast unit) and `Sample` (long-form storage row).
-internal/store/      — durability layer 2: SQLite (modernc pure-Go) WAL single-writer; batch commit; `onCommit` post-commit hook; `Stats`.
-internal/hub/        — WebSocket fan-out: `Hub` + `Subscriber`; drops slow clients rather than blocking ingestion. Transport-agnostic.
-internal/api/        — EMPTY directory (no files). No HTTP handler package; routes live in cmd/cementer/main.go.
-web/                 — vanilla-TS + Vite client (no framework). `index.html`, configs; built to `web/dist` (git-ignored, embedded at build).
-web/src/             — client modules: main, readout (live value cards), ws (reconnecting socket), theme (dark/light), types, styles.css.
-web/src/chart/       — EMPTY directory (no files). Reserved for the future uPlot charting centerpiece (Phase 4, not built).
-deploy/              — `cementer.service` systemd unit template for the Pi.
-testdata/            — `sample-stream.txt`: synthetic comma-separated stream for `make run` (no pump needed).
-docs/design/         — `data-model.md`: normative configuration-driven design (pump profiles, DAQ formats, recording segments) — largely DESIGNED, not yet built.
-docs/deep-dives/     — `storage-and-viz-architecture-2026-06-12.md`: architecture decision research (Go/SQLite vs Influx/Grafana). See non-compliance report.
-docs/pa/             — project-management source-of-truth docs: status, changelog, hand-off, anti-patterns, design-insights, user-voice.
-docs/changes/        — change-log artifact dir (currently only `.gitkeep`).
-esp32sketches/       — collaborator test-rig: ESP32 `.ino` sketches, real Enbridge CSVs, `send_csv.py`. A dev/diagnostic bench, NOT shipped product source.
-pi4b & test db/      — collaborator bench README (Influx/Grafana stack notes + plaintext test creds). NOT product source. See non-compliance report.
+
+```
+cementer/
+├── cmd/cementer/             — single binary entry; flag parsing, pipeline wiring, WS pumps, profile seed, SPA mount
+├── internal/
+│   ├── api/                  — HTTP/JSON handlers: profile (3a), jobs + recording (3b), series + samples (4a)
+│   ├── daqformat/            — generic config-driven DAQ engine; Intellisense + Synthetic presets; channel vocab
+│   ├── hub/                  — in-process fan-out: distributes committed readings to WS subscribers; drops slow clients
+│   ├── model/                — shared wire types: Reading (broadcast frame) + Sample (storage row)
+│   ├── parser/               — legacy line parser (OFF the main path; retained for its test only)
+│   ├── rawlog/               — durability layer 1: append-only raw-byte log, periodic fsync
+│   ├── serialreader/         — production LineSource: newline-delimited ASCII off USB-serial (go.bug.st/serial)
+│   ├── source/               — LineSource interface + Replay file source (dev / test, no pump required)
+│   └── store/                — durability layer 2: SQLite (single-writer goroutine, WAL); profile/jobs/recording/series
+├── web/
+│   ├── src/                  — TypeScript SPA (no framework): readout shell, chart, controls, WS, types, styles
+│   │   └── chart/            — LiveChart (rolling real-time), JobChart (per-job historical), roles/config helpers
+│   └── dist/                 — compiled SPA assets (generated by vite; embedded into binary; gitignored)
+├── docs/
+│   ├── changes/              — per-phase scope + progress files (phase2-intellisense-daqformat, phase3-jobs-recording-profiles, phase4-charting-printing)
+│   ├── deep-dives/           — architecture research (standalone repo overlay; NOT scrml-support cross-project)
+│   ├── design/               — normative data-model.md
+│   └── pa/                   — PA briefs, changelog, hand-offs, anti-patterns, user-voice, design-insights
+├── deploy/                   — cementer.service: systemd unit template for Pi production deployment
+├── testdata/                 — sample-stream.txt (4-col synthetic) + intellisense-demo.txt (multi-phase live capture)
+├── captures/                 — raw field serial captures (binary/raw; not enumerated in maps)
+├── esp32sketches/            — ESP32 Arduino sketches (bench tooling; NOT in Go build path)
+└── data/                     — runtime SQLite DB + raw logs (gitignored; created at process start)
+```
 
 ## Ignored / Generated Paths
-.git, web/node_modules, web/dist (go:embed-built), /data/, *.db / *.db-wal / *.db-shm, raw-*.log, /cementer binary, .claude
-
-## Notes
-- ~10 Go files, 5 TypeScript files, 51 git-tracked files total. Not a monorepo (single Go module + one co-located web client).
-- Root-level `dumb_file` is a 16-byte scratch file with no role in the build.
+- `web/dist/` — vite build output embedded at compile time
+- `web/node_modules/` — npm packages
+- `data/` — runtime SQLite DB (`cementer.db`) and raw log files (`raw-*.log`)
+- `.git/`, `.claude/`
 
 ## Tags
-#cementer #map #structure #go #vanilla-ts #single-binary #raspberry-pi #daq
+#cementer #map #structure #go #vanilla-ts #single-binary #raspberry-pi #daq #daqformat #charting
 
 ## Links
 - [primary.map.md](./primary.map.md)
