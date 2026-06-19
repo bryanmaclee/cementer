@@ -100,3 +100,50 @@ Static final: gofmt clean, go vet clean, make build clean (CGO-free), go test ./
 
 STATUS: complete for the server + data path + chart code; PARTIAL only on the human visual eyeball
 (gated on a browser load — see above).
+
+## 2026-06-19 — Phase-4a fix-up (time-units + varied demo)
+
+Base: 1f65c13. Two demo-found issues.
+
+### done — ISSUE 2 (varied demo asset)
+- Built `testdata/intellisense-demo.txt`: concatenated the ten 19200-8N1 captures in
+  chronological filename order, EXCLUDING the 9600 garbage (`...150051-9600-8N1.bin`).
+  478 lines; 4 torn boot fragments (1/12/20/27 fields) dropped by the field-count guard.
+- Per-channel min/max over clean lines: agg.pressure 0->1306, density.1 0->8.21,
+  agg.rate 0->4.60, vol.job 0->43.3, unit1.pressure 0->1306, unit1.rate 0->4.60,
+  vol.stage 0->43.3 MOVE; unit2.*, water.rate, density.2, vol.water.stage, job.number
+  flat at 0. 7 moving channels — real multi-phase variety, not one ramp.
+
+### next
+- Point `make demo` at the new file; update README "Quick demo" wording (channels that move).
+- ISSUE 1: feed uPlot SECONDS (live x = Date.parse/1000; job x = us/1e6; trim/window +
+  shade-plugin in seconds; LiveConfig window in seconds).
+- Build web + binary; gofmt/vet/test; E2E replay -> per-channel maxes via /api; axiom-#1 rows climb.
+
+### done — ISSUE 1 (uPlot time-units = seconds, end-to-end)
+- livechart.ts: push x = Date.parse(r.ts)/1000 (epoch seconds); ring xs in seconds;
+  windowSec + DEFAULT_WINDOW_SEC; trim cutoff in seconds; setWindowSec().
+- config.ts: LiveConfig.windowSec (seconds); setWindowSec().
+- readout.ts: window selector values in seconds (mins*60); setWindowSec.
+- jobchart.ts: union x = p[0]/1_000_000 (us->s); shade plugin startedAtUs/stoppedAtUs
+  /1_000_000 before valToPos. Wire (RFC3339) + store (us) UNCHANGED.
+
+### verify (post-change binary, real demo stream)
+- gofmt -l: clean. go vet ./...: clean. go build ./...: ok. go test ./...: all GREEN
+  (api/daqformat/parser/store) — no Go logic changed, nothing broke.
+- make build: ok (web tsc-strict + vite, 71KB JS chunk; server binary 15.8MB).
+- Offline bundle: no external http(s) URLs in web/dist; uPlot inlined in the JS chunk (no CDN).
+- E2E demo replay (-replay-interval 50ms, /tmp/ce-demo, :8123) per-channel max via /api/samples:
+  agg.pressure 1306, unit1.pressure 1306, density.1 8.21, agg.rate 4.60, unit1.rate 4.60,
+  vol.job 43.30, vol.stage 43.30 MOVE; unit2.*/water.rate/density.2/vol.water.stage flat 0.
+  => 7 moving channels, real variety (not one ramp). Matches offline analysis.
+- Seconds proof: sample tsUs 1.7819e15 /1e6 = 1.7819e9 (correct era); built JS has /1e3 (live)
+  and /1e6 (job); a 2026 RFC3339 ts -> 1.78e9 s (not 1.78e12 ms).
+- Axiom #1: /debug/stats rows climbed 2743 -> 4810 -> 13195 -> 32799 while chart endpoints hit;
+  /ws/live upgrade = HTTP 101. Ingestion independent of reads/clients.
+- README Quick demo reworded for the multi-phase stream + accurate moving/flat channels.
+
+### NEEDS HUMAN BROWSER EYEBALL
+- The VISUAL time-axis tick LABELS (correct dates/times) need a real browser load — no headless
+  browser here. Verified: the x VALUES are now seconds, tsc-strict passes, the bundle builds. The
+  axis-label correctness (the actual fix) is confirmed by units, not by a rendered screenshot.

@@ -10,23 +10,26 @@ centerpiece of the project.
 
 ## Quick demo — see the live chart now (no pump needed)
 
-The repo ships a **real Intellisense wire capture**; `make demo` replays it into a fully
-populated chart. **Prereqs: Go 1.26+ and Node 20+.**
+The repo ships **real Intellisense wire captures**; `make demo` replays a multi-phase
+stream (the field captures concatenated chronologically) into a fully populated chart.
+**Prereqs: Go 1.26+ and Node 20+.**
 
 ```sh
 git clone git@github.com:bryanmaclee/cementer.git    # or: git pull, if already cloned
 cd cementer
-make demo                                            # builds the web client + binary, then replays the capture
+make demo                                            # builds the web client + binary, then replays the stream
 # open http://localhost:8080   (Ctrl-C to stop)
 ```
 
-You should see:
+You should see (the stream walks through several phases on a ~90s loop):
 - a **live rolling chart**, traces auto-grouped by role (pressure psi · rate bbl/min · density ppg ·
-  volume bbl), with the **pressure line ramping ~0 → 1306 → 0** on a loop (a real valve-close run);
+  volume bbl), with **several channels moving** as the run progresses — `agg.pressure` and
+  `unit1.pressure` ramp **~0 → 1306 → 0** (a real valve-close run), `density.1` settles around **8.21 ppg**,
+  `agg.rate`/`unit1.rate` move up to **~4.6 bbl/min**, and `vol.job`/`vol.stage` climb to **~43 bbl**;
 - a **legend** showing each channel's current value — click a legend row to hide/show that trace;
-- **four traces flat at 0** — `unit2.pressure`, `unit2.rate`, `water.rate`, `density.2` — because this
-  capture came from a **single-unit rig** that physically lacks them (the profile keeps them defined for
-  multi-unit rigs; hide them from the legend if you like);
+- a few **traces flat at 0** — `unit2.pressure`, `unit2.rate`, `water.rate`, `density.2`, `vol.water.stage` —
+  because these captures came from a **single-unit rig** that physically lacks them (the profile keeps
+  them defined for multi-unit rigs; hide them from the legend if you like);
 - click **Record**, wait a few seconds, **Stop**, then the **Job History** tab → your recorded segment,
   rendered with a shaded band.
 
@@ -70,7 +73,7 @@ Requires Go 1.26+ and Node 20+. The web client is built first and embedded into 
 
 ```sh
 make build                              # builds web/dist then the cementer binary
-make demo                               # replays a real Intellisense capture (populated chart)
+make demo                               # replays a real multi-phase Intellisense stream (populated chart)
 make run                                # replays the synthetic dev stream (-format synthetic)
 # then open http://localhost:8080
 ```

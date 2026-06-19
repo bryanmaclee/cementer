@@ -98,10 +98,11 @@ export class JobChart {
     // Order channels by the profile (label/uom/color), falling back to the raw ids.
     const channels = this.orderedChannels(Object.keys(data.series));
 
-    // Union x timeline (ms) across all channels' decimated points.
+    // Union x timeline (epoch SECONDS — uPlot's time-scale unit) across all channels'
+    // decimated points. The store/wire stay in microseconds; we convert here.
     const xsSet = new Set<number>();
     for (const c of channels) {
-      for (const p of data.series[c.id] ?? []) xsSet.add(p[0] / 1000); // us -> ms
+      for (const p of data.series[c.id] ?? []) xsSet.add(p[0] / 1_000_000); // us -> s
     }
     const xs = [...xsSet].sort((a, b) => a - b);
     const xIndex = new Map<number, number>();
@@ -111,7 +112,7 @@ export class JobChart {
     const ys: (number | null)[][] = channels.map(() => new Array(xs.length).fill(null));
     channels.forEach((c, ci) => {
       for (const p of data.series[c.id] ?? []) {
-        const i = xIndex.get(p[0] / 1000);
+        const i = xIndex.get(p[0] / 1_000_000);
         if (i !== undefined) ys[ci][i] = p[1];
       }
     });
@@ -178,10 +179,11 @@ export class JobChart {
           ctx.globalAlpha = 0.08;
           ctx.fillStyle = fill;
           for (const seg of segments) {
-            const startMs = seg.startedAtUs / 1000;
-            const stopMs = (seg.stoppedAtUs ?? Date.now() * 1000) / 1000;
-            let x0 = u.valToPos(startMs, "x", true);
-            let x1 = u.valToPos(stopMs, "x", true);
+            // Segment bounds are microseconds on the wire; the x scale is in seconds.
+            const startSec = seg.startedAtUs / 1_000_000;
+            const stopSec = (seg.stoppedAtUs ?? Date.now() * 1000) / 1_000_000;
+            let x0 = u.valToPos(startSec, "x", true);
+            let x1 = u.valToPos(stopSec, "x", true);
             // Clip to the plotting area.
             x0 = Math.max(left, Math.min(left + width, x0));
             x1 = Math.max(left, Math.min(left + width, x1));

@@ -8,8 +8,9 @@ export interface LiveConfig {
   hidden?: Record<string, boolean>;
   // colors[channelId] => a CSS color override for that trace.
   colors?: Record<string, string>;
-  // rolling window length, in milliseconds.
-  windowMs?: number;
+  // rolling window length, in SECONDS (uPlot's time-scale unit; kept consistent
+  // across the chart, the persisted config, and the window selector).
+  windowSec?: number;
 }
 
 const KEY = "cementer.liveview";
@@ -43,10 +44,10 @@ export function setHidden(channelId: string, hidden: boolean): LiveConfig {
   return cfg;
 }
 
-// setWindowMs persists the rolling-window length and returns the updated config.
-export function setWindowMs(ms: number): LiveConfig {
+// setWindowSec persists the rolling-window length (seconds) and returns the updated config.
+export function setWindowSec(sec: number): LiveConfig {
   const cfg = loadLiveConfig();
-  cfg.windowMs = ms;
+  cfg.windowSec = sec;
   saveLiveConfig(cfg);
   return cfg;
 }

@@ -14,7 +14,10 @@ import { loadLiveConfig, setHidden, type LiveConfig } from "./config.ts";
 // AXIOM #1: this is a passive consumer of the live stream. It never gates ingestion,
 // the live stream, or recording — push() just appends to an in-memory ring buffer.
 
-const DEFAULT_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+// uPlot's time scale (scales.x.time = true) expects Unix timestamps in SECONDS, so the
+// chart's x axis and all window/trim math are kept in seconds end-to-end. (Reading.ts on
+// the wire stays RFC3339; we convert to epoch seconds here, at the chart boundary.)
+const DEFAULT_WINDOW_SEC = 5 * 60; // 5 minutes
 const MAX_POINTS = 4000; // ring cap, independent of the time window
 
 function el(tag: string, className?: string, text?: string): HTMLElement {
@@ -41,13 +44,13 @@ export class LiveChart {
   private legendHost: HTMLElement;
   private plot: uPlot | null = null;
 
-  // Aligned ring buffers: x (ms) + one y-array per series, all index-aligned.
+  // Aligned ring buffers: x (epoch seconds) + one y-array per series, all index-aligned.
   private xs: number[] = [];
   private ys: number[][] = [];
   private metas: SeriesMeta[] = [];
   private channelCol = new Map<string, number>(); // channel id -> column index
 
-  private windowMs = DEFAULT_WINDOW_MS;
+  private windowSec = DEFAULT_WINDOW_SEC;
   private cfg: LiveConfig = {};
 
   // Custom legend rows (latest value at a glance).
@@ -66,7 +69,7 @@ export class LiveChart {
     this.host.append(this.legendHost, this.chartHost);
 
     this.cfg = loadLiveConfig();
-    if (this.cfg.windowMs && this.cfg.windowMs > 0) this.windowMs = this.cfg.windowMs;
+    if (this.cfg.windowSec && this.cfg.windowSec > 0) this.windowSec = this.cfg.windowSec;
 
     window.addEventListener("resize", () => this.resize());
     // Paint loop: coalesce pushes into ~animation-frame cadence.
@@ -82,15 +85,16 @@ export class LiveChart {
     requestAnimationFrame(tick);
   }
 
-  // setWindowMs changes the rolling window (personal config; persisted by the caller).
-  setWindowMs(ms: number): void {
-    if (ms > 0) this.windowMs = ms;
+  // setWindowSec changes the rolling window in seconds (personal config; persisted by
+  // the caller).
+  setWindowSec(sec: number): void {
+    if (sec > 0) this.windowSec = sec;
   }
 
   // applyConfig re-reads personal config (line on/off, window, colors) and rebuilds.
   applyConfig(cfg: LiveConfig): void {
     this.cfg = cfg;
-    if (cfg.windowMs && cfg.windowMs > 0) this.windowMs = cfg.windowMs;
+    if (cfg.windowSec && cfg.windowSec > 0) this.windowSec = cfg.windowSec;
     if (this.lastProfile) this.applyProfile(this.lastProfile);
   }
 
@@ -134,13 +138,15 @@ export class LiveChart {
 
   // push appends one reading to the ring buffers. Channels absent from the reading get
   // NaN for this column (uPlot draws a gap). The actual repaint happens on the next
-  // animation frame (coalesced). Reading.ts is RFC3339 — convert to epoch ms.
+  // animation frame (coalesced). Reading.ts is RFC3339 — convert to epoch SECONDS,
+  // which is the unit uPlot's time scale expects.
   push(r: Reading): void {
     if (this.metas.length === 0) return; // no profile yet
     const tMs = Date.parse(r.ts);
     if (Number.isNaN(tMs)) return;
+    const tSec = tMs / 1000;
 
-    this.xs.push(tMs);
+    this.xs.push(tSec);
     for (const m of this.metas) {
       const v = r.values[m.channel.id];
       this.ys[m.colIndex - 1].push(v === undefined ? NaN : v);
@@ -152,7 +158,7 @@ export class LiveChart {
   private trim(): void {
     const n = this.xs.length;
     if (n === 0) return;
-    const cutoff = this.xs[n - 1] - this.windowMs;
+    const cutoff = this.xs[n - 1] - this.windowSec; // xs and windowSec are both in seconds
     let start = 0;
     while (start < n && this.xs[start] < cutoff) start++;
     if (n - start > MAX_POINTS) start = n - MAX_POINTS;

@@ -32,10 +32,12 @@ pi: web
 run: build
 	./$(BIN) -source testdata/sample-stream.txt -format synthetic
 
-# Demo the real Intellisense wire with NO pump: replays a committed live capture into a
-# fully populated chart. After it starts, open http://localhost:8080.
+# Demo the real Intellisense wire with NO pump: replays a multi-phase capture (the ten
+# 19200-8N1 field captures concatenated chronologically) into a fully populated chart, so
+# the loop shows real variety (idle -> rate -> density -> pressure to 1306 -> density),
+# not one repeating ramp. After it starts, open http://localhost:8080.
 demo: build
-	./$(BIN) -source captures/capture-2026-06-16T161347-19200-8N1-pressure.bin -format intellisense -replay-interval 200ms
+	./$(BIN) -source testdata/intellisense-demo.txt -format intellisense -replay-interval 200ms
 
 tidy:
 	$(GO) mod tidy

@@ -2,7 +2,7 @@ import type { Profile, Reading } from "./types.ts";
 import { initTheme, toggleTheme } from "./theme.ts";
 import { LiveChart } from "./chart/livechart.ts";
 import { JobChart } from "./chart/jobchart.ts";
-import { loadLiveConfig, setWindowMs } from "./chart/config.ts";
+import { loadLiveConfig, setWindowSec } from "./chart/config.ts";
 
 const STALE_MS = 3000;
 
@@ -68,7 +68,7 @@ export class Readout {
     this.jobTab.addEventListener("click", () => this.setView("job"));
     tabs.append(this.liveTab, this.jobTab);
 
-    // Rolling-window selector (personal config).
+    // Rolling-window selector (personal config). Values are SECONDS (uPlot's time unit).
     this.windowSelect = el("select", "window-select") as HTMLSelectElement;
     for (const [label, mins] of [
       ["1 min", 1],
@@ -78,16 +78,16 @@ export class Readout {
       ["60 min", 60],
     ] as Array<[string, number]>) {
       const opt = el("option", undefined, label) as HTMLOptionElement;
-      opt.value = String(mins * 60 * 1000);
+      opt.value = String(mins * 60);
       this.windowSelect.append(opt);
     }
     const cfg = loadLiveConfig();
-    this.windowSelect.value = String(cfg.windowMs && cfg.windowMs > 0 ? cfg.windowMs : 5 * 60 * 1000);
+    this.windowSelect.value = String(cfg.windowSec && cfg.windowSec > 0 ? cfg.windowSec : 5 * 60);
     this.windowSelect.title = "Live rolling window";
     this.windowSelect.addEventListener("change", () => {
-      const ms = Number(this.windowSelect.value);
-      this.liveChart.setWindowMs(ms);
-      setWindowMs(ms);
+      const sec = Number(this.windowSelect.value);
+      this.liveChart.setWindowSec(sec);
+      setWindowSec(sec);
     });
 
     const status = el("div", "status");
