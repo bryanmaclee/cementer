@@ -104,7 +104,41 @@ CREATE TABLE IF NOT EXISTS profile_channels (
     sort_order  INTEGER NOT NULL DEFAULT 0,
     UNIQUE(profile_id, channel_id)
 );
-CREATE INDEX IF NOT EXISTS idx_profile_channels_profile ON profile_channels(profile_id);`
+CREATE INDEX IF NOT EXISTS idx_profile_channels_profile ON profile_channels(profile_id);
+
+-- Job (the unit of work recordings attach to). Exactly one row has is_active=1:
+-- the job whose recording segments new starts open under. TEXT fields default ''
+-- so a job needs only a name. See docs/design/data-model.md and the phase3 scope
+-- (D8 job fields).
+CREATE TABLE IF NOT EXISTS jobs (
+    id            INTEGER PRIMARY KEY,
+    name          TEXT    NOT NULL,
+    company       TEXT    NOT NULL DEFAULT '',    -- operator/company
+    well          TEXT    NOT NULL DEFAULT '',    -- well / location name
+    casing_size   TEXT    NOT NULL DEFAULT '',    -- e.g. "9-5/8\""
+    job_type      TEXT    NOT NULL DEFAULT '',    -- surface / intermediate / production / squeeze
+    location      TEXT    NOT NULL DEFAULT '',    -- field / lease
+    cementer      TEXT    NOT NULL DEFAULT '',    -- foreman / crew lead
+    notes         TEXT    NOT NULL DEFAULT '',
+    is_active     INTEGER NOT NULL DEFAULT 0,     -- exactly one row = 1 (the active job)
+    created_at_us INTEGER NOT NULL,
+    updated_at_us INTEGER NOT NULL
+);
+
+-- Recording segment: a MARKER over the always-on samples store (axioms #1 & #5).
+-- started_at_us / stopped_at_us are points on the SAME timeline as samples.ts_us
+-- (time.Now().UnixMicro), so Phase-4 charts can filter samples to a segment range.
+-- stopped_at_us NULL = open (recording in progress). A job has many segments.
+-- Start/stop/adjust ONLY insert/update rows here — they never gate ingestion, the
+-- live readout, or stage volume.
+CREATE TABLE IF NOT EXISTS recording_segments (
+    id            INTEGER PRIMARY KEY,
+    job_id        INTEGER NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+    started_at_us INTEGER NOT NULL,               -- a point on the samples.ts_us timeline
+    stopped_at_us INTEGER,                          -- NULL = open (recording in progress)
+    created_at_us INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_segments_job ON recording_segments(job_id);`
 	_, err := db.Exec(ddl)
 	return err
 }

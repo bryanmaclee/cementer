@@ -73,6 +73,7 @@ interface Group {
 export class Readout {
   private content: El; // holds the group sections
   private placeholder: El;
+  private controls: El; // host for the job/record control strip (filled by Controls)
 
   private cards = new Map<string, Card>();
   private groups = new Map<string, Group>();
@@ -108,6 +109,11 @@ export class Readout {
     right.append(status, themeBtn);
     header.append(brand, right);
 
+    // --- control strip host (job selector + record button live here; the Controls
+    // module populates it). It sits between the header and the live values. Recording
+    // is a marker over the always-on store and never gates the readout (axiom #1). ---
+    this.controls = el("div", "controls-host");
+
     // --- grouped value area ---
     this.content = el("main", "content");
     this.placeholder = el("div", "placeholder", "waiting for data…");
@@ -119,7 +125,7 @@ export class Readout {
     this.updatedEl = el("span", "meta-item", "no data yet");
     footer.append(this.seqEl, this.updatedEl);
 
-    root.append(header, this.content, footer);
+    root.append(header, this.controls, this.content, footer);
 
     this.applyStatus();
     window.setInterval(() => this.applyStatus(), 1000);
@@ -128,6 +134,12 @@ export class Readout {
   setConnected(connected: boolean): void {
     this.connected = connected;
     this.applyStatus();
+  }
+
+  // controlsHost is the empty container (between header and live values) where the
+  // job/record controls mount. The Readout owns the layout; Controls owns the strip.
+  controlsHost(): El {
+    return this.controls;
   }
 
   // applyProfile (re)builds the display from the pump profile. It rebuilds groups

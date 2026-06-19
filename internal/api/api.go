@@ -29,12 +29,30 @@ func New(st *store.Store, resetVocab func() []store.SeedChannel) *API {
 	return &API{st: st, resetVocab: resetVocab}
 }
 
-// Register mounts the API routes on mux. Profile routes only in Phase 3a; jobs and
-// recording land in 3b.
+// Register mounts the API routes on mux. Profile routes (Phase 3a) plus Job +
+// recording routes (Phase 3b). All handlers call store methods only (axiom #4 / D2).
 func (a *API) Register(mux *http.ServeMux) {
+	// Pump Profile (3a).
 	mux.HandleFunc("GET /api/profile", a.getProfile)
 	mux.HandleFunc("PUT /api/profile", a.putProfile)
 	mux.HandleFunc("POST /api/profile/reset", a.resetProfile)
+
+	// Jobs (3b).
+	mux.HandleFunc("GET /api/jobs", a.listJobs)
+	mux.HandleFunc("POST /api/jobs", a.createJob)
+	mux.HandleFunc("GET /api/jobs/{id}", a.getJob)
+	mux.HandleFunc("PUT /api/jobs/{id}", a.updateJob)
+	mux.HandleFunc("GET /api/job/active", a.getActiveJob)
+	mux.HandleFunc("PUT /api/job/active", a.setActiveJob)
+
+	// Recording segments — markers over the always-on store (axiom #1). These
+	// routes ONLY insert/update marker rows; they never gate ingestion or the live
+	// readout, and never reset stage volume (axiom #5).
+	mux.HandleFunc("GET /api/recording/state", a.recordingState)
+	mux.HandleFunc("POST /api/recording/start", a.startRecording)
+	mux.HandleFunc("POST /api/recording/stop", a.stopRecording)
+	mux.HandleFunc("GET /api/recording/segments", a.listSegments)
+	mux.HandleFunc("PUT /api/recording/segments/{id}", a.adjustSegment)
 }
 
 // getProfile returns the active profile with ALL channels (enabled and disabled),

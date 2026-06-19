@@ -211,7 +211,78 @@ stop) and a forgotten "start" is fully recoverable. A job may have **multiple se
 separate stage marker), **not** by the record start/stop button. Do not reset stage volume
 on record-start; recording segments and stages are orthogonal and may not line up.
 
-Lands with the Job concept in Phase 2.
+### Realized contract — Phase 3b (built; this is the living spec)
+
+Jobs and recording segments are persisted on the Pi in the single SQLite store (same
+single-owner discipline as 3a: synchronous store methods on the one `SetMaxOpenConns(1)`
+connection — never a second `*sql.DB`, never a write from an HTTP handler). Exactly one
+job is active (`is_active=1`): the job new recording segments open under.
+
+```sql
+CREATE TABLE IF NOT EXISTS jobs (
+    id            INTEGER PRIMARY KEY,
+    name          TEXT    NOT NULL,
+    company       TEXT    NOT NULL DEFAULT '',    -- operator/company
+    well          TEXT    NOT NULL DEFAULT '',    -- well / location name
+    casing_size   TEXT    NOT NULL DEFAULT '',    -- e.g. "9-5/8\""
+    job_type      TEXT    NOT NULL DEFAULT '',    -- surface / intermediate / production / squeeze
+    location      TEXT    NOT NULL DEFAULT '',    -- field / lease
+    cementer      TEXT    NOT NULL DEFAULT '',    -- foreman / crew lead
+    notes         TEXT    NOT NULL DEFAULT '',
+    is_active     INTEGER NOT NULL DEFAULT 0,     -- exactly one row = 1 (the active job)
+    created_at_us INTEGER NOT NULL,
+    updated_at_us INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS recording_segments (
+    id            INTEGER PRIMARY KEY,
+    job_id        INTEGER NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+    started_at_us INTEGER NOT NULL,               -- a point on the SAME timeline as samples.ts_us
+    stopped_at_us INTEGER,                          -- NULL = open (recording in progress)
+    created_at_us INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_segments_job ON recording_segments(job_id);
+```
+
+**Recording is marker-only (AXIOM #1, proven not asserted).** `StartRecording` inserts an
+open segment (`stopped_at_us NULL`) under the active job; `StopRecording` updates its
+`stopped_at_us`. These touch *only* `recording_segments` — they never gate ingestion, the
+live readout, or stage volume. The sample `writeLoop` is untouched: samples are stored
+continuously whether or not a segment is open (E2E-verified — `samples` row count climbs
+identically while stopped, while recording, and after stop). Segment timestamps are
+`time.Now().UnixMicro()`, the **same clock/scale as `samples.ts_us`**, so a Phase-4 chart
+can filter samples to `[started_at_us, stopped_at_us)`. A job has **many** segments; a
+forgotten start is recoverable because the samples were stored anyway, and endpoints are
+**adjustable after the fact** (`AdjustSegment`, axiom #5). Switching the active job while a
+segment is open is **refused** (the open segment stays bound to one job — stop first).
+
+**Job + recording HTTP API** (`internal/api`, mounted on the same mux; handlers call store
+methods only). JSON shapes mirrored by hand in `web/src/types.ts` (`Job`, `JobInput`,
+`Segment`, `RecordingState`):
+
+```
+GET    /api/jobs                       -> list (newest first)
+POST   /api/jobs                       -> create (name required; 201 + the new job; not auto-active)
+GET    /api/jobs/{id}                  -> one (404 if absent)
+PUT    /api/jobs/{id}                  -> update descriptive fields (DisallowUnknownFields)
+GET    /api/job/active                 -> the active job, or {"active":null}
+PUT    /api/job/active                 -> {"id":N} set active (404 unknown; 409 if a DIFFERENT job is recording)
+
+GET    /api/recording/state            -> {recording, openSegmentId?, jobId?}
+POST   /api/recording/start            -> open a segment under the active job
+                                          (400 no active job; 409 + the open segment if already recording)
+POST   /api/recording/stop             -> close the open segment (409 if not recording)
+GET    /api/recording/segments?job_id=N -> a job's segments (chronological)
+PUT    /api/recording/segments/{id}    -> nudge started_at_us / stopped_at_us
+                                          (404 unknown id; 400 bad ordering — started must be <= stopped)
+```
+
+The client (vanilla TS, no framework) adds a minimal control strip between the readout
+header and the live values: an active-job `<select>` (with an inline "+ New job…" form for
+the D8 fields), a Record/Stop button showing the open segment's elapsed time, and a state
+line. It polls `GET /api/recording/state` every ~3 s (and refreshes after each action) so
+multiple clients converge on the record state — there is no WS recording-state push yet (a
+deferred Phase-4 nicety). Rich job management + the printable chart are Phase 4.
 
 ## Two chart-config scopes
 

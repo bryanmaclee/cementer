@@ -226,6 +226,194 @@ body {
   font-weight: 500;
 }
 
+/* --- control strip (job selector + record) --- */
+.controls-host {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 12px 20px;
+}
+
+.control-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.control-label {
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.job-select {
+  appearance: none;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: var(--sans);
+  font-size: 14px;
+  min-width: 180px;
+  cursor: pointer;
+}
+
+.job-select:hover {
+  border-color: var(--accent);
+}
+
+.ghost-btn {
+  appearance: none;
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.ghost-btn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.record-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.record-btn:hover {
+  border-color: var(--offline);
+}
+
+.record-dot {
+  color: var(--offline);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.record-btn.recording {
+  border-color: var(--offline);
+  background: rgba(248, 81, 73, 0.12);
+}
+
+.record-btn.recording .record-dot {
+  animation: record-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes record-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.control-state {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.control-state[data-kind="recording"] {
+  color: var(--offline);
+  font-weight: 600;
+}
+
+.control-state[data-kind="ready"] {
+  color: var(--live);
+}
+
+.control-state[data-kind="warn"] {
+  color: var(--stalled);
+  font-weight: 600;
+}
+
+/* --- inline new-job form --- */
+.newjob-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  padding: 4px 20px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.newjob-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.newjob-label {
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.newjob-input {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 11px;
+  font-family: var(--sans);
+  font-size: 14px;
+}
+
+.newjob-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.newjob-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 10px;
+}
+
+.primary-btn {
+  appearance: none;
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primary-btn:hover {
+  filter: brightness(1.08);
+}
+
 /* --- footer meta --- */
 .meta {
   display: flex;

@@ -35,3 +35,53 @@ export interface WSEnvelope {
   reading?: Reading;
   profile?: Profile;
 }
+
+// Job mirrors store.Job — the REST shape of /api/jobs* (NOT a WS frame). id,
+// isActive and the timestamps are server-owned; a create/update body sends only the
+// descriptive fields.
+export interface Job {
+  id: number;
+  name: string;
+  company: string;
+  well: string;
+  casingSize: string;
+  jobType: string;
+  location: string;
+  cementer: string;
+  notes: string;
+  isActive: boolean;
+  createdAtUs: number;
+  updatedAtUs: number;
+}
+
+// JobInput is the body of POST/PUT /api/jobs (descriptive fields only). Only name is
+// required; the rest default to "".
+export interface JobInput {
+  name: string;
+  company?: string;
+  well?: string;
+  casingSize?: string;
+  jobType?: string;
+  location?: string;
+  cementer?: string;
+  notes?: string;
+}
+
+// Segment mirrors store.Segment — one recording marker over the always-on samples
+// store. stoppedAtUs is null while the segment is open (recording in progress).
+// Times are unix microseconds, the same timeline as the sample stream.
+export interface Segment {
+  id: number;
+  jobId: number;
+  startedAtUs: number;
+  stoppedAtUs: number | null;
+  createdAtUs: number;
+}
+
+// RecordingState mirrors the GET /api/recording/state response. openSegmentId/jobId
+// are present only while recording.
+export interface RecordingState {
+  recording: boolean;
+  openSegmentId?: number;
+  jobId?: number;
+}

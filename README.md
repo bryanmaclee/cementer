@@ -94,6 +94,13 @@ make pi                                 # cross-compiles cementer-arm64 (CGO dis
   per-connection **hello/profile** WS message, the `GET/PUT /api/profile` +
   `POST /api/profile/reset` HTTP API (`internal/api`, store is the sole DB owner), and a
   **scope-grouped** live readout that renders only the channels this rig actually has.
+- **Phase 3b** complete: **jobs + recording segments** — `jobs` / `recording_segments`
+  tables, the `/api/jobs*` + `/api/recording/*` HTTP API (job CRUD, an active-job concept,
+  record start/stop/adjust), and a minimal client control strip (active-job selector,
+  Record/Stop with elapsed timer, inline new-job form). Recording is a **pure marker over
+  the always-on store** — start/stop/adjust insert/update segment rows only; they never
+  gate ingestion or the live readout, and never reset stage volume (axioms #1 & #5).
 
-Next: Phase 3b (jobs + recording segments), then the uPlot charting centerpiece (Phase 4).
-The phased plan lives in [`docs/changes/phase3-jobs-recording-profiles/scope.md`](docs/changes/phase3-jobs-recording-profiles/scope.md).
+Next: the uPlot charting centerpiece (Phase 4 — the printable per-job chart that defaults
+to recorded segments). The phased plan lives in
+[`docs/changes/phase3-jobs-recording-profiles/scope.md`](docs/changes/phase3-jobs-recording-profiles/scope.md).
