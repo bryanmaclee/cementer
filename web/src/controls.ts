@@ -57,6 +57,10 @@ function fmtElapsed(ms: number): string {
   return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 }
 
+// ActiveJobHandler is notified whenever the active job changes (or is first known), so
+// the shell's Job History view can load that job's recorded chart.
+export type ActiveJobHandler = (id: number | null) => void;
+
 // Controls mounts the strip into a host element and manages its own polling timers.
 export class Controls {
   private jobSelect: HTMLSelectElement;
@@ -74,7 +78,10 @@ export class Controls {
   // timer is correct even if the laptop clock differs from the Pi's.
   private clockSkewUs = 0;
 
-  constructor(host: HTMLElement) {
+  private onActiveJob: ActiveJobHandler;
+
+  constructor(host: HTMLElement, onActiveJob: ActiveJobHandler = () => {}) {
+    this.onActiveJob = onActiveJob;
     const strip = el("div", "controls");
 
     // Active-job selector.
@@ -133,18 +140,25 @@ export class Controls {
   }
 
   private async refreshActiveJob(): Promise<void> {
+    let next: number | null = null;
     try {
       const r = await fetch("/api/job/active", { headers: { Accept: "application/json" } });
-      if (!r.ok) {
-        this.activeJobId = null;
-      } else {
+      if (r.ok) {
         const data = (await r.json()) as Job | { active: null };
-        this.activeJobId = "id" in data ? data.id : null;
+        next = "id" in data ? data.id : null;
       }
     } catch {
-      this.activeJobId = null;
+      next = null;
     }
+    this.setActiveJobId(next);
     this.renderJobOptions();
+  }
+
+  // setActiveJobId records the active job and notifies the shell only on a real change.
+  private setActiveJobId(id: number | null): void {
+    if (this.activeJobId === id) return;
+    this.activeJobId = id;
+    this.onActiveJob(id);
   }
 
   private async refreshState(): Promise<void> {
@@ -202,7 +216,7 @@ export class Controls {
       this.jobSelect.value = this.activeJobId != null ? String(this.activeJobId) : "";
       return;
     }
-    this.activeJobId = id;
+    this.setActiveJobId(id);
     this.renderState();
   }
 
@@ -300,7 +314,7 @@ export class Controls {
     const created = res.body;
     // Make it active.
     await sendJSON<unknown>("PUT", "/api/job/active", { id: created.id });
-    this.activeJobId = created.id;
+    this.setActiveJobId(created.id);
     // Reset + hide the form, refresh the list.
     for (const input of Object.values(this.fieldInputs)) input.value = "";
     this.showForm(false);

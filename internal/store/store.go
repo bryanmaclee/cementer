@@ -75,6 +75,11 @@ CREATE TABLE IF NOT EXISTS samples (
     value   REAL    NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_samples_ts ON samples(ts_us);
+-- Composite index for the Phase-4 chart's series read: WHERE channel = ? AND
+-- ts_us BETWEEN ? AND ? ORDER BY ts_us. Lets a per-channel range scan walk the
+-- index directly (no full-table scan, no separate sort) — the read stays cheap so
+-- it never competes with the single writer (axiom #4: the chart is read-only).
+CREATE INDEX IF NOT EXISTS idx_samples_channel_ts ON samples(channel, ts_us);
 
 -- Pump Profile (axiom #3 — the pump self-describes). Exactly one row has
 -- is_active=1: the pump this Pi is. profile_channels declares which of the

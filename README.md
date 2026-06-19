@@ -35,7 +35,7 @@ lost on a multi-hour job. See `docs`/the plan for detail.
 | `internal/parser/` | Phase-1 positional ASCII→`Reading` parser (superseded by `daqformat`; off the main path, kept for its tests) |
 | `internal/store/` | SQLite (modernc, pure-Go) single-writer (durability layer 2) |
 | `internal/hub/` | WebSocket fan-out (drops slow clients) |
-| `web/` | vanilla TS + Vite client (dark mode); built into `web/dist`, embedded |
+| `web/` | vanilla TS + Vite client (dark mode); built into `web/dist`, embedded. Charts use **uPlot** (a focused charting library — not a framework — bundled offline, no CDN) |
 | `deploy/cementer.service` | systemd unit for the Pi |
 | `testdata/sample-stream.txt` | synthetic stream for development without a pump |
 
@@ -100,7 +100,15 @@ make pi                                 # cross-compiles cementer-arm64 (CGO dis
   Record/Stop with elapsed timer, inline new-job form). Recording is a **pure marker over
   the always-on store** — start/stop/adjust insert/update segment rows only; they never
   gate ingestion or the live readout, and never reset stage volume (axioms #1 & #5).
+- **Phase 4a** complete: the **charting core** — a decimated series read API
+  (`GET /api/samples`, `GET /api/jobs/{id}/series`; min/max-per-bucket so spikes survive) over
+  the single store connection (read-only; never gates ingestion), and the **uPlot** charts.
+  The live view is now a **rolling real-time chart** (replacing the value grid) with all enabled
+  channels auto-grouped by role/uom onto one scale each, a distinct color per channel, and a
+  legend that keeps each channel's latest value glanceable. A **Job History** view renders a
+  job's recorded segments with segment-shaded bands. Personal live-view config (line on/off,
+  rolling-window length) persists per-laptop in localStorage.
 
-Next: the uPlot charting centerpiece (Phase 4 — the printable per-job chart that defaults
-to recorded segments). The phased plan lives in
+Next: Phase 4b — the printable per-job chart (company-default template + per-job overrides → PDF).
+The phased plan lives in
 [`docs/changes/phase3-jobs-recording-profiles/scope.md`](docs/changes/phase3-jobs-recording-profiles/scope.md).

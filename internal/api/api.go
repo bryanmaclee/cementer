@@ -45,6 +45,12 @@ func (a *API) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/job/active", a.getActiveJob)
 	mux.HandleFunc("PUT /api/job/active", a.setActiveJob)
 
+	// Series reads (4a — the chart's historical query). READ-ONLY over the always-on
+	// store: these never gate ingestion or the live stream (axiom #1), and read on the
+	// single store connection (axiom #4 / D2 — no second *sql.DB).
+	mux.HandleFunc("GET /api/samples", a.getSamples)
+	mux.HandleFunc("GET /api/jobs/{id}/series", a.getJobSeries)
+
 	// Recording segments — markers over the always-on store (axiom #1). These
 	// routes ONLY insert/update marker rows; they never gate ingestion or the live
 	// readout, and never reset stage volume (axiom #5).

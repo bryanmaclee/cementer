@@ -140,90 +140,153 @@ body {
   box-shadow: 0 0 0 3px rgba(248, 81, 73, 0.18);
 }
 
-/* --- grouped value area --- */
-.content {
+/* --- view toggle (Live | Job History) --- */
+.view-tabs {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.view-tab {
+  appearance: none;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  border: none;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.view-tab + .view-tab {
+  border-left: 1px solid var(--border);
+}
+
+.view-tab:hover {
+  color: var(--text);
+}
+
+.view-tab.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.window-select {
+  appearance: none;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-family: var(--sans);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.window-select:hover {
+  border-color: var(--accent);
+}
+
+/* --- chart view area --- */
+.content-chart {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 20px;
-  align-content: start;
+  min-height: 0;
+  padding: 16px 20px;
 }
 
-.placeholder {
-  color: var(--text-dim);
-  font-size: 14px;
-  padding: 40px 4px;
-}
-
-/* --- scope group section --- */
-.group {
+.view {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  min-height: 0;
 }
 
-.group + .group {
-  margin-top: 18px;
-  padding-top: 18px;
-  border-top: 1px solid var(--border);
+.view[hidden] {
+  display: none;
 }
 
-.group-title {
-  margin: 0;
+/* live chart: legend strip on top, canvas fills the rest */
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  padding: 0 2px 12px;
+}
+
+.legend-row {
+  appearance: none;
+  background: transparent;
+  border: none;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  cursor: pointer;
+  padding: 2px 0;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.legend-row.off {
+  opacity: 0.4;
+}
+
+.legend-swatch {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  align-self: center;
+  flex: 0 0 auto;
+}
+
+.legend-name {
+  color: var(--text-dim);
+}
+
+.legend-value {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--value);
+  font-size: 15px;
+}
+
+.legend-unit {
   color: var(--text-dim);
   font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
 }
 
-.group-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
-  align-content: start;
+.chart-canvas {
+  flex: 1;
+  min-height: 320px;
+  width: 100%;
 }
 
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 22px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  min-height: 150px;
-  justify-content: space-between;
-}
-
-.card-label {
+.chart-empty,
+.jobchart-status {
   color: var(--text-dim);
-  font-size: 13px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 14px;
+  padding: 8px 2px;
 }
 
-.card-valuerow {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
+.jobchart-status {
+  padding-bottom: 12px;
 }
 
-.card-value {
-  font-family: var(--mono);
-  font-size: clamp(40px, 7vw, 68px);
-  font-weight: 600;
-  line-height: 1;
-  color: var(--value);
-  font-variant-numeric: tabular-nums;
+/* uPlot legibility in both themes (the lib injects .u-* nodes). */
+.uplot,
+.u-wrap,
+.u-legend {
+  color: var(--text);
+  font-family: var(--sans);
 }
 
-.card-unit {
-  color: var(--text-dim);
-  font-size: 15px;
-  font-weight: 500;
+.u-legend th,
+.u-legend .u-value {
+  color: var(--text);
 }
 
 /* --- control strip (job selector + record) --- */

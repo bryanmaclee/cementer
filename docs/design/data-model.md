@@ -293,6 +293,68 @@ deferred Phase-4 nicety). Rich job management + the printable chart are Phase 4.
    can **tweak per job**; per-job overrides are stored with the job on the Pi. The company
    default is change-controlled (updated via deploy/config), not casually editable.
 
+### Realized contract — Phase 4a (built; this is the living spec)
+
+The charting core. The chart is **read-only over the always-on store** (axiom #1: it never
+gates or touches ingestion, the live stream, or recording) and reads on the **single store
+connection** (axiom #4 / D2: no second `*sql.DB`, no handler-side DB). The series read is
+**decimated** so a wide range cannot flood the chart: when a channel would exceed the cap,
+the range (over the channel's actual data extent) is bucketed and the **min AND max** sample
+of each bucket is emitted — never an average — so transient **spikes survive** (a pressure
+peak matters). Each emitted point keeps the real timestamp at which its min/max occurred;
+points are time-ordered. Default cap ~4000 points/channel (clamped to 20000).
+
+A composite index supports the per-channel range scan:
+
+```sql
+CREATE INDEX IF NOT EXISTS idx_samples_channel_ts ON samples(channel, ts_us);
+```
+
+Store reads (`internal/store/series.go`, single connection):
+
+```
+Series(fromUS, toUS int64, channels []string, maxPerChannel int)
+    -> map[channel][][2]float64       // [ts_us, value] per channel, decimated
+       // channels empty => all channels with samples in range; an empty channel => []
+JobSeries(jobID int64, channels []string, maxPerChannel int)
+    -> (segments []Segment, series map[channel][][2]float64, ok bool, err error)
+       // samples WITHIN the job's segments only (union span bounds the read, then an
+       // in-segment filter keeps gaps between segments as gaps); open segment -> now;
+       // ok=false (no error) when the job does not exist (handler -> 404)
+```
+
+**Series HTTP API** (`internal/api`, mounted on the same mux; handlers call store reads
+only). JSON shapes mirrored by hand in `web/src/types.ts` / the chart modules:
+
+```
+GET /api/samples?from=<us>&to=<us>&channels=a,b,c[&max=N]
+    -> { "series": { "<channel>": [[tsUs,val], ...] } }
+       // raw range, decimated by the cap. 400 on missing/invalid from|to, from>to, bad max.
+GET /api/jobs/{id}/series?channels=a,b[&max=N]
+    -> { "segments": [ {id, startedAtUs, stoppedAtUs}, ... ],
+         "series":   { "<channel>": [[tsUs,val], ...] } }
+       // the job's recorded data (in-segment samples). 404 when the job does not exist.
+```
+
+**Client (vanilla TS + uPlot).** uPlot is a focused charting *library* (ratified in the
+storage+viz deep-dive), **not a framework** — bundled via npm/Vite so the chart + its CSS
+ship embedded and work **offline on the Pi (no CDN)**. The **live view is now a rolling
+real-time chart** (`web/src/chart/livechart.ts`) that **replaces the value grid**: X-axis =
+time; traces = ALL enabled, non-meta profile channels, auto-grouped by role/uom onto **one
+uPlot scale per uom** (pressure→psi, rate→bbl/min, density→ppg, volume→bbl) with axes
+alternating left/right and a **distinct color per channel**. An always-on **legend shows
+each channel's latest value** (the readout's value-at-a-glance utility is preserved) and a
+click toggles the trace. The **Job History view** (`web/src/chart/jobchart.ts`) fetches
+`/api/jobs/{id}/series` and renders the recorded series with **segment-shaded bands** (a
+uPlot `drawClear` plugin), same role-grouped axes, pan/zoom enabled — defaulting to only the
+recorded segments. The shell (`readout.ts`) keeps the header/status/theme/footer + the 3b
+control strip and adds a **Live | Job History** toggle hosting the two charts.
+
+**Personal live-view config (scope #1, localStorage)** — per-channel line on/off and the
+rolling-window length persist per-laptop (`web/src/chart/config.ts`); pump/job data stays on
+the Pi (axiom #3). 4b (the printable company-default/per-job-override chart → PDF) is the next
+increment and is NOT built here.
+
 ## Client customization
 
 - **Theme:** dark (default) / light, plus room for small niceties. A per-client local
