@@ -74,7 +74,37 @@ CREATE TABLE IF NOT EXISTS samples (
     channel TEXT    NOT NULL,
     value   REAL    NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_samples_ts ON samples(ts_us);`
+CREATE INDEX IF NOT EXISTS idx_samples_ts ON samples(ts_us);
+
+-- Pump Profile (axiom #3 — the pump self-describes). Exactly one row has
+-- is_active=1: the pump this Pi is. profile_channels declares which of the
+-- format's channels this physical pump actually has, with any label/uom/decimals
+-- overrides. See docs/design/data-model.md and the phase3 scope.
+CREATE TABLE IF NOT EXISTS pump_profiles (
+    id            INTEGER PRIMARY KEY,
+    name          TEXT    NOT NULL,
+    units         INTEGER NOT NULL DEFAULT 1,     -- number of pumping units
+    daq_format_id TEXT    NOT NULL,               -- references the code preset, e.g. "intellisense"
+    is_active     INTEGER NOT NULL DEFAULT 0,     -- exactly one row = 1 (the pump this Pi is)
+    created_at_us INTEGER NOT NULL,
+    updated_at_us INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS profile_channels (
+    id          INTEGER PRIMARY KEY,
+    profile_id  INTEGER NOT NULL REFERENCES pump_profiles(id) ON DELETE CASCADE,
+    channel_id  TEXT    NOT NULL,                 -- e.g. "unit1.pressure" (matches the DaqFormat field map)
+    role        TEXT    NOT NULL,                 -- pressure|rate|density|volume|meta|...
+    scope       TEXT    NOT NULL,                 -- unit|aggregate|stage|job|meta
+    unit_index  INTEGER NOT NULL DEFAULT 0,       -- 1-based when scope=unit; 0 otherwise
+    label       TEXT    NOT NULL,
+    uom         TEXT    NOT NULL DEFAULT '',
+    decimals    INTEGER NOT NULL DEFAULT 2,
+    enabled     INTEGER NOT NULL DEFAULT 1,       -- the pump physically has this channel
+    sort_order  INTEGER NOT NULL DEFAULT 0,
+    UNIQUE(profile_id, channel_id)
+);
+CREATE INDEX IF NOT EXISTS idx_profile_channels_profile ON profile_channels(profile_id);`
 	_, err := db.Exec(ddl)
 	return err
 }

@@ -49,6 +49,10 @@ Each heading is a base `{{slot}}`; the fill is cementer's concrete instantiation
 > *Architecture* and *Reliability-rule* sections. The **code** is the source of truth for *implemented*
 > behavior. Where the design doc and code disagree, the design doc governs **intent** and the delta is
 > a tracked TODO in `docs/pa/status.md` — never silently reconciled.
+> **Landing discipline (adopted S5):** at each sub-arc landing, fold the *realized* contract (DB schema,
+> WS message + API shapes) back into `data-model.md` so the normative doc stays the **living spec** —
+> close the design↔code delta at the landing that resolves it instead of letting deltas accumulate in
+> status.md. No separate as-built spec doc (decided sufficient, S5).
 > **Derived (NOT normative):** the README *Status* prose, the data-model.md *Build order* list, prior
 > dispatch briefs, and any reference to `docs/plan` (which **does not exist** — see status.md).
 

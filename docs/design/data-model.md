@@ -59,6 +59,85 @@ Channel {
 - Densitometers / rate counters / pressure transducers may be multiple → they are just
   multiple channels in the list (`density.1`, `density.2`, …).
 
+### Realized contract — Phase 3a (built; this is the living spec)
+
+The Pump Profile is persisted on the Pi in the single SQLite store (the store is the
+sole DB owner; CRUD is synchronous store methods on the one `SetMaxOpenConns(1)`
+connection — never a second `*sql.DB`, never a write from an HTTP handler). Exactly one
+profile row is active (`is_active=1`). On first run `main` seeds it from the active
+DaqFormat's channel vocab (`daqformat.IntellisenseChannels()` / `SyntheticChannels()`,
+all enabled); the seed is idempotent (guarded by `HasActiveProfile`). The store stays
+format-agnostic — `main` converts the format vocab to the store's neutral
+`SeedChannel`, so `internal/store` does not import `internal/daqformat`.
+
+```sql
+CREATE TABLE IF NOT EXISTS pump_profiles (
+    id            INTEGER PRIMARY KEY,
+    name          TEXT    NOT NULL,
+    units         INTEGER NOT NULL DEFAULT 1,     -- number of pumping units
+    daq_format_id TEXT    NOT NULL,               -- references the code preset, e.g. "intellisense"
+    is_active     INTEGER NOT NULL DEFAULT 0,     -- exactly one row = 1 (the pump this Pi is)
+    created_at_us INTEGER NOT NULL,
+    updated_at_us INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS profile_channels (
+    id          INTEGER PRIMARY KEY,
+    profile_id  INTEGER NOT NULL REFERENCES pump_profiles(id) ON DELETE CASCADE,
+    channel_id  TEXT    NOT NULL,                 -- e.g. "unit1.pressure"
+    role        TEXT    NOT NULL,                 -- pressure|rate|density|volume|meta|...
+    scope       TEXT    NOT NULL,                 -- unit|aggregate|stage|job|meta
+    unit_index  INTEGER NOT NULL DEFAULT 0,       -- 1-based when scope=unit; 0 otherwise
+    label       TEXT    NOT NULL,
+    uom         TEXT    NOT NULL DEFAULT '',
+    decimals    INTEGER NOT NULL DEFAULT 2,
+    enabled     INTEGER NOT NULL DEFAULT 1,       -- the pump physically has this channel
+    sort_order  INTEGER NOT NULL DEFAULT 0,
+    UNIQUE(profile_id, channel_id)
+);
+CREATE INDEX IF NOT EXISTS idx_profile_channels_profile ON profile_channels(profile_id);
+```
+
+**hello/profile WS message** (Pi → client, sent ONCE per connection in `serveWS`,
+directly to the new conn — a greeting, never routed through `hub.Broadcast`; it never
+gates the live readout). The frame lists ENABLED channels only, in `sort_order`. The
+`wsEnvelope.type` discriminates `"reading"` vs `"profile"`. The JSON shape (mirrored by
+hand in `web/src/types.ts`, no codegen):
+
+```jsonc
+// {type:"profile", profile: Profile}
+{
+  "name": "Intellisense (this pump)",
+  "units": 1,
+  "formatId": "intellisense",
+  "channels": [                       // ENABLED only, in sort_order
+    { "id": "unit1.pressure", "role": "pressure", "scope": "unit",
+      "unitIndex": 1, "label": "Unit 1 Pressure", "uom": "psi", "decimals": 0 }
+    // ...
+  ]
+}
+```
+
+The client (vanilla TS, no framework) renders cards grouped by scope —
+`Unit 1`, `Unit 2`, … (by `unitIndex`), then `Aggregate`, `Stage`, `Job`; `meta`-scoped
+channels are hidden by default. A streamed channel absent from the enabled profile gets
+a minimal defensive card in a trailing "Other" group; a disabled channel never gets a
+card. The old id-inference stopgap in `readout.ts` is removed.
+
+**Profile HTTP API** (`internal/api`, mounted on the same mux; handlers call store
+methods only):
+
+```
+GET    /api/profile          -> active profile incl. ALL channels (each with its `enabled` flag + sortOrder)
+PUT    /api/profile          -> update units + per-channel enabled/label/uom/decimals/sortOrder (omitted fields unchanged)
+POST   /api/profile/reset    -> reseed channels from the active format's vocab (operator escape hatch)
+```
+
+Note the asymmetry: the **GET** returns *all* channels (the editor must see disabled
+ones to re-enable them) while the **WS profile frame** sends *enabled only*. A profile
+edit takes effect for a client on its next (re)connect (the profile is a per-connect
+greeting; a live profile push is a later nicety).
+
 ## DAQ Format — *how the wire maps to those channels* (no-code)
 
 The serial format is a property of the pump (the Pi is pump-mounted, so it stays put

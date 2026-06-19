@@ -1,4 +1,4 @@
-import type { Reading } from "./types.ts";
+import type { Channel, Profile, Reading } from "./types.ts";
 import { initTheme, toggleTheme } from "./theme.ts";
 
 const STALE_MS = 3000;
@@ -12,59 +12,45 @@ function el(tag: string, className?: string, text?: string): El {
   return e;
 }
 
-// --- channel description ---------------------------------------------------
-// Until the pump profile (with real labels/units) arrives over the wire, infer a
-// reasonable label, unit, and precision from the channel id. Channel ids are flat
-// today (e.g. "pressure") and will become scoped later (e.g. "unit1.pressure").
+// --- scope grouping --------------------------------------------------------
+// The Pi sends a Pump Profile describing exactly the channels THIS rig has, in
+// display order, with real labels/units/decimals (axiom #3). The client is a thin
+// renderer of that — no id inference. Cards are grouped by scope:
+//   Unit 1, Unit 2, … (by unitIndex)  →  Aggregate  →  Stage  →  Job
+// `meta`-scoped channels are hidden by default. A streamed channel id absent from
+// the (enabled) profile gets a minimal defensive card in a trailing "Other" group.
 
-interface ChannelSpec {
-  label: string;
-  uom: string;
-  decimals: number;
-  order: number; // role priority for display ordering
-}
-
-const ROLE_INFO: Record<string, { uom: string; decimals: number; order: number }> = {
-  pressure: { uom: "psi", decimals: 0, order: 0 },
-  rate: { uom: "bbl/min", decimals: 2, order: 1 },
-  density: { uom: "ppg", decimals: 2, order: 2 },
-  volume: { uom: "bbl", decimals: 1, order: 3 },
-  temperature: { uom: "°F", decimals: 0, order: 4 },
+// scopeRank orders the non-unit scope groups after the per-unit groups.
+const SCOPE_RANK: Record<string, number> = {
+  aggregate: 1000,
+  stage: 2000,
+  job: 3000,
 };
-
-const PART_LABEL: Record<string, string> = {
-  agg: "Aggregate",
-  vol: "Volume",
+const SCOPE_TITLE: Record<string, string> = {
+  aggregate: "Aggregate",
   stage: "Stage",
   job: "Job",
 };
+const OTHER_KEY = "__other__";
+const OTHER_RANK = 9000;
 
-function titleize(part: string): string {
-  if (PART_LABEL[part]) return PART_LABEL[part];
-  // "unit1" -> "Unit 1"
-  const m = /^([a-z]+)(\d+)$/i.exec(part);
-  if (m) return `${cap(m[1])} ${m[2]}`;
-  return cap(part);
+// groupKey/rank/title bucket a channel into its display group. Per-unit groups sort
+// by unitIndex (Unit 1 before Unit 2); the rest follow SCOPE_RANK.
+function groupKey(c: Channel): string {
+  if (c.scope === "unit") return `unit:${c.unitIndex || 0}`;
+  return c.scope;
+}
+function groupRank(c: Channel): number {
+  if (c.scope === "unit") return c.unitIndex || 0; // units first
+  return SCOPE_RANK[c.scope] ?? OTHER_RANK;
+}
+function groupTitle(c: Channel): string {
+  if (c.scope === "unit") return `Unit ${c.unitIndex || ""}`.trim();
+  return SCOPE_TITLE[c.scope] ?? cap(c.scope);
 }
 
 function cap(s: string): string {
   return s.length ? s[0].toUpperCase() + s.slice(1) : s;
-}
-
-function describeChannel(id: string): ChannelSpec {
-  const parts = id.split(".");
-  let role = "";
-  for (const p of parts) {
-    const key = p === "vol" ? "volume" : p;
-    if (ROLE_INFO[key]) role = key;
-  }
-  const info = ROLE_INFO[role] ?? { uom: "", decimals: 2, order: 99 };
-  return {
-    label: parts.map(titleize).join(" "),
-    uom: info.uom,
-    decimals: info.decimals,
-    order: info.order,
-  };
 }
 
 // --- readout ---------------------------------------------------------------
@@ -72,15 +58,25 @@ function describeChannel(id: string): ChannelSpec {
 interface Card {
   card: El;
   value: El;
-  spec: ChannelSpec;
+  decimals: number;
 }
 
-// Readout renders the live value screen. Channels are DYNAMIC: a card appears for
-// whatever channel ids arrive in the stream, so the display aligns to the pump.
+interface Group {
+  section: El;
+  body: El;
+  rank: number;
+}
+
+// Readout renders the live value screen. The displayed channels come from the
+// PumpProfile the Pi sends (enabled channels only), grouped by scope. Channels not
+// in the profile never get a card; an unexpected streamed id lands in "Other".
 export class Readout {
-  private grid: El;
+  private content: El; // holds the group sections
   private placeholder: El;
+
   private cards = new Map<string, Card>();
+  private groups = new Map<string, Group>();
+  private profileChannels = new Map<string, Channel>(); // id -> channel (enabled)
 
   private statusDot: El;
   private statusText: El;
@@ -112,10 +108,10 @@ export class Readout {
     right.append(status, themeBtn);
     header.append(brand, right);
 
-    // --- value grid ---
-    this.grid = el("main", "grid");
+    // --- grouped value area ---
+    this.content = el("main", "content");
     this.placeholder = el("div", "placeholder", "waiting for data…");
-    this.grid.append(this.placeholder);
+    this.content.append(this.placeholder);
 
     // --- footer meta ---
     const footer = el("footer", "meta");
@@ -123,7 +119,7 @@ export class Readout {
     this.updatedEl = el("span", "meta-item", "no data yet");
     footer.append(this.seqEl, this.updatedEl);
 
-    root.append(header, this.grid, footer);
+    root.append(header, this.content, footer);
 
     this.applyStatus();
     window.setInterval(() => this.applyStatus(), 1000);
@@ -134,52 +130,125 @@ export class Readout {
     this.applyStatus();
   }
 
+  // applyProfile (re)builds the display from the pump profile. It rebuilds groups
+  // and cards from scratch so a reconnect with an edited profile (e.g. channels
+  // disabled) renders cleanly. Existing live values for surviving channels are
+  // preserved.
+  applyProfile(p: Profile): void {
+    const prevValues = new Map<string, string>();
+    for (const [id, card] of this.cards) prevValues.set(id, card.value.textContent ?? "—");
+
+    this.cards.clear();
+    this.groups.clear();
+    this.profileChannels.clear();
+    this.content.replaceChildren();
+
+    // meta scope is hidden by default; everything else gets a card.
+    const visible = p.channels.filter((c) => c.scope !== "meta");
+    for (const c of visible) {
+      this.profileChannels.set(c.id, c);
+      const card = this.ensureCard(c.id, c.label, c.uom, c.decimals, groupKey(c), groupTitle(c), groupRank(c));
+      const prev = prevValues.get(c.id);
+      if (prev) card.value.textContent = prev;
+    }
+
+    // Track enabled-but-meta ids too, so update() knows they are "in profile" and
+    // won't fabricate an Other card for them.
+    for (const c of p.channels) {
+      if (!this.profileChannels.has(c.id)) this.profileChannels.set(c.id, c);
+    }
+
+    if (this.content.childElementCount === 0) {
+      this.content.append(this.placeholder);
+    }
+    this.reorderGroups();
+  }
+
   update(r: Reading): void {
     this.lastReadingAt = Date.now();
 
-    let added = false;
     for (const [id, v] of Object.entries(r.values)) {
+      const ch = this.profileChannels.get(id);
+      if (ch && ch.scope === "meta") continue; // meta hidden
+
       let card = this.cards.get(id);
       if (!card) {
-        card = this.createCard(id);
-        this.cards.set(id, card);
-        added = true;
+        if (ch) {
+          // Enabled, non-meta channel that somehow lacked a card — create it.
+          card = this.ensureCard(id, ch.label, ch.uom, ch.decimals, groupKey(ch), groupTitle(ch), groupRank(ch));
+        } else {
+          // Defensive: a streamed id absent from the profile. Render minimally in
+          // the trailing "Other" group rather than dropping it silently.
+          card = this.ensureCard(id, id, "", 2, OTHER_KEY, "Other", OTHER_RANK);
+        }
+        this.reorderGroups();
       }
       card.value.textContent =
         v === undefined || Number.isNaN(v)
           ? "—"
           : v.toLocaleString(undefined, {
-              minimumFractionDigits: card.spec.decimals,
-              maximumFractionDigits: card.spec.decimals,
+              minimumFractionDigits: card.decimals,
+              maximumFractionDigits: card.decimals,
             });
     }
-    if (added) this.reorder();
 
     this.seqEl.textContent = `seq ${r.seq}`;
     this.applyStatus();
   }
 
-  private createCard(id: string): Card {
+  // ensureCard creates (or returns) the card for a channel, creating its group
+  // section on demand. Cards append to their group body in arrival order, which for
+  // a profile is the profile's sort order.
+  private ensureCard(
+    id: string,
+    label: string,
+    uom: string,
+    decimals: number,
+    gKey: string,
+    gTitle: string,
+    gRank: number,
+  ): Card {
     if (this.placeholder.isConnected) this.placeholder.remove();
-    const spec = describeChannel(id);
+
+    const existing = this.cards.get(id);
+    if (existing) return existing;
+
+    const group = this.ensureGroup(gKey, gTitle, gRank);
+
     const card = el("section", "card");
-    card.append(el("div", "card-label", spec.label));
+    card.append(el("div", "card-label", label));
     const valueRow = el("div", "card-valuerow");
     const value = el("span", "card-value", "—");
     valueRow.append(value);
-    if (spec.uom) valueRow.append(el("span", "card-unit", spec.uom));
+    if (uom) valueRow.append(el("span", "card-unit", uom));
     card.append(valueRow);
-    this.grid.append(card);
-    return { card, value, spec };
+    group.body.append(card);
+
+    const c: Card = { card, value, decimals };
+    this.cards.set(id, c);
+    return c;
   }
 
-  // Re-order cards by role priority then id when a new channel shows up.
-  private reorder(): void {
-    const sorted = [...this.cards.entries()].sort((a, b) => {
-      const o = a[1].spec.order - b[1].spec.order;
-      return o !== 0 ? o : a[0].localeCompare(b[0]);
-    });
-    for (const [, card] of sorted) this.grid.append(card.card);
+  private ensureGroup(key: string, title: string, rank: number): Group {
+    const existing = this.groups.get(key);
+    if (existing) return existing;
+
+    const section = el("section", "group");
+    section.append(el("h2", "group-title", title));
+    const body = el("div", "group-grid");
+    section.append(body);
+
+    const g: Group = { section, body, rank };
+    this.groups.set(key, g);
+    this.content.append(section);
+    return g;
+  }
+
+  // reorderGroups sorts the group sections by rank (units ascending, then
+  // aggregate/stage/job, then Other) and reattaches them in order.
+  private reorderGroups(): void {
+    const sorted = [...this.groups.values()].sort((a, b) => a.rank - b.rank);
+    for (const g of sorted) this.content.append(g.section);
   }
 
   private applyStatus(): void {

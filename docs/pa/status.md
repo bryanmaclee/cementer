@@ -120,6 +120,11 @@ idle-zero columns; the **preset to build is the live 14-col one**, not the CSV.
 
 ## Design ↔ code deltas (tracked TODOs)
 
+_**Standing practice (adopted S5):** close each delta into `docs/design/data-model.md` at the sub-arc
+landing that resolves it — fold the realized schema/WS/API contract into the normative doc so it stays
+the living spec; don't let deltas accumulate here. No separate as-built spec doc (decided sufficient)._
+
+
 - `recording_segments` (and `jobs`) tables: designed in `data-model.md`, absent from
   `internal/store/store.go` (only `samples`). Lands with Phase 3.
 - Pump Profile / DAQ Format / hello-profile WS message: designed, no code yet.

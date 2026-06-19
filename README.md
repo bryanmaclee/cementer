@@ -85,6 +85,15 @@ make pi                                 # cross-compiles cementer-arm64 (CGO dis
 
 ## Status
 
-Phase 1 complete: durable ingest → WebSocket → dark-mode live value readout, with a
-replay source so the whole pipeline runs without the pump. Next: job CRUD + auth, then
-the uPlot charting centerpiece. See the build plan for the phased roadmap.
+- **Phase 1** complete: durable ingest → WebSocket → dark-mode live value readout, with a
+  replay source so the whole pipeline runs without the pump.
+- **Phase 2** complete: the config-driven `internal/daqformat` engine + the Intellisense
+  preset (characterized from a live wire capture) + the `-format` flag.
+- **Phase 3a** complete: the **self-describing pump backbone** — `pump_profiles` /
+  `profile_channels` tables (seeded on first run from the active format's vocab), the
+  per-connection **hello/profile** WS message, the `GET/PUT /api/profile` +
+  `POST /api/profile/reset` HTTP API (`internal/api`, store is the sole DB owner), and a
+  **scope-grouped** live readout that renders only the channels this rig actually has.
+
+Next: Phase 3b (jobs + recording segments), then the uPlot charting centerpiece (Phase 4).
+The phased plan lives in [`docs/changes/phase3-jobs-recording-profiles/scope.md`](docs/changes/phase3-jobs-recording-profiles/scope.md).

@@ -1,13 +1,17 @@
-import type { Reading, WSEnvelope } from "./types.ts";
+import type { Profile, Reading, WSEnvelope } from "./types.ts";
 
 export type ReadingHandler = (r: Reading) => void;
 export type StatusHandler = (connected: boolean) => void;
+export type ProfileHandler = (p: Profile) => void;
 
 // connectLive opens the /ws/live WebSocket and auto-reconnects with capped
-// exponential backoff. Returns a function that closes the connection for good.
+// exponential backoff. The Pi sends one hello/profile frame on connect (and again
+// after each reconnect), then a stream of reading frames. Returns a function that
+// closes the connection for good.
 export function connectLive(
   onReading: ReadingHandler,
   onStatus: StatusHandler,
+  onProfile: ProfileHandler,
 ): () => void {
   const proto = location.protocol === "https:" ? "wss://" : "ws://";
   const url = `${proto}${location.host}/ws/live`;
@@ -28,7 +32,8 @@ export function connectLive(
     ws.onmessage = (ev) => {
       try {
         const env = JSON.parse(ev.data as string) as WSEnvelope;
-        if (env.type === "reading" && env.reading) onReading(env.reading);
+        if (env.type === "profile" && env.profile) onProfile(env.profile);
+        else if (env.type === "reading" && env.reading) onReading(env.reading);
       } catch {
         // Ignore malformed frames.
       }

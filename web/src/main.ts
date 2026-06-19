@@ -9,4 +9,5 @@ const readout = new Readout(root);
 connectLive(
   (reading) => readout.update(reading),
   (connected) => readout.setConnected(connected),
+  (profile) => readout.applyProfile(profile),
 );
