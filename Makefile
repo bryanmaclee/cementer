@@ -8,7 +8,7 @@ export PATH := $(HOME)/.local/go/bin:$(PATH)
 GO ?= go
 BIN ?= cementer
 
-.PHONY: all build web server run tidy clean
+.PHONY: all build web server run demo tidy clean
 
 all: build
 
@@ -26,9 +26,16 @@ pi: web
 	cd web >/dev/null
 	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 $(GO) build -o $(BIN)-arm64 ./cmd/cementer
 
-# Run against the synthetic replay stream (no pump needed).
+# Run against the synthetic replay stream (no pump needed). -format synthetic matches
+# the 4-channel testdata; the DEFAULT -format is intellisense (a 14-col shape), so this
+# flag is required or every synthetic line is dropped by the field-count guard.
 run: build
-	./$(BIN) -source testdata/sample-stream.txt
+	./$(BIN) -source testdata/sample-stream.txt -format synthetic
+
+# Demo the real Intellisense wire with NO pump: replays a committed live capture into a
+# fully populated chart. After it starts, open http://localhost:8080.
+demo: build
+	./$(BIN) -source captures/capture-2026-06-16T161347-19200-8N1-pressure.bin -format intellisense -replay-interval 200ms
 
 tidy:
 	$(GO) mod tidy

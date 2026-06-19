@@ -8,6 +8,31 @@ browser clients over WebSocket. The browser shows a dark-mode live readout (Phas
 and — in later phases — the customizable, printable multi-line job chart that is the
 centerpiece of the project.
 
+## Quick demo — see the live chart now (no pump needed)
+
+The repo ships a **real Intellisense wire capture**; `make demo` replays it into a fully
+populated chart. **Prereqs: Go 1.26+ and Node 20+.**
+
+```sh
+git clone git@github.com:bryanmaclee/cementer.git    # or: git pull, if already cloned
+cd cementer
+make demo                                            # builds the web client + binary, then replays the capture
+# open http://localhost:8080   (Ctrl-C to stop)
+```
+
+You should see:
+- a **live rolling chart**, traces auto-grouped by role (pressure psi · rate bbl/min · density ppg ·
+  volume bbl), with the **pressure line ramping ~0 → 1306 → 0** on a loop (a real valve-close run);
+- a **legend** showing each channel's current value — click a legend row to hide/show that trace;
+- **four traces flat at 0** — `unit2.pressure`, `unit2.rate`, `water.rate`, `density.2` — because this
+  capture came from a **single-unit rig** that physically lacks them (the profile keeps them defined for
+  multi-unit rigs; hide them from the legend if you like);
+- click **Record**, wait a few seconds, **Stop**, then the **Job History** tab → your recorded segment,
+  rendered with a shaded band.
+
+`make run` instead replays the synthetic dev stream. **cementer is silent on stdout when healthy** —
+watch the browser, not the console.
+
 ## Architecture (one binary)
 
 ```
@@ -21,7 +46,7 @@ pump ──RS232──►[USB adapter]──► Pi: cementer
 **Reliability rule:** ingestion is decoupled from clients. Every byte is appended to a
 raw log first, the single SQLite writer batch-commits, and only committed readings are
 broadcast. A slow or crashed client is dropped, never blocking ingestion — so nothing is
-lost on a multi-hour job. See `docs`/the plan for detail.
+lost on a multi-hour job. See [`docs/design/data-model.md`](docs/design/data-model.md) for detail.
 
 ## Layout
 
@@ -41,11 +66,12 @@ lost on a multi-hour job. See `docs`/the plan for detail.
 
 ## Build & run
 
-Requires Go 1.22+ and Node. The web client is built first and embedded into the binary.
+Requires Go 1.26+ and Node 20+. The web client is built first and embedded into the binary.
 
 ```sh
 make build                              # builds web/dist then the cementer binary
-make run                                # runs against the synthetic replay stream
+make demo                               # replays a real Intellisense capture (populated chart)
+make run                                # replays the synthetic dev stream (-format synthetic)
 # then open http://localhost:8080
 ```
 
