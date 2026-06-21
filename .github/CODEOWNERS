@@ -1,0 +1,16 @@
+# CODEOWNERS — auto-route PR review for cementer's two co-equal operators (PR-flow on `main`).
+#
+# ⚠ REPLACE @peter-oliver-REPLACE-ME with Peter Oliver's real GitHub username before relying on
+#   this. GitHub reads the PR's copy of this file (not main's), so keep it current on branches.
+#
+# Default: code + shared docs — EITHER operator can review (peer review is the no-CI safety gate).
+*                                  @bryanmaclee @peter-oliver-REPLACE-ME
+
+# Per-operator PA docs — owned SOLELY by that operator (the peer doesn't review or rewrite them),
+# so a wrap touching only your own hand-off/user-voice doesn't pull the peer in as a reviewer.
+# (Tune branch-protection's "require Code Owner review" so these owner-only files don't deadlock
+#  a self-authored doc-only PR.)
+/docs/pa/hand-off.md               @bryanmaclee
+/docs/pa/user-voice.md             @bryanmaclee
+/docs/pa/hand-off-peter.md         @peter-oliver-REPLACE-ME
+/docs/pa/user-voice-peter.md       @peter-oliver-REPLACE-ME

@@ -104,6 +104,20 @@ per-unit vs aggregate channels, the two chart-config scopes) is described in
 [`docs/design/data-model.md`](docs/design/data-model.md). The privileged user is **the
 cementer** (crew foreman). Each Pi is a standalone island; the pump self-describes.
 
+## Contributing (multi-operator)
+
+cementer is developed by more than one operator sharing this repo. After cloning, install
+the shared git hooks once:
+
+```sh
+make hooks        # points git at scripts/git-hooks (gofmt+vet+build+test pre-commit; make build pre-push when web/ changed)
+```
+
+The hooks are source-controlled (`scripts/git-hooks/`), so every operator runs the identical
+gate. Work lands via **branch-per-operator → pull request → `main`** (don't push straight to
+`main`); never bypass the gate with `--no-verify` without a reason. The PA-orchestration flow
+for two operators is described in `docs/pa/` and `docs/deep-dives/multi-party-pa-orchestration-2026-06-21.md`.
+
 ## Deploy to a Raspberry Pi (single binary, no C toolchain)
 
 ```sh

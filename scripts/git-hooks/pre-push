@@ -1,0 +1,24 @@
+#!/bin/sh
+# cementer baseline pre-push gate (source-controlled; install with `make hooks`). The
+# fast pre-commit gate excludes the heavy web build, so HERE — before work reaches a peer
+# or main — run the full `make build` whenever web/ changed in the range being pushed, so
+# a broken embed/bundle never lands on someone else.
+#
+# Never bypass with `git push --no-verify` without explicit authorization (pa-base rule).
+set -e
+
+command -v go >/dev/null 2>&1 || export PATH="$HOME/.local/go/bin:$PATH"
+
+# Heuristic range: new commits on HEAD not yet on origin/main. Good enough for the
+# branch-per-actor PR flow (a feature branch's own commits).
+range="origin/main..HEAD"
+git rev-parse --verify origin/main >/dev/null 2>&1 || range="HEAD"
+
+web_changed=$(git diff --name-only "$range" 2>/dev/null | grep '^web/' || true)
+if [ -n "$web_changed" ]; then
+  echo "pre-push: web/ changed — running 'make build' (web bundle + embedded binary)…"
+  make build
+else
+  echo "pre-push: no web/ changes — running 'go test ./internal/...'."
+  go test ./internal/... >/dev/null
+fi

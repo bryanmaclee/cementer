@@ -45,6 +45,13 @@ func (a *API) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/job/active", a.getActiveJob)
 	mux.HandleFunc("PUT /api/job/active", a.setActiveJob)
 
+	// Per-job print config (4b — chart-config scope #2). GET returns the effective
+	// config (company default merged with the per-job override), the raw override, and
+	// the company default; PUT saves the override on the Pi. Store-only (axiom #4 / D2);
+	// config over the always-on store, never gates ingestion/live/recording (axiom #1).
+	mux.HandleFunc("GET /api/jobs/{id}/print-config", a.getPrintConfig)
+	mux.HandleFunc("PUT /api/jobs/{id}/print-config", a.putPrintConfig)
+
 	// Series reads (4a — the chart's historical query). READ-ONLY over the always-on
 	// store: these never gate ingestion or the live stream (axiom #1), and read on the
 	// single store connection (axiom #4 / D2 — no second *sql.DB).

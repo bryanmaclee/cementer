@@ -13,6 +13,21 @@ _Verify "is it shipped" claims against code (grep / `go build` / the SQLite sche
 prose — but keep this doc honest at every wrap. `data-model.md` now carries the **realized** Phase-2/3/4a
 contracts (landing discipline, adopted S5)._
 
+## Operator in-flight (per-operator · section-owned — each operator edits ONLY their own block)
+
+cementer is run by **two co-equal operators** since S6. The **phase board** below + `changelog.md`
+are the shared truth; this section is each operator's current focus. Live cross-operator
+coordination (claims, push intents, notices) is on the **coord branch** — `make coord` →
+`.coord/` (the at-a-glance "who's doing what"). Layout: [`README.md`](README.md).
+
+### Bryan
+- **Phase 4b** (printable per-job report) **LANDED** `93011e6` (unpushed). Multi-party groundwork:
+  commit gate ✅, DD ✅, coord branch ✅, meta-doc partition (in progress). Holding 4+ unpushed
+  commits on `main` pending the PR-flow cutover (Peter access + branch protection).
+
+### Peter
+- (not started)
+
 ## Phase board
 
 | # | Phase / step | State | Evidence (verified 2026-06-19, tip `1465bd9`) |

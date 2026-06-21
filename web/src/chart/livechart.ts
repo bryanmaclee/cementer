@@ -111,7 +111,10 @@ export class LiveChart {
     const prevByChannel = new Map<string, number[]>();
     for (const [id, col] of this.channelCol) prevByChannel.set(id, this.ys[col - 1] ?? []);
 
-    const channels = p.channels.filter((c) => c.scope !== "meta");
+    // Exclude meta channels by EITHER scope or role: e.g. job.number is
+    // role:"meta", scope:"job", so a scope-only filter would chart it as a flat-0
+    // trace. vol.job (role:"volume") still charts.
+    const channels = p.channels.filter((c) => c.scope !== "meta" && c.role !== "meta");
     // Honor personal line on/off (default on).
     const visible = channels.filter((c) => this.cfg.hidden?.[c.id] !== true);
 
@@ -180,7 +183,7 @@ export class LiveChart {
       return;
     }
 
-    const scales = orderScales(p.channels.filter((c) => c.scope !== "meta"));
+    const scales = orderScales(p.channels.filter((c) => c.scope !== "meta" && c.role !== "meta"));
     const axisColor = cssVar("--text-dim", "#8b97a3");
     const gridColor = cssVar("--border", "#262d35");
 

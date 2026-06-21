@@ -1,6 +1,10 @@
 package store
 
-import "testing"
+import (
+	"path/filepath"
+	"testing"
+	"time"
+)
 
 func TestCreateGetUpdateJobRoundTrip(t *testing.T) {
 	st := openTestStore(t)
@@ -139,6 +143,88 @@ func TestSetActiveJobMissing(t *testing.T) {
 	st := openTestStore(t)
 	if err := st.SetActiveJob(999); err != ErrNoSuchJob {
 		t.Fatalf("want ErrNoSuchJob, got %v", err)
+	}
+}
+
+// TestJobPrintConfigRoundTrip proves the per-job print override (the print_config
+// JSON column) defaults to "" (no override) and round-trips a raw blob.
+func TestJobPrintConfigRoundTrip(t *testing.T) {
+	st := openTestStore(t)
+	id, err := st.CreateJob(Job{Name: "Smith 4-12H"})
+	if err != nil {
+		t.Fatalf("CreateJob: %v", err)
+	}
+
+	// A fresh job has no override.
+	raw, found, err := st.JobPrintConfig(id)
+	if err != nil || !found {
+		t.Fatalf("JobPrintConfig: found=%v err=%v", found, err)
+	}
+	if raw != "" {
+		t.Fatalf("fresh job print_config should be empty, got %q", raw)
+	}
+
+	// Store a raw override and read it back verbatim.
+	const ov = `{"title":"Surface Job","pageSize":"a4"}`
+	if err := st.SetJobPrintConfig(id, ov); err != nil {
+		t.Fatalf("SetJobPrintConfig: %v", err)
+	}
+	raw, found, err = st.JobPrintConfig(id)
+	if err != nil || !found {
+		t.Fatalf("JobPrintConfig after set: found=%v err=%v", found, err)
+	}
+	if raw != ov {
+		t.Fatalf("override not round-tripped: got %q want %q", raw, ov)
+	}
+}
+
+func TestJobPrintConfigMissing(t *testing.T) {
+	st := openTestStore(t)
+	if _, found, err := st.JobPrintConfig(999); err != nil {
+		t.Fatalf("JobPrintConfig errored: %v", err)
+	} else if found {
+		t.Fatal("found=true for missing job")
+	}
+	if err := st.SetJobPrintConfig(999, "{}"); err != ErrNoSuchJob {
+		t.Fatalf("want ErrNoSuchJob, got %v", err)
+	}
+}
+
+// TestMigrationIdempotentAcrossReopen proves the print_config column migration is a
+// no-op on reopen: a DB created, closed, and reopened keeps the stored override and
+// does not error. This also exercises ADD COLUMN being skipped when present.
+func TestMigrationIdempotentAcrossReopen(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "migrate.db")
+
+	st, err := Open(path, 50*time.Millisecond, nil)
+	if err != nil {
+		t.Fatalf("open 1: %v", err)
+	}
+	id, err := st.CreateJob(Job{Name: "Job 1"})
+	if err != nil {
+		t.Fatalf("CreateJob: %v", err)
+	}
+	if err := st.SetJobPrintConfig(id, `{"pageSize":"a4"}`); err != nil {
+		t.Fatalf("SetJobPrintConfig: %v", err)
+	}
+	if err := st.Close(); err != nil {
+		t.Fatalf("close 1: %v", err)
+	}
+
+	// Reopen the same DB — initSchema + migrate run again and must be a no-op.
+	st2, err := Open(path, 50*time.Millisecond, nil)
+	if err != nil {
+		t.Fatalf("reopen: %v", err)
+	}
+	t.Cleanup(func() { _ = st2.Close() })
+
+	raw, found, err := st2.JobPrintConfig(id)
+	if err != nil || !found {
+		t.Fatalf("JobPrintConfig after reopen: found=%v err=%v", found, err)
+	}
+	if raw != `{"pageSize":"a4"}` {
+		t.Fatalf("override lost across reopen: %q", raw)
 	}
 }
 

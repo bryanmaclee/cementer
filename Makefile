@@ -8,9 +8,25 @@ export PATH := $(HOME)/.local/go/bin:$(PATH)
 GO ?= go
 BIN ?= cementer
 
-.PHONY: all build web server run demo tidy clean
+.PHONY: all build web server run demo tidy clean hooks coord
 
 all: build
+
+# Set up the multi-operator coordination worktree at .coord/ (run once per clone). The
+# handshake substrate (ledger / claims / inbox) lives on the unprotected 'coord' branch —
+# OUT of main's PR-flow — so both operators push it directly. git DWIMs a local 'coord'
+# tracking origin/coord on a fresh clone. See .coord/README.md for the protocol.
+coord:
+	@test -d .coord || git worktree add .coord coord
+	@echo "coordination worktree ready at .coord/ (branch: coord) — read ledger.md + the peer's claim; push 'coord' directly (no PR)."
+
+# Install the source-controlled git hooks (run ONCE per clone). Points git at the tracked
+# scripts/git-hooks so every operator runs the identical pre-commit (gofmt+vet+build+test)
+# and pre-push (make build when web/ changed) gate. See docs/pa/ for the multi-operator flow.
+hooks:
+	@chmod +x scripts/git-hooks/*
+	@git config core.hooksPath scripts/git-hooks
+	@echo "git hooks installed (core.hooksPath=scripts/git-hooks)"
 
 # Build the web client (installs deps on first run) then the server binary.
 build: web server
