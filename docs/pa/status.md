@@ -31,9 +31,10 @@ coordination (claims, push intents, notices) is on the **coord branch** — `mak
   toolchain (Go 1.26.4 + Node 24.17.0), installed the commit gate, fixed a Windows CRLF/gofmt break
   (`autocrlf`), and **PA-verified Phase 4b end-to-end** (built/ran/recorded → report + print render via
   Edge headless). Filed ruleset issue **#3** to Bryan (exempt `coord`; allow feature-branch deletion).
-  - _Blocked, pending Bryan's repo-config:_ coord onboarding commits (`13c695a`, `b5d0089`) unpushable
-    (coord caught by the require-PR rule); merged branches undeletable.
-  - _Not claimed yet:_ `.gitattributes` durable CRLF fix; the `pa.md` topology rewrite (coordinate).
+  - _Ruleset blocks RESOLVED same-day (issue #3 closed, verified):_ Bryan scoped the rules → coord
+    push-direct + merged-branch deletion both work; coord pushed/synced (`d1028bc`); P1 wrap landed (PR #4).
+  - _Not claimed yet:_ `.gitattributes` durable CRLF fix; the `pa.md` topology rewrite (Bryan pushed
+    `s6-foundation` — likely this; coordinate before claiming).
 
 ## Phase board
 
@@ -106,21 +107,20 @@ the living spec; don't let deltas accumulate here. No separate as-built spec doc
   out as CRLF; `gofmt` is LF-only, so the pre-commit gate rejects every Go change on Windows. Mitigated this
   clone (`autocrlf=false` + renormalized). **Durable fix = add `.gitattributes` (`* text=auto eol=lf`)** —
   not yet done (a `peter/<arc>` PR; coordinate with Bryan).
-- **⚠ Repo ruleset too broad** (issue **#3**): the require-PR rule also blocks `coord` (should be
-  push-direct); the restrict-deletions rule blocks merged-branch cleanup. Bryan's repo-config call.
-- Also pre-push runs the gate on a branch *deletion* (no Go in range) → fails on a no-Go machine; minor
-  hook refinement for Bryan (skip delete / empty range).
+- ~~Repo ruleset too broad~~ — ✅ **RESOLVED + verified** (issue **#3** closed): Bryan scoped the
+  require-PR + restrict-deletions rules; `coord` push-direct and feature-branch deletion both work now.
+- Minor (still open): pre-push runs the gate on a branch *deletion* (no Go in range) → fails on a no-Go
+  machine; minor hook refinement for Bryan (skip delete / empty range).
 
 ## Near-term actions (not yet done)
 
-1. **Bryan: fix the repo ruleset** (issue #3) — exempt `coord` (push-direct) + allow feature-branch
-   deletion. Unsticks coord pushes + branch cleanup.
-2. **`.gitattributes` durable CRLF fix** (`* text=auto eol=lf`) — a `peter/<arc>` PR; coordinate.
-3. **`pa.md` topology rewrite** — still declares "standalone single-operator" (STALE since S6); fold in
-   §4/§10 multi-operator + the symmetric `hand-off-bryan.md`/`user-voice-bryan.md` rename. Whose arc?
-4. **Parser cleanup** (delete/fold the off-path `internal/parser`).
-5. **Totco preset** — when a Totco unit is reachable (same direct-laptop capture method).
-6. ~~Phase 4b~~ ✅ done (Bryan, PR #1). ~~Install the commit gate~~ ✅ done (S6).
+1. **`.gitattributes` durable CRLF fix** (`* text=auto eol=lf`) — a `peter/<arc>` PR; coordinate.
+2. **`pa.md` topology rewrite** — still declares "standalone single-operator" (STALE since S6); fold in
+   §4/§10 multi-operator + the symmetric `hand-off-bryan.md`/`user-voice-bryan.md` rename. Bryan pushed
+   `s6-foundation` — likely this; coordinate before claiming.
+3. **Parser cleanup** (delete/fold the off-path `internal/parser`).
+4. **Totco preset** — when a Totco unit is reachable (same direct-laptop capture method).
+5. ~~Phase 4b~~ ✅ (Bryan, PR #1). ~~Install commit gate~~ ✅ (S6). ~~Fix repo ruleset~~ ✅ (issue #3).
 
 ## Test surface
 

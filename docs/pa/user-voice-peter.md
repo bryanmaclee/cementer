@@ -86,3 +86,20 @@ deletion.)_
 _(8-step wrap: status.md reconciled (4b DONE, gate installed, P1 Peter block, debts), changelog P1 block,
 this ledger, `hand-off-peter.md` rewritten, coord ledger P1-close + claim reset (local). Tests green.
 Wrap docs landing via a `peter/<arc>` PR; coord pushes remain blocked pending Bryan.)_
+
+> push and merge p1-wrap
+
+_(Pushed `peter/p1-wrap`; created + merged **PR #4** via the API → `main` `a854b38`. Wrap docs now on main.)_
+
+> Bryan told me to 'try again' after making a change to the two blocks ... Can you test ...
+
+_(Tested both blocks directly: `git push origin coord` → SUCCESS (`fa09c73..0be5073`); API delete of
+`peter/p1-onboarding` → 204. **Both resolved.** Cleaned up: deleted `peter/p1-wrap` too; pushed coord
+(now synced, `d1028bc`); added a verified-fix addendum to the coord ledger. Clarified that "P1 wrapped"
+had NOT tested these — that only proved main PR-flow, which was never blocked.)_
+
+> close issue #3 and let's do 2. Doc currency now so that it is cleanly done moving forward after this
+
+_(Closed **issue #3** with a verification comment. Doc-currency pass: reconciled `hand-off-peter.md` +
+`status.md` + `changelog.md` to current truth (ruleset blocks RESOLVED, coord synced, PRs #2/#4 landed,
+issue #3 closed) so the SoT is clean going forward. Landed via a `peter/<arc>` PR. Net P1 blockers: none.)_

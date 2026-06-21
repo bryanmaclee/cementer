@@ -23,23 +23,19 @@ Adopted the S6 multi-party model + stood up this laptop + verified Phase 4b. Eve
 - **P1 onboarding docs landed:** PR #2 → `main` `0a96095`.
 - **Bryan notified** (issue #3 + coord `inbox/bryan/` notice) of the ruleset problems.
 
-## ⚠ OPEN — next session (most are Bryan's to unblock)
+## ⚠ OPEN — next session
 
-1. **Push the blocked coord commits** once Bryan exempts `coord` from the require-PR rule:
-   `13c695a` (P1 ledger open + claim) and `b5d0089` (the inbox/bryan ruleset notice). They sit on the
-   local `coord` branch in the `.coord` worktree. `cd .coord && git push origin coord`.
-2. **Land the P1 WRAP docs.** `status.md`, `changelog.md`, `user-voice-peter.md`, and this file were
-   updated at wrap and committed on branch **`peter/p1-wrap`** — **PUSH + PR + MERGE still pending**
-   (the wrap was bare "wrap P1", not "wrap and push"). `git push -u origin peter/p1-wrap` → open PR →
-   merge (CODEOWNERS routes `*-peter` to Peter; the shared `status.md`/`changelog.md` may need Bryan
-   review). _Until merged, `main`'s status/changelog lag this file._
-3. **`.gitattributes` durable CRLF fix** — `* text=auto eol=lf` (+ maybe `*.go text eol=lf`) so no future
+1. **`.gitattributes` durable CRLF fix** — `* text=auto eol=lf` (+ maybe `*.go text eol=lf`) so no future
    Windows clone hits the gofmt break. A `peter/<arc>` PR; touches Bryan's clone → coordinate.
-4. **`pa.md` topology rewrite** — still says "standalone single-operator" (STALE since S6). DD names the
-   §4/§10 rewrite + the symmetric `hand-off-bryan.md`/`user-voice-bryan.md` rename. **Whose arc?** Raise
-   on the coord ledger before claiming.
-5. **Bryan is active** — his `bryan/s6-phase4b-multiparty` advanced to `5a2a5d5` after PR #1. Fetch +
-   read the coord ledger before starting anything to avoid overlap.
+2. **`pa.md` topology rewrite** — still says "standalone single-operator" (STALE since S6). DD names the
+   §4/§10 rewrite + the symmetric `hand-off-bryan.md`/`user-voice-bryan.md` rename. **Whose arc?**
+   Bryan pushed an **`s6-foundation`** branch — likely this work; check the coord ledger before claiming.
+3. **Bryan is active** — `bryan/s6-phase4b-multiparty` @ `da33524` + new `s6-foundation`. Fetch + read
+   the coord ledger before starting anything to avoid overlap.
+
+_Resolved during P1 (no longer open):_ Bryan fixed the over-broad ruleset (**issue #3 closed, verified**)
+→ `coord` pushes + merged-branch deletion both work now; P1 onboarding (PR #2) + wrap (PR #4) landed on
+`main`; coord pushed + synced; merged `peter/*` branches cleaned up.
 
 ## Project work (none claimed by Peter; project MVP effectively reached)
 
@@ -68,20 +64,20 @@ Adopted the S6 multi-party model + stood up this laptop + verified Phase 4b. Eve
 
 ## Coord state (the .coord worktree — RETAINED across sessions on purpose)
 
-- `.coord` worktree on branch `coord`, local tip `b5d0089` (2 commits ahead of `origin/coord`, **push-blocked**).
-- My `claims/peter.md` = **idle** (reset at P1 close). My P1 ledger has open + close blocks.
-- **Do NOT remove the `.coord` worktree** — it holds unpushed coordination commits.
+- `.coord` worktree on branch `coord`, **pushed + synced** (`origin/coord = local = d1028bc`).
+- My `claims/peter.md` = **idle** (reset at P1 close). My P1 ledger has open + close + addendum blocks.
+- **Do NOT remove the `.coord` worktree** — it's the live coordination channel (now works both ways).
 
 ## State as of P1 close
 
 | Item | State |
 |---|---|
-| `main` | `0a96095` (P1 docs merged; synced) |
-| Multi-party model | ADOPTED |
+| `main` | `a854b38` (P1 onboarding + wrap merged; synced) |
+| Multi-party model | ADOPTED; full PR-flow cycles done (#2, #4) |
 | Windows toolchain | ✅ Go 1.26.4 + Node 24.17.0; full gate green; CRLF fixed |
 | Commit gate | ✅ installed |
 | Phase 4b | ✅ DONE (Bryan PR #1), PA-verified E2E here |
-| P1 wrap docs | committed `peter/p1-wrap`, **push/PR/merge pending** (OPEN #2) |
-| coord onboarding (`13c695a`,`b5d0089`) | committed local, **push-blocked** (OPEN #1) |
-| Bryan notified of ruleset | ✅ issue #3 + coord notice |
+| P1 onboarding + wrap docs | ✅ landed (PR #2 + PR #4) |
+| coord | ✅ pushed + synced (`d1028bc`); works both ways |
+| Ruleset blocks | ✅ RESOLVED + verified (issue #3 closed) |
 | Tests (P1 wrap) | `go test`/`vet`/`gofmt`/`go build`/web build all ✅ |
