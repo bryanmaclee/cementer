@@ -1,8 +1,15 @@
 # coord — multi-operator PA coordination
 
 The autonomous handshake substrate for cementer's two **co-equal** PA operators sharing one
-GitHub repo under **PR-flow**. Ratified S6 in
-[`multi-party-pa-orchestration-2026-06-21`](../../deep-dives/multi-party-pa-orchestration-2026-06-21.md).
+GitHub repo under **PR-flow**. Ratified S6 in `docs/deep-dives/multi-party-pa-orchestration-2026-06-21.md`
+(on the **`main`** branch).
+
+> **This substrate lives on its own unprotected `coord` branch** (an orphan branch — no shared
+> history with `main`), deliberately OUT of `main`'s PR-flow so coordination is low-latency: both
+> operators **push `coord` directly** (no PR, no review gate). Access it via a dedicated worktree:
+> `make coord` → checks the branch out at **`.coord/`** (gitignored). Read/append here, then
+> `cd .coord && git commit … && git push origin coord`. Cross-referenced docs (the DD, `pa.md`) are
+> on `main`, not here.
 
 Operators: **`bryan`** (bryanmaclee) · **`peter`** (Peter Oliver). Per-operator session ids:
 **`B<n>` / `P<n>`** (no shared global counter).
