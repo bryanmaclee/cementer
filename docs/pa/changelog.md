@@ -27,7 +27,10 @@ First session by the **second co-equal operator (Peter)** on the Windows field l
 - **Surfaced two ruleset problems to Bryan** (GitHub issue **#3** + a `coord` `inbox/bryan/` notice):
   the require-PR rule wrongly covers `coord` (should be push-direct) and restrict-deletions blocks
   merged-branch cleanup. Both are repo-owner config.
-- **Blocked, pending Bryan:** `coord` pushes (`13c695a`, `b5d0089` stuck local); merged-branch deletion.
+- **Ruleset blocks resolved same-day** (issue **#3** closed, verified): Bryan scoped the require-PR +
+  restrict-deletions rules → `coord` push-direct + merged-branch deletion both work; coord pushed/synced
+  (`d1028bc`), merged `peter/*` branches cleaned up. Doc-currency follow-up landed (status/changelog/
+  hand-off reconciled). Net P1 blockers: none.
 - **Tests:** `go test ./...` ✅ · `go vet ./...` ✅ · `gofmt -l` clean · `go build ./...` ✅ · web build ✅.
 
 ## 2026-06-18/19 — Session 5 · Phases 2, 3a, 3b, 4a shipped (DAQ engine → self-describing pump → jobs/recording → charting)
