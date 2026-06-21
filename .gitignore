@@ -17,3 +17,6 @@ raw-*.log
 # Editor / OS
 *.swp
 .DS_Store
+
+# Multi-operator coordination worktree (the unprotected 'coord' branch lives here; run `make coord`)
+/.coord/
