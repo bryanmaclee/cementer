@@ -3,11 +3,11 @@
 > Advisory, **optimistic** (NOT a lock). Overwrite THIS file only; reset to idle at session close.
 
 ```
-status:     idle
-session:    —
-arc:        —
-branch:     —
-intent-sha: —
-since:      —
-note:       Peter has not started a session yet. Welcome — read coord/README.md first, then append your B/P-style open block to ledger.md.
+status:     active
+session:    P1
+arc:        adopting the multi-party model (sync to c952c54 + commit gate + coord onboarding); next feature arc TBD with operator
+branch:     main (will branch peter/<arc> for any main-bound work)
+intent-sha: c952c54
+since:      2026-06-21
+note:       adopted S6 machinery. Phase 4b already landed by bryan (PR #1) — not duplicating. make unavailable on this Windows box.
 ```
