@@ -1,0 +1,41 @@
+#!/bin/sh
+# cementer baseline pre-commit gate (source-controlled; install once per clone with
+# `make hooks`). FAST checks only — the heavy web build (npm) runs in pre-push when web/
+# changed. Shared by every operator so the gate is identical, not a per-clone snowflake.
+#
+# Never bypass with `git commit --no-verify` without explicit authorization (pa-base rule).
+set -e
+
+# Go is user-local on some clones (~/.local/go/bin); make sure it's reachable either way.
+command -v go >/dev/null 2>&1 || export PATH="$HOME/.local/go/bin:$PATH"
+
+# Docs/config-only commits skip the Go gate (keeps PA meta-doc commits fast).
+go_changed=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.go$|^go\.(mod|sum)$' || true)
+if [ -z "$go_changed" ]; then
+  echo "pre-commit: no Go changes staged — skipping Go gate."
+  exit 0
+fi
+
+# 1. gofmt — fail if any staged Go file is unformatted.
+unformatted=$(printf '%s\n' "$go_changed" | grep '\.go$' | xargs -r gofmt -l 2>/dev/null || true)
+if [ -n "$unformatted" ]; then
+  echo "pre-commit: gofmt needed on:" >&2
+  printf '%s\n' "$unformatted" >&2
+  echo "  run: gofmt -w <files>" >&2
+  exit 1
+fi
+
+# web/dist is gitignored and required by the //go:embed in assets.go, so a fresh clone
+# can't build the embed-dependent packages until `make web`. Gate ./... when the bundle
+# exists, else fall back to the embed-free ./internal/... (and say so).
+if [ -d web/dist ] && [ -n "$(ls -A web/dist 2>/dev/null)" ]; then
+  PKGS="./..."
+else
+  echo "pre-commit: web/dist absent — gating ./internal/... only (run 'make web' for the full gate)." >&2
+  PKGS="./internal/..."
+fi
+
+# 2. vet  3. build  4. test
+go vet $PKGS
+go build $PKGS
+go test $PKGS

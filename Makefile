@@ -8,9 +8,17 @@ export PATH := $(HOME)/.local/go/bin:$(PATH)
 GO ?= go
 BIN ?= cementer
 
-.PHONY: all build web server run demo tidy clean
+.PHONY: all build web server run demo tidy clean hooks
 
 all: build
+
+# Install the source-controlled git hooks (run ONCE per clone). Points git at the tracked
+# scripts/git-hooks so every operator runs the identical pre-commit (gofmt+vet+build+test)
+# and pre-push (make build when web/ changed) gate. See docs/pa/ for the multi-operator flow.
+hooks:
+	@chmod +x scripts/git-hooks/*
+	@git config core.hooksPath scripts/git-hooks
+	@echo "git hooks installed (core.hooksPath=scripts/git-hooks)"
 
 # Build the web client (installs deps on first run) then the server binary.
 build: web server
