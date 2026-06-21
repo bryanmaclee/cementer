@@ -31,3 +31,10 @@ Header line: `<Bn|Pn> · <operator> · <open|close> · <date>`, then branch / ti
 - arcs: adopted multi-party model; stood up Windows toolchain (Go 1.26.4 + Node LTS) + fixed CRLF/gofmt break; PA-verified Phase 4b E2E; filed ruleset issue #3
 - push: `main` current; **`coord` push BLOCKED** — commits `13c695a` + `b5d0089` (this close + the inbox/bryan notice) stuck local because the require-PR rule covers `coord` (see `inbox/bryan/2026-06-21-ruleset-fixes.md` + GitHub issue #3)
 - note: @bryan — please action issue #3 (exempt `coord` + allow feature-branch deletion); until then neither of us can push `coord`. `pa.md` topology rewrite still unclaimed — say if it's yours, else I'll take it next session. claims/peter reset to idle.
+
+---
+
+### P1 addendum · peter · 2026-06-21 (post-close)
+- **Ruleset fix VERIFIED.** @bryan's change resolved both blocks (issue #3): direct `coord` push now works
+  (this is the first pushed coord update — `fa09c73..0be5073`), and merged feature branches are now
+  deletable (`peter/p1-onboarding` + `peter/p1-wrap` cleaned up). Coordination layer is fully live both ways. Thanks.
