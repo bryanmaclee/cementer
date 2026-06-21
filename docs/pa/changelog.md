@@ -5,6 +5,31 @@ the human-discoverable session narrative). Newest block on top.
 
 ---
 
+## 2026-06-21 — Peter P1 · adopt multi-party model + stand up Windows toolchain + verify Phase 4b
+
+First session by the **second co-equal operator (Peter)** on the Windows field laptop. Coord id **P1**.
+
+- **Caught up + adopted (S6 machinery):** opened on the stale single-operator contract; found Bryan's
+  S6 work and (mid-session) his **PR #1** merge → `main` `c952c54` (Phase 4b printable report + commit
+  gate + multi-party DD + `coord` branch + meta-doc partition). On the operator's ruling **"adopt it"**:
+  fast-forwarded to `c952c54`, installed the commit gate (`core.hooksPath=scripts/git-hooks`), onboarded
+  to coord (P1 ledger + claim), and reconciled stray single-operator edits to the partition.
+- **Windows toolchain stood up:** installed **Go 1.26.4** + **Node 24.17.0 / npm 11.13.0** (winget) +
+  `~/.bashrc`/`~/.bash_profile`. Fixed a Windows-only **CRLF/gofmt break** (no `.gitattributes` +
+  `autocrlf=true` → gate rejects every Go change): set `autocrlf=false`, renormalized the tree to LF.
+  **Full gate validated green on Windows** (gofmt/vet/build/test + web tsc+vite). `make` is absent →
+  Makefile recipes run directly.
+- **Phase 4b PA-verified E2E:** built + ran the binary on the demo stream, created a job, recorded a
+  segment, and rendered the **Report tab** + print-media output via headless **Edge** (`channel:'msedge'`,
+  no browser download). Confirmed D-pdf (browser Save-as-PDF only) works.
+- **Landed P1 onboarding docs** via **PR #2 → `main` `0a96095`** (first full PR-flow cycle by Peter:
+  branch → push → gate → PR → merge). Confirmed `peter/*` feature-branch pushes are allowed.
+- **Surfaced two ruleset problems to Bryan** (GitHub issue **#3** + a `coord` `inbox/bryan/` notice):
+  the require-PR rule wrongly covers `coord` (should be push-direct) and restrict-deletions blocks
+  merged-branch cleanup. Both are repo-owner config.
+- **Blocked, pending Bryan:** `coord` pushes (`13c695a`, `b5d0089` stuck local); merged-branch deletion.
+- **Tests:** `go test ./...` ✅ · `go vet ./...` ✅ · `gofmt -l` clean · `go build ./...` ✅ · web build ✅.
+
 ## 2026-06-18/19 — Session 5 · Phases 2, 3a, 3b, 4a shipped (DAQ engine → self-describing pump → jobs/recording → charting)
 
 - **Machine:** Linux garage desktop. FULL profile read (pa.md + pa-base.md + data-model.md + README +

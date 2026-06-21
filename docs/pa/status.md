@@ -1,6 +1,6 @@
 ---
 status: current
-last-reviewed: 2026-06-19
+last-reviewed: 2026-06-21
 ---
 
 # cementer — live status (the SoT)
@@ -26,11 +26,18 @@ coordination (claims, push intents, notices) is on the **coord branch** — `mak
   commits on `main` pending the PR-flow cutover (Peter access + branch protection).
 
 ### Peter
-- (not started)
+- **P1 (2026-06-21, Windows field laptop):** adopted the S6 multi-party model (PR-flow + coord +
+  meta-doc partition); landed P1 onboarding docs via **PR #2 → `main` `0a96095`**. Stood up the Windows
+  toolchain (Go 1.26.4 + Node 24.17.0), installed the commit gate, fixed a Windows CRLF/gofmt break
+  (`autocrlf`), and **PA-verified Phase 4b end-to-end** (built/ran/recorded → report + print render via
+  Edge headless). Filed ruleset issue **#3** to Bryan (exempt `coord`; allow feature-branch deletion).
+  - _Blocked, pending Bryan's repo-config:_ coord onboarding commits (`13c695a`, `b5d0089`) unpushable
+    (coord caught by the require-PR rule); merged branches undeletable.
+  - _Not claimed yet:_ `.gitattributes` durable CRLF fix; the `pa.md` topology rewrite (coordinate).
 
 ## Phase board
 
-| # | Phase / step | State | Evidence (verified 2026-06-19, tip `1465bd9`) |
+| # | Phase / step | State | Evidence (verified 2026-06-21 P1, tips `1465bd9` / `0a96095`) |
 |---|---|---|---|
 | P1 | Durable ingest → WS → dark-mode readout | ✅ **DONE** | `cmd/cementer/main.go` pipeline; `internal/store` SQLite WAL single-writer |
 | 1 | Config-driven dynamic channels + theme + storage env | ✅ **DONE** | store keyed by `channel`; `web/src/theme.ts`; `-data-dir`/`$CEMENTER_DATA_DIR` |
@@ -38,7 +45,7 @@ coordination (claims, push intents, notices) is on the **coord branch** — `mak
 | 3a | Pump Profile persistence + hello/profile message + scope-grouped display | ✅ **DONE** (`cd71beb`) | `pump_profiles`/`profile_channels`; per-conn WS profile frame; `GET/PUT /api/profile` + reset; scope-grouped client (enabled-only) |
 | 3b | Job CRUD + recording segments + active-job | ✅ **DONE** (`cf46ab3`) | `jobs`/`recording_segments`; `/api/jobs*` + `/api/recording/*`; client controls; **axiom #1 proven** (recording is a marker, never gates ingest) |
 | 4a | uPlot charting core (series API + live + historical) | ✅ **DONE** (`5c69e07` + `1465bd9`) | `store.Series`/`JobSeries` (min/max decimation); `GET /api/samples` + `/api/jobs/{id}/series`; uPlot live rolling chart (replaces readout) + job-history chart w/ segment shading; live-view config in localStorage. Time axis in **seconds** (fixed). **Playwright-verified render.** |
-| 4b | Print template (company default + per-job overrides) + print-CSS + PDF | ⬜ **NOT STARTED** | scope locked: [`phase4-charting-printing/scope.md`](../changes/phase4-charting-printing/scope.md). PDF = browser Save-as-PDF only (D-pdf) |
+| 4b | Print template (company default + per-job overrides) + print-CSS + PDF | ✅ **DONE** (`93011e6`, merged PR #1 `c952c54`) | `internal/printcfg` (company default + per-job override) + `GET/PUT /api/jobs/{id}/print-config`; `web/src/report.ts` **Report tab** (job header + segment-shaded chart + Save-as-PDF via `@media print`). **PA-verified E2E render (P1, Windows/Edge headless).** PDF = browser Save-as-PDF only (D-pdf) |
 | 3c | Retention/downsampling-as-code (DD rider #3) | ⬜ **DEFERRED** (by design) | low urgency at ~7 rows/s; design sketched in the phase3 scope |
 
 ## Decision records (locked)
@@ -55,8 +62,9 @@ coordination (claims, push intents, notices) is on the **coord branch** — `mak
   here. No separate as-built spec doc (decided sufficient).
 - **Canonical dev agent:** `cementer-go-engineer` (worktree-isolated, `model: opus`) — used for every
   source arc this session. `general-purpose` is the generalist fallback only.
-- **Headless verify:** Playwright browsers are cached; temp-install `playwright@1.60.0` to screenshot the
-  web UI (see auto-memory). The chart paint is no longer a USER-only check.
+- **Headless verify:** temp-install `playwright@1.60.0` and drive a browser to screenshot the web UI; the
+  chart/report paint is no longer a USER-only check. Linux: cached browsers. **Windows (P1): drive system
+  Edge (`chromium.launch({channel:'msedge'})`, `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1`) — no browser download.**
 
 ## ✅ Bench-top stack validation — VERIFIED 2026-06-13 (Peter, on `CementSerial`)
 
@@ -91,20 +99,33 @@ the living spec; don't let deltas accumulate here. No separate as-built spec doc
 - **⚠ Plaintext credentials committed** in `pi4b & test db/credetials&currentDB.README` (`ddf8ada`):
   test-rig SSH/Influx/Grafana logins. Rotate + gitignore if this repo is ever shared/public. Surfaced,
   not changed (collaborator's file).
-- **No commit gate installed** (`core.hooksPath` unset). Baseline still recommended: `gofmt -l` + `go vet`
-  + `go build` + `go test`; `make build` pre-push when `web/` changed.
+- ~~No commit gate installed~~ — ✅ **installed S6** (source-controlled `scripts/git-hooks/`,
+  `core.hooksPath=scripts/git-hooks`; install per-clone via `make hooks`). pre-commit = gofmt+vet+build+test;
+  pre-push = `go test ./internal/...` (or `make build` when `web/` changed).
+- **⚠ No `.gitattributes` → Windows CRLF break** (found P1). Git-for-Windows `autocrlf=true` checks the tree
+  out as CRLF; `gofmt` is LF-only, so the pre-commit gate rejects every Go change on Windows. Mitigated this
+  clone (`autocrlf=false` + renormalized). **Durable fix = add `.gitattributes` (`* text=auto eol=lf`)** —
+  not yet done (a `peter/<arc>` PR; coordinate with Bryan).
+- **⚠ Repo ruleset too broad** (issue **#3**): the require-PR rule also blocks `coord` (should be
+  push-direct); the restrict-deletions rule blocks merged-branch cleanup. Bryan's repo-config call.
+- Also pre-push runs the gate on a branch *deletion* (no Go in range) → fails on a no-Go machine; minor
+  hook refinement for Bryan (skip delete / empty range).
 
 ## Near-term actions (not yet done)
 
-1. **Phase 4b** — printing (company default template + per-job overrides + print-CSS view + browser
-   Save-as-PDF). Scope locked. Fold in the two minor cosmetics above (new-job form, job.number trace).
-2. **Install the commit gate** (above).
-3. **Parser cleanup** (delete/fold the off-path `internal/parser`).
-4. **Totco preset** — when a Totco unit is reachable (same direct-laptop capture method).
+1. **Bryan: fix the repo ruleset** (issue #3) — exempt `coord` (push-direct) + allow feature-branch
+   deletion. Unsticks coord pushes + branch cleanup.
+2. **`.gitattributes` durable CRLF fix** (`* text=auto eol=lf`) — a `peter/<arc>` PR; coordinate.
+3. **`pa.md` topology rewrite** — still declares "standalone single-operator" (STALE since S6); fold in
+   §4/§10 multi-operator + the symmetric `hand-off-bryan.md`/`user-voice-bryan.md` rename. Whose arc?
+4. **Parser cleanup** (delete/fold the off-path `internal/parser`).
+5. **Totco preset** — when a Totco unit is reachable (same direct-laptop capture method).
+6. ~~Phase 4b~~ ✅ done (Bryan, PR #1). ~~Install the commit gate~~ ✅ done (S6).
 
 ## Test surface
 
 - `go test ./...`: `internal/daqformat`, `internal/parser`, `internal/store`, `internal/api` have tests;
   others report "no test files". Web has no unit suite (tsc-strict + Playwright screenshot are the checks).
-- **Last full run (2026-06-19 wrap):** `go test ./...` ✅ · `go vet ./...` ✅ · `gofmt -l` clean ·
-  `make build` ✅ (CGO-free, uPlot bundled offline).
+- **Last full run (2026-06-21 P1 wrap, Windows):** `go test ./...` ✅ · `go vet ./...` ✅ · `gofmt -l`
+  clean · `go build ./...` ✅ (embed) · web build (tsc strict + vite) ✅. (`make` absent on Windows — ran
+  the steps directly; CGO-free, uPlot bundled offline.)
