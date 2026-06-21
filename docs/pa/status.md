@@ -71,7 +71,7 @@ coordination (claims, push intents, notices) is on the **coord branch** — `mak
 
 Go+SQLite Pi stack proven on both serial-ingress paths (GPIO UART @115200: 2,812 rows; CP2102 USB
 @115200: 4,404 rows). Transport was **simulated** (ESP32-replayed CSV); the **real-DAQ wire contract is
-confirmed for Intellisense** (S4 capture). Field runbook lives in `hand-off.md`.
+confirmed for Intellisense** (S4 capture). Field runbook lives in `hand-off-bryan.md`.
 
 ## Design ↔ code deltas (tracked TODOs)
 
