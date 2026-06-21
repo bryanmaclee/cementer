@@ -50,3 +50,39 @@ CRLF, and `gofmt` is LF-only, so the pre-commit gate would reject every Go chang
 `gofmt` clean · `go vet ./...` · `go build ./...` (embed) · `go test ./...` all pass · web build (tsc
 strict + vite) ✓. Durable cross-clone fix recommended: add a `.gitattributes` (`* text=auto eol=lf`) —
 pending a PR + coordination with Bryan.)_
+
+> run phase 4b and show me the report
+
+_(Built + ran the binary on the demo stream; created job "Smith 4-21H - Surface", recorded a ~78s segment
+spanning the full run, rendered the **Report tab** + print-media output + a real PDF via headless **Edge**
+(`channel:'msedge'`). Showed both. Phase 4b confirmed working E2E on Windows; D-pdf (browser Save-as-PDF)
+holds.)_
+
+> stop and clean up, then commit the P1 docs
+
+_(Stopped the server, removed demo artifacts. Committed the two `*-peter` docs on branch
+`peter/p1-onboarding` `95a0336` — commit gate ran + passed (skipped Go gate, docs-only): first clean gate
+run on this box.)_
+
+> push it and give me the PR link
+
+_(Pushed `peter/p1-onboarding`; pre-push gate (`go test ./internal/...`) passed. Confirmed `peter/*`
+feature-branch pushes are allowed. PR link: github.com/bryanmaclee/cementer/pull/new/peter/p1-onboarding.)_
+
+> merge it and confirm main is updated
+
+_(Peter opened **PR #2**; merged it via the GitHub API (credential from the cached git token). `origin/main
+= 0a96095`, local fast-forwarded; P1 docs confirmed on `main`. Couldn't delete the merged remote branch —
+ruleset "restrict deletions" → flagged.)_
+
+> note these ruleset items to Bryan
+
+_(Wrote a `coord` `inbox/bryan/` notice (`b5d0089`, push-blocked). Then — per AskUserQuestion, since coord
+can't deliver — opened GitHub **issue #3** as the working channel: exempt `coord` + allow feature-branch
+deletion.)_
+
+> wrap P1
+
+_(8-step wrap: status.md reconciled (4b DONE, gate installed, P1 Peter block, debts), changelog P1 block,
+this ledger, `hand-off-peter.md` rewritten, coord ledger P1-close + claim reset (local). Tests green.
+Wrap docs landing via a `peter/<arc>` PR; coord pushes remain blocked pending Bryan.)_
