@@ -147,3 +147,83 @@ Base: 1f65c13. Two demo-found issues.
 - The VISUAL time-axis tick LABELS (correct dates/times) need a real browser load — no headless
   browser here. Verified: the x VALUES are now seconds, tsc-strict passes, the bundle builds. The
   axis-label correctness (the actual fix) is confirmed by units, not by a rendered screenshot.
+
+---
+
+# Phase 4b — print template + per-job overrides + printing/PDF
+
+## 2026-06-21 — startup
+
+- Worktree `agent-a41de8b11395cc83f` (pwd
+  `/home/bryan-maclee/cementer/.claude/worktrees/agent-a41de8b11395cc83f`), clean tree, Go 1.26.4,
+  branch `worktree-agent-a41de8b11395cc83f`.
+- Read maps (api/schema/state/structure/style — current at 1465bd9), anti-patterns (A+B),
+  data-model.md "Two chart-config scopes" + 4a realized contract, scope.md §4b, and the relevant
+  source (store jobs/recording/profile/series/store.go, api jobs/series/api.go, daqformat presets,
+  web readout/controls/types/livechart/jobchart/roles/config/styles/main).
+- Primed web/dist (`make web`). Test baseline GREEN: api/daqformat/parser/store all ok; root +
+  cmd/cementer no test files.
+- STORAGE-SHAPE DECISION: `print_config TEXT NOT NULL DEFAULT ''` JSON column on `jobs` (D-cfg2,
+  recommended path). The store persists ONLY the raw override JSON (stays company-agnostic, mirrors
+  how it stays format-agnostic for the profile vocab). The merge default+override -> effective lives
+  in the API layer (which owns the company default). One column, no new table, no second writer.
+- Plan: (1) two cosmetics, (2) company default Go literal in new internal/printcfg, (3) store
+  print_config column + Get/SetJobPrintConfig, (4) GET/PUT /api/jobs/{id}/print-config, (5) web
+  Report view + minimal override editor + window.print() + @media print CSS, (6) docs realized block.
+
+## 2026-06-21 — cosmetics done
+
+- (a) styles.css `.newjob-form[hidden]{display:none}` so the form is collapsed on load (grid
+  was overriding UA [hidden]). Verified collapsed on load + expands on "+ New job…".
+- (b) livechart.ts (x2) + jobchart.ts orderedChannels: filter `c.scope!=="meta" && c.role!=="meta"`
+  so job.number (role:meta, scope:job) no longer charts a flat-0 trace; vol.job (role:volume) kept.
+
+## 2026-06-21 — server done (printcfg + store + api)
+
+- internal/printcfg: CompanyDefault() (letter, legend on, all channels), Override (pointer deltas),
+  Merge(def,ov) -> effective. Axis layout NOT a knob (automatic role/uom grouping). + unit tests.
+- store: `print_config TEXT NOT NULL DEFAULT ''` column on jobs (DDL for fresh DBs) + idempotent
+  ADD-COLUMN migration (PRAGMA-guarded) for existing DBs. JobPrintConfig/SetJobPrintConfig
+  (company-agnostic: raw JSON only). + round-trip/missing/migration-idempotent tests.
+- api: GET/PUT /api/jobs/{id}/print-config -> {effective,override,default}; PUT validates pageSize,
+  canonicalizes (only deltas stored), DisallowUnknownFields. 400/404 matrix. + tests.
+- All store/api/printcfg tests GREEN; gofmt/vet clean; CGO-free binary builds.
+
+## 2026-06-21 — web Report view done
+
+- types.ts: PrintConfig/PrintOverride/PrintConfigResponse mirrors.
+- JobChart: optional channel allow-list (setChannelFilter), legend toggle (setLegendVisible),
+  explicit setSize for print width. Reused by the Report view.
+- report.ts: ReportView — job header block + recorded chart (JobChart reuse, segment-aware) +
+  minimal override editor (title/page-size/legend/channels) + Save/Reset + Print/Save-as-PDF
+  (window.print()). Builds a MINIMAL override (only deltas vs company default). Managed <style>
+  rewrites @page size at print time (an @page can't be selector-scoped).
+- readout.ts: third "Report" tab beside Live | Job History; setView handles three views.
+- styles.css: report editor + white printable sheet + @media print (hide topbar/controls/footer/
+  editor/other-views; print only .report-sheet).
+- Web build GREEN (tsc strict + vite, 16 modules). Offline: no external URLs in web/dist.
+
+## 2026-06-21 — E2E + Playwright verify (post-build binary)
+
+- Static: gofmt -l empty; go vet clean; go test ./... all GREEN (api/daqformat/parser/printcfg/
+  store); CGO-free statically-linked binary; make build / web bundle clean + offline.
+- E2E (real capture: testdata/intellisense-demo.txt -format intellisense, :8137):
+  - Ingestion independent (axiom #1): /debug/stats rows climbed 2873->3198->3523->...->15210 while
+    creating job, recording, and hammering /print-config.
+  - Job flow: created+activated "Smith 4-12H", recorded a 3s segment, stopped; /api/jobs/1/series
+    returned the segment + 13 in-segment channel series.
+  - print-config: GET default (letter/legend/all). PUT override (title+a4+4-channel subset) ->
+    effective reflects it, showLegend FALLS BACK to default (not in override blob), default
+    unchanged. re-GET persists. PUT {} resets to default. Validation: bad pageSize=400,
+    unknown field=400, missing job=404.
+- Playwright (headless chromium-1228, executablePath override; 1.60.0 wanted 1223 not cached):
+  - SYMPTOM-GONE (cosmetic a): .newjob-form computed display = "none" on load; "grid" after
+    clicking "+ New job…". Screenshots 01-live / 05-form-open confirm.
+  - SYMPTOM-GONE (cosmetic b): live legend has 12 rows, NO "Job Number", Job Volume PRESENT (43.3).
+  - Report view: title "Smith 4-12H Surface Cement", 8 job-header meta cells, 4 channels checked
+    (matching the override), recorded chart with segment band paints. Screenshot 03-report-screen.
+  - @media print emulation: topbar/controls/footer/editor all display:none; .report-sheet display
+    block with the chart canvas present; title shows. Screenshot 04-report-print confirms ONLY the
+    report sheet (header + chart) prints, sized to page width (not blank/clipped). console_errors: [].
+
+STATUS: complete. Clean git status before report.

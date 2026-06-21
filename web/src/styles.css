@@ -426,6 +426,13 @@ body {
   border-top: 1px solid var(--border);
 }
 
+/* `display: grid` above overrides the UA `[hidden] { display: none }`, so the form
+   would show even when controls.ts sets `formWrap.hidden = true`. Re-assert hidden
+   (mirrors the `.view[hidden]` rule) so the form is COLLAPSED on load. */
+.newjob-form[hidden] {
+  display: none;
+}
+
 .newjob-field {
   display: flex;
   flex-direction: column;
@@ -487,4 +494,224 @@ body {
   color: var(--text-dim);
   font-family: var(--mono);
   font-size: 12px;
+}
+
+/* --- Report view (Phase 4b: printable per-job report) --- */
+.view-report {
+  gap: 18px;
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+/* The editor is the screen-only control column (hidden by @media print). */
+.report-editor {
+  flex: 0 0 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.report-editor.disabled {
+  opacity: 0.55;
+}
+
+.report-editor-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+}
+
+.report-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.report-field-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.report-field-label {
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.report-input,
+.report-select {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 11px;
+  font-family: var(--sans);
+  font-size: 14px;
+}
+
+.report-input:focus,
+.report-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.report-channels {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.report-channel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.report-channel-name {
+  color: var(--text-dim);
+}
+
+.report-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.report-status {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* The printable sheet: a white page-like surface even in dark mode, so the print
+   preview looks like paper. */
+.report-sheet {
+  flex: 1;
+  min-width: 0;
+  background: #ffffff;
+  color: #111418;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 28px 32px;
+}
+
+.report-title {
+  margin: 0 0 18px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f1419;
+}
+
+.report-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px 24px;
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #d7dde3;
+}
+
+.report-meta-empty {
+  color: #5b6570;
+  font-size: 14px;
+}
+
+.report-meta-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.report-meta-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #5b6570;
+}
+
+.report-meta-value {
+  font-size: 14px;
+  color: #0f1419;
+}
+
+.report-chart {
+  width: 100%;
+}
+
+.report-chart-host {
+  width: 100%;
+  min-height: 360px;
+}
+
+/* The report chart sits on white paper, so force readable axis/legend text regardless
+   of the dark/light app theme (uPlot injects .u-* nodes). */
+.report-sheet .uplot,
+.report-sheet .u-legend,
+.report-sheet .u-legend th,
+.report-sheet .u-legend .u-value {
+  color: #1f2328;
+}
+
+/* --- @media print: print ONLY the report sheet at the chosen page size (D-pdf:
+   browser Save-as-PDF doubles as the shareable PDF; no server render). --- */
+@media print {
+  /* Page box: a default; report.ts overrides @page size to letter|a4 at print time via
+     a managed <style> element (an @page at-rule can't be conditioned on a selector). */
+  @page {
+    margin: 0.5in;
+  }
+
+  /* Hide ALL app chrome: header, controls, footer, the editor, and the other views.
+     Only the report sheet prints. */
+  .topbar,
+  .controls-host,
+  .meta,
+  .report-editor,
+  .view-live,
+  .view-job,
+  .window-select,
+  .view-tabs {
+    display: none !important;
+  }
+
+  /* Neutralize layout so the sheet flows as a plain document on the page. */
+  body,
+  #app,
+  .content-chart,
+  .view-report {
+    display: block !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+  }
+
+  /* Print even if the Report view happens to be the hidden tab when print fires. */
+  .view-report[hidden] {
+    display: block !important;
+  }
+
+  .report-sheet {
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    background: #ffffff !important;
+    color: #111418 !important;
+  }
 }

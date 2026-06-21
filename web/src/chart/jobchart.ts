@@ -37,6 +37,10 @@ export class JobChart {
   private statusEl: HTMLElement;
   private plot: uPlot | null = null;
   private profile: Profile | null = null;
+  // Optional channel allow-list (the Report view's effective print config). null =>
+  // all enabled, non-meta channels (the Job History default). When set, only these
+  // ids render, in this order.
+  private channelFilter: Set<string> | null = null;
 
   constructor(host: HTMLElement) {
     this.host = host;
@@ -50,6 +54,21 @@ export class JobChart {
   setProfile(p: Profile): void {
     this.profile = p;
   }
+
+  // setChannelFilter restricts which channels render (the Report view's effective
+  // print config). Pass null to render all enabled, non-meta channels. Re-load to
+  // apply. An empty array means "show none" (degenerate); the Report view guards that.
+  setChannelFilter(ids: string[] | null): void {
+    this.channelFilter = ids ? new Set(ids) : null;
+  }
+
+  // setLegendVisible toggles the uPlot legend (the Report view honors the print
+  // config's showLegend). Re-load to apply.
+  setLegendVisible(show: boolean): void {
+    this.legendVisible = show;
+  }
+
+  private legendVisible = true;
 
   // load fetches and renders a job's recorded series. jobId<=0 clears the chart.
   async load(jobId: number): Promise<void> {
@@ -157,7 +176,7 @@ export class JobChart {
       scales: { x: { time: true } },
       axes,
       series,
-      legend: { show: true, live: true },
+      legend: { show: this.legendVisible, live: true },
       cursor: { drag: { x: true, y: false }, focus: { prox: 30 } },
       plugins: [shade],
     };
@@ -201,16 +220,21 @@ export class JobChart {
   private orderedChannels(ids: string[]): Channel[] {
     const byId = new Map<string, Channel>();
     if (this.profile) for (const c of this.profile.channels) byId.set(c.id, c);
+    const allow = this.channelFilter;
     const known: Channel[] = [];
     const unknown: Channel[] = [];
     // Preserve profile order for known channels.
     if (this.profile) {
       for (const c of this.profile.channels) {
-        if (ids.includes(c.id) && c.scope !== "meta") known.push(c);
+        // Exclude meta by EITHER scope or role (e.g. job.number is role:"meta",
+        // scope:"job") so it never charts as a flat-0 trace. vol.job still charts.
+        if (allow && !allow.has(c.id)) continue;
+        if (ids.includes(c.id) && c.scope !== "meta" && c.role !== "meta") known.push(c);
       }
     }
     for (const id of ids) {
       if (!byId.has(id)) {
+        if (allow && !allow.has(id)) continue;
         unknown.push({ id, role: "value", scope: "aggregate", unitIndex: 0, label: id, uom: "", decimals: 2 });
       }
     }
@@ -223,6 +247,15 @@ export class JobChart {
       width: this.chartHost.clientWidth || 800,
       height: this.chartHost.clientHeight || 460,
     });
+  }
+
+  // setSize forces an explicit chart size + redraw. The Report view's print handler
+  // uses this: uPlot measures its container at display time and reads 0 while the view
+  // is `display:none`, so for a blank-free printed chart we size it to the print page
+  // width on onbeforeprint / a matchMedia('print') change.
+  setSize(width: number, height: number): void {
+    if (!this.plot) return;
+    this.plot.setSize({ width, height });
   }
 
   // onShow re-measures the container (uPlot reads 0 while display:none).

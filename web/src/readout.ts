@@ -2,12 +2,13 @@ import type { Profile, Reading } from "./types.ts";
 import { initTheme, toggleTheme } from "./theme.ts";
 import { LiveChart } from "./chart/livechart.ts";
 import { JobChart } from "./chart/jobchart.ts";
+import { ReportView } from "./report.ts";
 import { loadLiveConfig, setWindowSec } from "./chart/config.ts";
 
 const STALE_MS = 3000;
 
 type El = HTMLElement;
-type View = "live" | "job";
+type View = "live" | "job" | "report";
 
 function el(tag: string, className?: string, text?: string): El {
   const e = document.createElement(tag);
@@ -35,12 +36,15 @@ export class Readout {
 
   private liveHost: El;
   private jobHost: El;
+  private reportHost: El;
   private liveTab: HTMLButtonElement;
   private jobTab: HTMLButtonElement;
+  private reportTab: HTMLButtonElement;
   private windowSelect: HTMLSelectElement;
 
   private liveChart: LiveChart;
   private jobChart: JobChart;
+  private report: ReportView;
   private view: View = "live";
 
   private connected = false;
@@ -58,15 +62,18 @@ export class Readout {
 
     const right = el("div", "topbar-right");
 
-    // View toggle: Live | Job History.
+    // View toggle: Live | Job History | Report.
     const tabs = el("div", "view-tabs");
     this.liveTab = el("button", "view-tab active", "Live") as HTMLButtonElement;
     this.liveTab.type = "button";
     this.jobTab = el("button", "view-tab", "Job History") as HTMLButtonElement;
     this.jobTab.type = "button";
+    this.reportTab = el("button", "view-tab", "Report") as HTMLButtonElement;
+    this.reportTab.type = "button";
     this.liveTab.addEventListener("click", () => this.setView("live"));
     this.jobTab.addEventListener("click", () => this.setView("job"));
-    tabs.append(this.liveTab, this.jobTab);
+    this.reportTab.addEventListener("click", () => this.setView("report"));
+    tabs.append(this.liveTab, this.jobTab, this.reportTab);
 
     // Rolling-window selector (personal config). Values are SECONDS (uPlot's time unit).
     this.windowSelect = el("select", "window-select") as HTMLSelectElement;
@@ -107,12 +114,14 @@ export class Readout {
     // stream/chart (axiom #1). ---
     this.controls = el("div", "controls-host");
 
-    // --- view area: Live chart (default) + Job chart (hidden until toggled) ---
+    // --- view area: Live chart (default) + Job chart + Report (hidden until toggled) ---
     const content = el("main", "content content-chart");
     this.liveHost = el("section", "view view-live");
     this.jobHost = el("section", "view view-job");
     this.jobHost.hidden = true;
-    content.append(this.liveHost, this.jobHost);
+    this.reportHost = el("section", "view view-report");
+    this.reportHost.hidden = true;
+    content.append(this.liveHost, this.jobHost, this.reportHost);
 
     // --- footer meta ---
     const footer = el("footer", "meta");
@@ -124,6 +133,7 @@ export class Readout {
 
     this.liveChart = new LiveChart(this.liveHost);
     this.jobChart = new JobChart(this.jobHost);
+    this.report = new ReportView(this.reportHost);
 
     this.applyStatus();
     window.setInterval(() => this.applyStatus(), 1000);
@@ -144,12 +154,15 @@ export class Readout {
   // should load. Called by main's wiring when the active job changes.
   setActiveJob(id: number | null): void {
     this.activeJobId = id;
+    this.report.setActiveJob(id);
     if (this.view === "job") void this.jobChart.load(id ?? 0);
+    if (this.view === "report") this.report.onShow();
   }
 
   applyProfile(p: Profile): void {
     this.liveChart.applyProfile(p);
     this.jobChart.setProfile(p);
+    this.report.setProfile(p);
   }
 
   update(r: Reading): void {
@@ -162,17 +175,23 @@ export class Readout {
   private setView(v: View): void {
     if (this.view === v) return;
     this.view = v;
-    const live = v === "live";
-    this.liveHost.hidden = !live;
-    this.jobHost.hidden = live;
-    this.liveTab.classList.toggle("active", live);
-    this.jobTab.classList.toggle("active", !live);
-    this.windowSelect.hidden = !live;
-    if (live) {
+
+    this.liveHost.hidden = v !== "live";
+    this.jobHost.hidden = v !== "job";
+    this.reportHost.hidden = v !== "report";
+    this.liveTab.classList.toggle("active", v === "live");
+    this.jobTab.classList.toggle("active", v === "job");
+    this.reportTab.classList.toggle("active", v === "report");
+    // The rolling-window selector is a live-chart-only control.
+    this.windowSelect.hidden = v !== "live";
+
+    if (v === "live") {
       this.liveChart.onShow();
-    } else {
+    } else if (v === "job") {
       void this.jobChart.load(this.activeJobId ?? 0);
       this.jobChart.onShow();
+    } else {
+      this.report.onShow();
     }
   }
 

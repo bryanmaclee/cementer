@@ -352,8 +352,65 @@ control strip and adds a **Live | Job History** toggle hosting the two charts.
 
 **Personal live-view config (scope #1, localStorage)** — per-channel line on/off and the
 rolling-window length persist per-laptop (`web/src/chart/config.ts`); pump/job data stays on
-the Pi (axiom #3). 4b (the printable company-default/per-job-override chart → PDF) is the next
-increment and is NOT built here.
+the Pi (axiom #3).
+
+### Realized contract — Phase 4b (built; this is the living spec)
+
+The printable per-job report (chart-config scope #2). Read-only/config over the always-on
+store (axiom #1: never gates or touches ingestion, the live stream, or recording) and
+store-only (axiom #4 / D2: handlers call store methods on the one connection; no second
+`*sql.DB`, no handler-side DB writes).
+
+**Company default template (bundled, change-controlled).** `internal/printcfg` holds the
+company print standard as a **Go literal** (`CompanyDefault()`) — not runtime-editable; edit
++ re-deploy (axiom #3: the Pi self-describes; no central server). It governs the title block,
+legend on/off, page size, and which channels print. **Axis layout is NOT a knob** — the printed
+chart reuses the SAME automatic role/uom grouping (one uPlot scale per role/uom) the live + job
+charts use. Default page size is **`letter`** (US oilfield: psi/bbl/ppg), override-able to `a4`.
+`Channels` empty/nil ⇒ "all enabled, non-meta channels", so a fresh deploy prints the full chart.
+
+```go
+PrintConfig { Title string; PageSize string("letter"|"a4"); ShowLegend bool; Channels []string }
+Override    { Title *string; PageSize *string; ShowLegend *bool; Channels *[]string }  // only the deltas
+Merge(def, ov) PrintConfig  // effective = company default with each non-nil override field applied
+```
+
+**Per-job override storage (D-cfg2 — chosen shape: a JSON column).** A
+`print_config TEXT NOT NULL DEFAULT ''` column on `jobs` holds **only the fields the cementer
+changed** (`''` = no override → company default verbatim). The store stays **company-agnostic**
+(it persists/returns the raw JSON exactly as it stays format-agnostic for the profile vocab);
+the default+override → effective **merge lives in the API layer** which owns the bundled
+template. An idempotent `ALTER TABLE … ADD COLUMN` migration (guarded by a column-existence
+check) backfills the column on DBs created before 4b. Store methods (single writer):
+
+```
+JobPrintConfig(id) -> (raw string, found bool, err error)   // raw override JSON ('' = none)
+SetJobPrintConfig(id, raw)                                   // persists raw; ErrNoSuchJob if absent
+```
+
+**Print-config HTTP API** (`internal/api/print.go`; store-only). JSON shapes mirrored by hand
+in `web/src/types.ts` (`PrintConfig` / `PrintOverride` / `PrintConfigResponse`):
+
+```
+GET /api/jobs/{id}/print-config
+    -> { "effective": PrintConfig, "override": Override, "default": PrintConfig }   // 404 if job absent
+PUT /api/jobs/{id}/print-config   (body: Override, DisallowUnknownFields)
+    -> saves the per-job override (canonicalized: only the cementer's deltas land); returns the
+       refreshed { effective, override, default }. 400 bad page size / unknown field; 404 absent.
+```
+
+**Print view + PDF (D-pdf — browser Save-as-PDF ONLY).** A third **Report** tab
+(`web/src/report.ts`, beside Live | Job History) renders the 3b job header (company / well /
+casing size / job type / location / cementer / job / date) + the job's recorded chart (reusing
+`JobChart` over `/api/jobs/{id}/series`, segment-shaded, role-grouped axes — now with an
+optional channel allow-list + legend toggle honoring the effective config) + a **minimal**
+override editor (channel on/off, report title, page size). A **"Print / Save as PDF"** button
+calls `window.print()`; `@media print` CSS **hides the app chrome and prints only the report
+sheet** at the chosen page size (a managed `<style>` rewrites `@page { size }`). NO server
+render, NO Pi-side archival, NO new deps — the single-static-binary / offline-on-the-Pi
+guarantee holds. uPlot reads 0 while `display:none`, so the report chart is **sized to the print
+page width on `beforeprint` / a `matchMedia('print')` change** so the printed chart isn't blank
+or clipped.
 
 ## Client customization
 

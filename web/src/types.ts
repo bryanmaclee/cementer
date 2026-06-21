@@ -85,3 +85,33 @@ export interface RecordingState {
   openSegmentId?: number;
   jobId?: number;
 }
+
+// PrintConfig mirrors internal/printcfg.PrintConfig — the EFFECTIVE printed-chart
+// template (company default merged with the per-job override). channels empty/absent
+// means "all enabled, non-meta channels". The axis layout is NOT a field here: the
+// printed chart reuses the automatic role/uom grouping the live + job charts use.
+export interface PrintConfig {
+  title: string;
+  pageSize: "letter" | "a4";
+  showLegend: boolean;
+  channels?: string[];
+}
+
+// PrintOverride mirrors internal/printcfg.Override — ONLY the fields the cementer
+// changed vs the company default (the PUT body). Every field is optional; an omitted
+// field means "leave the company default in place". An empty object {} resets the job
+// to the company default.
+export interface PrintOverride {
+  title?: string;
+  pageSize?: "letter" | "a4";
+  showLegend?: boolean;
+  channels?: string[];
+}
+
+// PrintConfigResponse mirrors the GET/PUT /api/jobs/{id}/print-config body: the
+// effective (rendered) config, the raw per-job override, and the company default.
+export interface PrintConfigResponse {
+  effective: PrintConfig;
+  override: PrintOverride;
+  default: PrintConfig;
+}

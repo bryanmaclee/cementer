@@ -209,3 +209,40 @@ func (s *Store) SetActiveJob(id int64) error {
 	}
 	return nil
 }
+
+// JobPrintConfig returns the raw per-job print-override JSON for a job (the
+// print_config column). An empty string means "no override" (the API layer then uses
+// the company default verbatim). The store stays company-agnostic (axiom #4 / D2): it
+// persists/returns the raw blob only — the default+override -> effective merge lives
+// in the API layer. found is false (no error) when no such job exists.
+func (s *Store) JobPrintConfig(id int64) (raw string, found bool, err error) {
+	row := s.db.QueryRow(`SELECT print_config FROM jobs WHERE id = ?`, id)
+	if err := row.Scan(&raw); errors.Is(err, sql.ErrNoRows) {
+		return "", false, nil
+	} else if err != nil {
+		return "", false, fmt.Errorf("job print config: %w", err)
+	}
+	return raw, true, nil
+}
+
+// SetJobPrintConfig stores the raw per-job print-override JSON for a job. The caller
+// (API layer) is responsible for validating/canonicalizing the JSON before it lands
+// here; the store persists it as-is and bumps updated_at. Returns ErrNoSuchJob when id
+// matches nothing.
+func (s *Store) SetJobPrintConfig(id int64, raw string) error {
+	res, err := s.db.Exec(
+		`UPDATE jobs SET print_config = ?, updated_at_us = ? WHERE id = ?`,
+		raw, time.Now().UnixMicro(), id,
+	)
+	if err != nil {
+		return fmt.Errorf("set job print config: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("set job print config rows: %w", err)
+	}
+	if n == 0 {
+		return ErrNoSuchJob
+	}
+	return nil
+}

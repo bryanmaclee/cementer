@@ -126,6 +126,13 @@ CREATE TABLE IF NOT EXISTS jobs (
     cementer      TEXT    NOT NULL DEFAULT '',    -- foreman / crew lead
     notes         TEXT    NOT NULL DEFAULT '',
     is_active     INTEGER NOT NULL DEFAULT 0,     -- exactly one row = 1 (the active job)
+    -- Per-job PRINT override (chart-config scope #2, Phase 4b). A JSON blob holding
+    -- ONLY the fields the cementer changed vs the bundled company default; '' means
+    -- "no override" (use the company default verbatim). The store is company-agnostic
+    -- (axiom #4 / D2: it just persists the raw JSON, exactly as it stays format-
+    -- agnostic for the profile vocab) — the default+override -> effective merge lives
+    -- in the API layer which owns the company template. See internal/printcfg.
+    print_config  TEXT    NOT NULL DEFAULT '',
     created_at_us INTEGER NOT NULL,
     updated_at_us INTEGER NOT NULL
 );
@@ -144,8 +151,58 @@ CREATE TABLE IF NOT EXISTS recording_segments (
     created_at_us INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_segments_job ON recording_segments(job_id);`
-	_, err := db.Exec(ddl)
-	return err
+	if _, err := db.Exec(ddl); err != nil {
+		return err
+	}
+	// Migrations for DBs created before a column was added. CREATE TABLE IF NOT EXISTS
+	// is a no-op on an existing table, so new columns are backfilled here. ADD COLUMN
+	// is guarded by a column-existence check so it is idempotent across reboots.
+	return migrate(db)
+}
+
+// migrate brings an existing database up to the current schema. Each step is
+// idempotent: it is a no-op when already applied. Single-writer discipline holds —
+// this runs on the one connection at Open, before the writer goroutine starts.
+func migrate(db *sql.DB) error {
+	if err := addColumnIfMissing(db, "jobs", "print_config", "TEXT NOT NULL DEFAULT ''"); err != nil {
+		return err
+	}
+	return nil
+}
+
+// hasColumn reports whether table has a column named col (via PRAGMA table_info).
+func hasColumn(db *sql.DB, table, col string) (bool, error) {
+	rows, err := db.Query(`SELECT name FROM pragma_table_info(?)`, table)
+	if err != nil {
+		return false, fmt.Errorf("table_info %s: %w", table, err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return false, fmt.Errorf("scan column name: %w", err)
+		}
+		if name == col {
+			return true, nil
+		}
+	}
+	return false, rows.Err()
+}
+
+// addColumnIfMissing adds col (with the given SQL type/constraints) to table only when
+// it is absent — so a reboot against an already-migrated DB does nothing.
+func addColumnIfMissing(db *sql.DB, table, col, decl string) error {
+	has, err := hasColumn(db, table, col)
+	if err != nil {
+		return err
+	}
+	if has {
+		return nil
+	}
+	if _, err := db.Exec(`ALTER TABLE ` + table + ` ADD COLUMN ` + col + ` ` + decl); err != nil {
+		return fmt.Errorf("add column %s.%s: %w", table, col, err)
+	}
+	return nil
 }
 
 // Submit queues a reading for durable storage. It blocks only if the writer has
