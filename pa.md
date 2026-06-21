@@ -1,6 +1,6 @@
 # pa.md — cementer Primary-Agent contract (READ FIRST)
 
-`pa-cementer overlay v1 · 2026-06-12 · base: pa-base v1`
+`pa-cementer overlay v2 · 2026-06-21 (multi-operator / PR-flow) · base: pa-base v1`
 
 > **What this is.** The complete operating contract for the cementer Primary Agent (PA). It has two
 > layers:
@@ -16,9 +16,17 @@
 > **Drift detection.** `pa-base.md` carries the stamp `pa-base v1`. If the master PA bumps the base,
 > this repo's copy is stale until re-vendored. One-line check: `grep 'pa-base v' pa-base.md`.
 >
-> **Topology.** cementer is a **STANDALONE single repo** — no sibling repos, no storage hub, no
-> cross-repo dropbox, no master push-coordination. The base's §10 cross-repo graph is **N/A** here
-> (see the §10 fill below). All ledgers (user-voice, design-insights) live inside this repo.
+> **Topology (overlay v2 — multi-operator, since S6).** cementer is a **single GitHub repo shared by
+> TWO co-equal PA operators** — **`bryan`** (bryanmaclee) and **`peter`** (Peter Oliver / @poliver-cement),
+> each running their own PA instance. There is still NO sibling repo, storage hub, or master node, but
+> the base's §10 graph is **no longer N/A** — it is repurposed for a **cross-OPERATOR** coordination
+> graph (the §10 fill below). Work reaches `main` via **PR-flow** (branch-per-operator → PR → protected
+> `main`); low-latency coordination (session ledger, claims, inbox) lives on a dedicated unprotected
+> **`coord` branch** (`make coord` → `.coord/`). The single-writer PA meta-docs are **partitioned**:
+> per-operator (`hand-off-<op>.md`, `user-voice-<op>.md`, session ids `B<n>`/`P<n>`) vs shared
+> (`status.md` section-owned, `changelog.md`, `pa.md`). Layout map: [`docs/pa/README.md`](docs/pa/README.md);
+> full rationale: [`docs/deep-dives/multi-party-pa-orchestration-2026-06-21.md`](docs/deep-dives/multi-party-pa-orchestration-2026-06-21.md).
+> **A directive concerning the OTHER operator's in-flight arc goes into their `coord` inbox, not acted on directly.**
 
 ---
 
@@ -58,7 +66,8 @@ Each heading is a base `{{slot}}`; the fill is cementer's concrete instantiation
 
 **`{{sot_layering}}`** (Rule 4 — source-of-truth layering)
 > normative design (`docs/design/data-model.md` + README architecture) → live dashboard
-> (`docs/pa/status.md`) → changelog (`docs/pa/changelog.md`) → hand-off (`docs/pa/hand-off.md`).
+> (`docs/pa/status.md`) → changelog (`docs/pa/changelog.md`) → the operator's hand-off
+> (`docs/pa/hand-off-<op>.md`) + the cross-operator `coord` ledger (`.coord/ledger.md`).
 > For "is it shipped / does X fire" claims, verify against **code** (`grep` the fire-site, `go build`,
 > inspect the SQLite schema) — never PA-inference, never a derived doc.
 
@@ -104,12 +113,16 @@ Each heading is a base `{{slot}}`; the fill is cementer's concrete instantiation
 ### §4 — Session lifecycle
 
 **`{{profile_read_sets}}`**
+> Both tiers begin with the **coord handshake (session OPEN, §10):** `git fetch` (incl. `coord`);
+> read the `.coord/ledger.md` tail + the **peer's** `claims/<peer>.md` + your unread `inbox/<you>/`,
+> and surface what the peer did since your last session / any arc they currently claim. (`make coord`
+> if `.coord/` isn't set up.) `<op>` = your operator key (`bryan` | `peter`).
 > - **FULL:** `pa.md` (this overlay) + `pa-base.md` + `docs/design/data-model.md` + `README.md` +
->   `docs/pa/status.md` + `docs/pa/hand-off.md` + last ~10 contentful `docs/pa/user-voice.md` entries
->   + git-sync. (No inbox — standalone.)
-> - **THIN / EXECUTION:** the relevant `pa.md` sections + `docs/pa/hand-off.md` + the named status.md
->   section the brief points at + the files/fire-sites the brief names + `.claude/maps/` (when
->   generated) + git-sync. Skips the data-model deep read. Thin START ≠ thin THROUGHOUT — read on
+>   `docs/pa/status.md` + `docs/pa/hand-off-<op>.md` (your own; skim the peer's if it moved) + last
+>   ~10 contentful `docs/pa/user-voice-<op>.md` entries + the coord handshake above.
+> - **THIN / EXECUTION:** the relevant `pa.md` sections + `docs/pa/hand-off-<op>.md` + the named
+>   status.md section the brief points at + the files/fire-sites the brief names + `.claude/maps/` +
+>   the coord handshake above. Skips the data-model deep read. Thin START ≠ thin THROUGHOUT — read on
 >   demand; escalate to FULL if the arc needs design deliberation.
 
 **`{{be_the_expert_reads}}`**
@@ -128,30 +141,44 @@ Each heading is a base `{{slot}}`; the fill is cementer's concrete instantiation
 > NOT truth; status.md is.
 
 **`{{handoff_paths}}`**
-> Live: `docs/pa/hand-off.md`. Dated archive on rotation: `docs/pa/archive/hand-off-<YYYY-MM-DD>.md`.
+> Per-operator (you own + rewrite only YOUR own; CODEOWNERS routes it). Live: `docs/pa/hand-off-<op>.md`
+> (`hand-off-bryan.md` / `hand-off-peter.md`). Dated archive on rotation:
+> `docs/pa/archive/hand-off-<op>-<YYYY-MM-DD>.md`. The shared cross-operator view is `.coord/ledger.md`.
 
 **`{{user_voice_ledger}}`**
-> `docs/pa/user-voice.md` — append-only, verbatim, never summarized, partitioned by
-> `## Session N — <YYYY-MM-DD>` headers. Session numbering increments per session; **this init = Session
-> 1**. Standalone repo → every directive is in-scope (no sibling to forward to).
+> `docs/pa/user-voice-<op>.md` (`user-voice-bryan.md` / `user-voice-peter.md`) — per-operator,
+> append-only, verbatim, never summarized, partitioned by `## Session N — <YYYY-MM-DD>` headers. The
+> **filename namespaces the operator**, so a plain `## Session N` is unambiguous (= that operator's Nth);
+> in the shared `.coord/ledger.md` the ids are operator-prefixed **`B<n>` / `P<n>`**. Bryan's history
+> runs S1–S5 (single-operator) then continues; Peter starts at his Session 1. A directive that concerns
+> the **other** operator's arc is dropped into their `coord` inbox, not logged here.
 
 **`{{wrap_step_fills}}`** (the 8-step wrap)
-> 1. **Hand-off** → rewrite `docs/pa/hand-off.md` to current state (density directive).
-> 2. **Live-inventory** → update `docs/pa/status.md` (phase statuses, delta list, counts).
-> 3. **Changelog** → prepend a dated session block to `docs/pa/changelog.md`.
-> 4. **Inbox/outbox** → **N/A** (standalone).
-> 5. **Test suite** → `go test ./...` then `go vet ./...`; record pass/skip/fail into hand-off +
->    changelog. (Web has no test suite yet.)
-> 6. **Working tree** → `git status` clean OR commit pending work (with session authorization).
->    - **6b** worktree cleanup → `git worktree list`; `git worktree remove <path>` for landed work;
->      explicit-retain-on-defer noted in the hand-off; never merge a worktree into main.
+> 1. **Hand-off** → rewrite `docs/pa/hand-off-<op>.md` (YOUR own) to current state (density directive).
+> 2. **Live-inventory** → update `docs/pa/status.md`: your **Operator-in-flight** block + the shared
+>    phase board / delta list / counts (edit only your block; the phase board is shared truth).
+> 3. **Changelog** → prepend a dated session block to `docs/pa/changelog.md` (tagged `B<n>`/`P<n>`).
+> 4. **Coord (the cross-operator handshake, §10)** → append a **`close` block** to `.coord/ledger.md`
+>    (final tip/branch/arcs/push-state); **reset** `claims/<op>.md` to idle; **ack** handled notices
+>    (`inbox/<op>/<msg>` → `inbox/<op>/read/`); drop a notice into `inbox/<peer>/` if your merge means
+>    the peer should rebase. Commit + `git push origin coord` (direct — coord is unprotected).
+> 5. **Test suite** → `go test ./...` then `go vet ./...` (the pre-commit gate also runs these; `make
+>    build` pre-push when `web/` changed); record pass/skip/fail into the hand-off + changelog.
+> 6. **Working tree** → `git status` clean OR commit pending work to **your operator branch**
+>    `<op>/<arc>` (PR-flow — never commit straight to protected `main`); commit auth is per-session.
+>    - **6b** worktree cleanup → `git worktree list`; `git worktree remove <path>` for landed dev-agent
+>      work; explicit-retain-on-defer noted in the hand-off; never merge a dev worktree into your branch
+>      blindly (file-delta landing, §7). Keep the persistent `.coord` worktree.
 >    - **6c** nav-maps refresh → `/map incremental <changed>` (or `/map` cold); commit with explicit
 >      pathspec `.claude/maps/`; verify the watermark advanced; no-op-with-note is acceptable.
 >    - **6d** state-doc regen → **N/A** (no `@generated` sections yet).
-> 7. **Push** → `git push origin main` (with authorization) OR surface push-pending in the hand-off.
-> 8. **Meta-docs** → `docs/pa/user-voice.md`, `docs/pa/design-insights.md`, and this overlay if
+> 7. **Push / PR** → push your `<op>/<arc>` branch (`git push -u origin <op>/<arc>`, with authorization)
+>    and open/refresh the PR to `main`; OR surface push/PR-pending in the hand-off. **`main` merges only
+>    via PR** (protected). The `coord` push (step 4) is separate + direct.
+> 8. **Meta-docs** → `docs/pa/user-voice-<op>.md`, `docs/pa/design-insights.md`, and this overlay if
 >    doctrine changed.
-> Variants: bare **wrap** = full checklist; **wrap and push** = + step 7; **wrap, no push** = 1–6 + 8.
+> Variants: bare **wrap** = full checklist; **wrap and push** = + step 7 (push branch + open/refresh PR);
+> **wrap, no push** = 1–6 + 8 (but step 4's coord push still happens — coordination must not lag).
 
 **`{{context_budget_fills}}`**
 > Context window = **1M tokens** (Opus 4.8 1M). 88% hard floor ≈ **880k used** → surface the 1-liner
@@ -240,18 +267,23 @@ Each heading is a base `{{slot}}`; the fill is cementer's concrete instantiation
 
 **`{{landing_command_fills}}`**
 > 7-step file-delta landing. Agent reports: **workspace path · branch + tip SHA · files-touched ·
-> deferred items.** Delta-review: `git -C <worktree> diff main...HEAD --stat` then per-file. Content-pull
-> (worktrees share `.git`): from the integration checkout, `git checkout <worktree-branch> -- <named
-> files>` (or copy the named files). Review the staged delta. **ONE** PA-authored commit. Cleanup:
-> `git worktree remove <path>` (same-session only). Base-drift: a file the brief did NOT name showing as
-> a deletion is likely a stale view — verify against files-touched, filter it out.
+> deferred items.** Delta-review: `git -C <worktree> diff origin/main...HEAD --stat` then per-file.
+> Content-pull (worktrees share `.git`): from the integration checkout — **on your operator branch
+> `<op>/<arc>`, NOT on `main`** — `git checkout <worktree-branch> -- <named files>` (or copy the named
+> files). Review the staged delta. **ONE** PA-authored commit **onto `<op>/<arc>`** (the protected `main`
+> is reached only via the PR — never a direct PA commit to `main`). Cleanup: `git worktree remove <path>`
+> (same-session only). Base-drift: a file the brief did NOT name showing as a deletion is likely a stale
+> view — verify against files-touched, filter it out.
 
 **`{{coherence_check_fills}}`**
-> Divergence: `git rev-list --count --left-right origin/main...main` (the right-count = commits the PA
-> authored this session; any excess = a leaked commit, recoverable via a reachable SHA before any
-> reset). Tip-coherence: the agent's reported final SHA == `git -C <worktree> rev-parse HEAD` before
-> pulling. Run both BEFORE and AFTER every landing. git distinguishes local-committed from published,
-> so this gate applies fully.
+> **`main`-leak guard (PR-flow):** local `main` must track `origin/main` EXACTLY —
+> `git rev-list --count origin/main..main` **must be 0** (a nonzero count = work leaked onto `main`
+> instead of your `<op>/<arc>` branch; recover by moving it to the branch via a reachable SHA, then
+> `git reset --hard origin/main`). Branch divergence:
+> `git rev-list --count --left-right origin/main...<op>/<arc>` (the right-count = your session's commits
+> on the branch). Tip-coherence: the agent's reported final SHA == `git -C <worktree> rev-parse HEAD`
+> before pulling. Run before AND after every landing. `main` advances only by a merged PR (never a local
+> push), so this is a hard, server-enforced gate.
 
 ### §8 — Verify-before-claim
 
@@ -280,22 +312,47 @@ Each heading is a base `{{slot}}`; the fill is cementer's concrete instantiation
 > instruction.
 
 **`{{git_hook_fills}}`**
-> **No commit gate is currently installed** (verified: `.git/hooks` has only samples; `git config
-> core.hooksPath` unset). The base's no-bypass rule therefore has nothing to bypass *yet* — **installing
-> a baseline gate is a near-term action.** Recommended baseline pre-commit: `gofmt -l` (fail if any
-> file listed) + `go vet ./...` + `go build ./...` + `go test ./...`. The **web build is heavy** (npm) →
-> exclude it from the fast pre-commit; run `make build` pre-push when `web/` changed (the
-> excluded-class rule). Probe at session start: `git config core.hooksPath` + `ls .git/hooks`. Each
-> clone installs its own gate (not source-controlled); never auto-downgrade a richer local config.
+> **Installed + source-controlled (S6).** The gate lives in `scripts/git-hooks/` (tracked, so both
+> operators run the IDENTICAL gate — no per-clone snowflakes); install per-clone with **`make hooks`**
+> (sets `core.hooksPath=scripts/git-hooks`). **pre-commit** (fast): `gofmt -l` + `go vet` + `go build` +
+> `go test` — skips on docs/config-only commits; falls back to `./internal/...` when `web/dist` is
+> absent. **pre-push** (the excluded-class rule): `make build` when `web/` changed in the push range,
+> else `go test ./internal/...`. The base no-bypass rule is now **live** — never `--no-verify` without
+> explicit authorization (the `coord` orphan branch is the one no-code exception, and even there prefer
+> not to). Probe at session start: `git config core.hooksPath` + `ls scripts/git-hooks`; if a clone
+> hasn't run `make hooks`, do it.
 
 ### §10 — Cross-repo graph
 
 **`{{cross_repo_graph_fills}}`**
-> **N/A — cementer is a standalone single repo.** No sibling repos, no role-typed graph, no storage
-> hub, no async file-dropbox/inbox, no master push-coordination, no frozen archive. The durable-directive
-> ledger (`docs/pa/user-voice.md`) and design-insights (`docs/pa/design-insights.md`) live **inside this
-> repo**. If cementer ever joins a multi-repo ecosystem (e.g. a fleet of Pi deployments with a shared
-> config repo), fill the §10 nodes/roles/inbox-paths/master then.
+> **Repurposed (overlay v2): a cross-OPERATOR graph in ONE repo** (still no sibling repos / storage hub
+> / master node). The base's §10 shapes — async dropbox-inbox, coordinated push — map to **two co-equal
+> operator nodes** (`bryan`, `peter`) coordinating via a dedicated **unprotected `coord` branch** (an
+> orphan branch; `make coord` → `.coord/`). Coordination is **optimistic, not locked** (work is mostly
+> sequential/async — claims are advisory, verified at push, never a mutex).
+>
+> **The `coord` substrate (`.coord/`, pushed direct — never PR-gated):**
+> - `ledger.md` — **append-only** session log; one block per OPEN and CLOSE (operator / branch / tip /
+>   arcs / push-state), ids `B<n>`/`P<n>`. The shared "who-did-what / who's-doing-what."
+> - `claims/<op>.md` — that operator's single **overwrite-own-only** advisory claim (arc + branch +
+>   push-intent SHA).
+> - `inbox/<op>/` — **create-only** dropbox written by the OTHER operator ("landed X — rebase before your
+>   next push"); the owner acks by moving the message to `inbox/<op>/read/`.
+> - **Conflict-free invariant:** every coord file is append-only OR single-operator-owned, so the
+>   coordination layer can never itself merge-conflict.
+>
+> **The handshake (OPEN → CLAIM → LAND → CLOSE):** OPEN = fetch + read ledger-tail/peer-claim/own-inbox,
+> append an open block (§4 profile-reads). CLAIM = overwrite `claims/<op>.md`; if the peer already claims
+> the arc, surface the overlap and pick another. LAND = verify-before-push, land on `<op>/<arc>` → PR →
+> protected `main`; notice the peer's inbox if they must rebase. CLOSE = append a close block + reset your
+> claim + ack inbox (§4 wrap step 4).
+>
+> **Coordinated push:** `main` is **protected — merges only via PR** (branch-per-operator, peer review =
+> the no-CI safety gate; CODEOWNERS at `.github/CODEOWNERS` routes review, per-operator docs owner-only).
+> `coord` and `<op>/<arc>` feature branches push **directly** (must NOT be caught by the branch ruleset —
+> scope protection to the default branch only). The durable-directive ledgers are **partitioned per
+> operator** (`docs/pa/user-voice-<op>.md`); `design-insights.md` stays shared. **Scope:** track YOUR
+> arcs; don't drive the peer's in-flight files — route cross-operator asks through their inbox.
 
 ### §11 — Waiting-time tiers
 
@@ -349,26 +406,37 @@ done/in-flight/left state is `docs/pa/status.md`. Summary at init (Session 1):
 
 ### Known doc-currency debts (track in status.md until fixed)
 
-- `cmd/cementer/main.go` and `README.md` reference a build-plan doc (`docs/plan` / "the plan") that
-  **does not exist**. Either create `docs/plan` or fix the references; until then the phased roadmap is
-  README *Status* + `data-model.md` *Build order* + `docs/pa/status.md`.
+- ~~`docs/plan` / "the plan" references in `main.go` + `README.md`~~ — ✅ fixed S5.
+- ~~Standalone single-operator topology~~ — ✅ resolved S6 (this overlay v2: multi-operator / PR-flow /
+  `coord` graph; the symmetric per-operator meta-doc rename landed with it).
+- The multi-operator coordination model (§10 fill, the `coord` handshake) currently lives **only in this
+  cementer overlay** — `pa-base.md` is unchanged (master-owned; do not edit here). If a SECOND
+  multi-operator project appears, that's the trigger to lift this pattern to `pa-base v2`.
+- The **Phase roadmap** block below is a frozen *Session-1* snapshot (labeled as such) — `status.md` is
+  the live truth; don't read the roadmap's "NOT STARTED" lines as current.
 
 ### PA scaffolding map (this repo)
 
 | Path | Role |
 |---|---|
-| `pa.md` | this contract — read first |
+| `pa.md` | this contract (overlay **v2**) — read first |
 | `pa-base.md` | vendored shared base (`pa-base v1`) — read in full first |
-| `docs/pa/status.md` | live dashboard / SoT (done · in-flight · left) |
-| `docs/pa/hand-off.md` | live hand-off (rotated each session) |
+| `docs/pa/README.md` | **multi-operator layout map** (shared vs per-operator vs `coord`) |
+| `docs/pa/status.md` | live dashboard / SoT — *shared*; per-operator **in-flight** is sectioned |
+| `docs/pa/hand-off-<op>.md` | **per-operator** live hand-off (`-bryan` / `-peter`) |
 | `docs/pa/archive/` | dated hand-off archives |
-| `docs/pa/user-voice.md` | append-only durable-directive ledger |
-| `docs/pa/design-insights.md` | scoped design insights (debate/judge output) |
-| `docs/pa/changelog.md` | cross-session audit trail |
+| `docs/pa/user-voice-<op>.md` | **per-operator** append-only directive ledger (`-bryan` / `-peter`) |
+| `docs/pa/design-insights.md` | scoped design insights (debate/judge output) — *shared* |
+| `docs/pa/changelog.md` | cross-session audit trail — *shared* (both append) |
 | `docs/pa/anti-patterns.md` | Go + vanilla-TS author-in-language briefing |
 | `docs/pa/briefs/` | archived dispatch briefs (verbatim) |
-| `docs/deep-dives/` | 5-phase deep-dive outputs |
+| `.github/CODEOWNERS` | PR-review routing (per-operator docs owner-only) |
+| `scripts/git-hooks/` | source-controlled commit gate (install: `make hooks`) |
+| **`coord` branch** → `.coord/` | cross-operator handshake: `ledger.md` · `claims/<op>.md` · `inbox/<op>/` (`make coord`) |
+| `docs/deep-dives/` | 5-phase deep-dive outputs (incl. the multi-party-orchestration DD) |
 | `docs/changes/<id>/progress.md` | per-dispatch crash-recovery progress logs |
 
-*End of cementer PA overlay v1. Round-trip invariant: `pa-base.md` doctrine + these slot-fills + this
-project content reproduces the intended cementer PA behavior.*
+*End of cementer PA overlay **v2** (multi-operator / PR-flow / `coord` graph, S6). Round-trip invariant:
+`pa-base.md` doctrine + these slot-fills + this project content reproduces the intended cementer PA
+behavior. v1→v2 delta: §topology, §4 (coord handshake + per-operator reads/wrap), §7 (land-on-branch +
+main-leak guard), §9 (gate installed), §10 (cross-operator graph), the per-operator meta-doc rename.*

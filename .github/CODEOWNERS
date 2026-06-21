@@ -11,7 +11,7 @@
 # so a wrap touching only your own hand-off/user-voice doesn't pull the peer in as a reviewer.
 # (Tune branch-protection's "require Code Owner review" so these owner-only files don't deadlock
 #  a self-authored doc-only PR.)
-/docs/pa/hand-off.md               @bryanmaclee
-/docs/pa/user-voice.md             @bryanmaclee
+/docs/pa/hand-off-bryan.md         @bryanmaclee
+/docs/pa/user-voice-bryan.md       @bryanmaclee
 /docs/pa/hand-off-peter.md         @poliver-cement
 /docs/pa/user-voice-peter.md       @poliver-cement

@@ -18,14 +18,12 @@ rationale: [`../deep-dives/multi-party-pa-orchestration-2026-06-21.md`](../deep-
 
 | Bryan | Peter |
 |---|---|
-| `hand-off.md` (Bryan's live baton) | `hand-off-peter.md` |
-| `user-voice.md` (Bryan's directive ledger) | `user-voice-peter.md` |
+| `hand-off-bryan.md` (Bryan's live baton) | `hand-off-peter.md` |
+| `user-voice-bryan.md` (Bryan's directive ledger) | `user-voice-peter.md` |
 
-> **NOTE (S6, deferred):** Bryan's per-operator docs keep their original un-suffixed names for
-> now. The symmetric rename (`hand-off-bryan.md` / `user-voice-bryan.md`) **plus** the `pa.md`
-> path-fills + topology/§10 threading are part of the **pending `pa.md` topology rewrite** —
-> they're coupled, so they land together once that rewrite is blessed. Until then `pa.md` validly
-> points at the un-suffixed files (= Bryan's).
+> Symmetric per-operator naming + the `pa.md` topology / §10 / session-lifecycle threading landed
+> together in the S6 `pa.md` rewrite (**overlay v2**): `pa.md` now points at the `-bryan`/`-peter`
+> files and wires the coord handshake into session start/wrap.
 
 ## Live coordination — the `coord` BRANCH (not `main`; push directly, no PR)
 
