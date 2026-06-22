@@ -33,8 +33,12 @@ coordination (claims, push intents, notices) is on the **coord branch** — `mak
   Edge headless). Filed ruleset issue **#3** to Bryan (exempt `coord`; allow feature-branch deletion).
   - _Ruleset blocks RESOLVED same-day (issue #3 closed, verified):_ Bryan scoped the rules → coord
     push-direct + merged-branch deletion both work; coord pushed/synced (`d1028bc`); P1 wrap landed (PR #4).
-  - _Not claimed yet:_ `.gitattributes` durable CRLF fix; the `pa.md` topology rewrite (Bryan pushed
-    `s6-foundation` — likely this; coordinate before claiming).
+  - _Still open (not claimed):_ `.gitattributes` durable CRLF fix; parser cleanup. (`pa.md` topology
+    rewrite ✅ done by Bryan, PR #6 `42ef5f2`.)
+- **P2 (2026-06-21):** opened the **`serial-split-tap`** hardware arc — designed an isolated, listen-only
+  serial tap (6N137 opto → Pi GPIO UART) so the Pi can ingest a live DAQ stream **without disturbing the
+  existing consumer**. **Scope doc landed on `main` (PR #7, `1b942eb`)**; build **PAUSED** pending operator
+  measurement #1 (DAQ TXD idle voltage). Spec: [`serial-split-tap/scope.md`](../changes/serial-split-tap/scope.md).
 
 ## Phase board
 
@@ -115,9 +119,9 @@ the living spec; don't let deltas accumulate here. No separate as-built spec doc
 ## Near-term actions (not yet done)
 
 1. **`.gitattributes` durable CRLF fix** (`* text=auto eol=lf`) — a `peter/<arc>` PR; coordinate.
-2. **`pa.md` topology rewrite** — still declares "standalone single-operator" (STALE since S6); fold in
-   §4/§10 multi-operator + the symmetric `hand-off-bryan.md`/`user-voice-bryan.md` rename. Bryan pushed
-   `s6-foundation` — likely this; coordinate before claiming.
+2. **`serial-split-tap` build** (Peter P2 — **PAUSED**) — solder the isolated 6N137 tap + bench/field test
+   per [`serial-split-tap/scope.md`](../changes/serial-split-tap/scope.md); resumes when the operator
+   returns with measurement #1 (DAQ TXD idle voltage) + parts. Scope landed (PR #7).
 3. **Parser cleanup** (delete/fold the off-path `internal/parser`).
 4. **Totco preset** — when a Totco unit is reachable (same direct-laptop capture method).
 5. ~~Phase 4b~~ ✅ (Bryan, PR #1). ~~Install commit gate~~ ✅ (S6). ~~Fix repo ruleset~~ ✅ (issue #3).
@@ -126,6 +130,8 @@ the living spec; don't let deltas accumulate here. No separate as-built spec doc
 
 - `go test ./...`: `internal/daqformat`, `internal/parser`, `internal/store`, `internal/api` have tests;
   others report "no test files". Web has no unit suite (tsc-strict + Playwright screenshot are the checks).
+- **P2 wrap run (2026-06-21, Windows):** docs-only arc (zero source change) — `go vet ./internal/...` ✅ ·
+  `go test ./internal/...` ✅; `web/dist` present (embed intact).
 - **Last full run (2026-06-21 P1 wrap, Windows):** `go test ./...` ✅ · `go vet ./...` ✅ · `gofmt -l`
   clean · `go build ./...` ✅ (embed) · web build (tsc strict + vite) ✅. (`make` absent on Windows — ran
   the steps directly; CGO-free, uPlot bundled offline.)

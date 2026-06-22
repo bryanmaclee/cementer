@@ -103,3 +103,32 @@ had NOT tested these — that only proved main PR-flow, which was never blocked.
 _(Closed **issue #3** with a verification comment. Doc-currency pass: reconciled `hand-off-peter.md` +
 `status.md` + `changelog.md` to current truth (ruleset blocks RESOLVED, coord synced, PRs #2/#4 landed,
 issue #3 closed) so the SoT is clean going forward. Landed via a `peter/<arc>` PR. Net P1 blockers: none.)_
+
+---
+
+## Session 2 — 2026-06-21
+
+_(Peter's P2 session, Windows field laptop. Opened on overlay v2 (multi-operator); caught up on Bryan's
+PR #6 (which did the pa.md rewrite Peter had flagged). Pivoted to a hardware-design arc — the serial-split
+tap. Build paused pending a field measurement; the full design captured to a scope doc + landed on `main`.)_
+
+> read pa.md and start session
+
+> I am tasked with prototyping a serial passthrough, so that the current system can run in its existing way, but we can split off to feed the pi4b with the serial send. right now I want to focus on getting help with the hardware for serial splitting: data flow, serial split, voltage manangement (so pi or daq unit do not get damaged), lets chat about this and come up with an sequential action plan.
+
+> I am having trouble sourcing a readily available module for split option b. breadboarding or protoboarding 6n137 with resistors and diodes seems like the next best option for getting testable hardware to the field sooner. I have a Waveshare USB to RS232/485 Serial Converter (ft232rnl version) and should be able to get data direct to pi from this, but still doesn't answere the potential issues as it is non-isolating. I am confident in soldering my on protoboard, but would need the correct components and wiring diagram. How would you recommend proceeding at this point
+
+> I can get #1 but it won't be now. We will have to pick this back up another time. For now, let's assume we are bypassing the rs-232 to usb adapter and splitting off from Daq. First, I need to confirm best octocoupler for voltages in range from ~0v to ~12v. Then, through best known octocoupler for this to output 3.3v for pi uart pins. I need a purchase list of components to ensure I have what I need once we have verified #1. I'd like to order those things while I am getting the info you need in the next day or two.
+
+> what I am ordering: 6n137s, dip-8 sockets, 1n4148 diodes, and all resistor listed that I don't have, p6ke12ca --- What I have: 0.1uF ceramic capacitors, protoboard, db9 tap hardware with terminal block adapter, Hookup wire and header pins
+
+> yes, write up the scope doc
+
+> push the branch and open the PR
+
+> self-merge #7, then wrap P2
+
+_(Outcome: designed the isolated **6N137** listen-tap (Arch 1: opto → Pi GPIO UART, bypassing the USB
+adapter); produced a component purchase list; captured the full design to
+`docs/changes/serial-split-tap/scope.md` and landed it on `main` via **PR #7** (`1b942eb`, self-merged).
+Build **PAUSED** pending measurement **#1** (DAQ TXD idle voltage). Then wrapped P2.)_

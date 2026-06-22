@@ -1,6 +1,6 @@
 # Hand-off — Peter (live)
 
-`as of: P1 close · 2026-06-21 · operator: peter` (machine: **Windows field laptop** — `C:\Users\pjoli\Documents\GitHub\cementer`)
+`as of: P2 close · 2026-06-21 · operator: peter` (machine: **Windows field laptop** — `C:\Users\pjoli\Documents\GitHub\cementer`)
 
 > Peter's per-operator hand-off (multi-operator partition, S6). Optimize for Peter's next-session pickup.
 > Peter's PA rewrites this at his wraps; Bryan does not edit it (CODEOWNERS → Peter).
@@ -10,11 +10,11 @@
 > `status.md`/`changelog.md` on `main`. Shared truth = `status.md` + `changelog.md`; live coordination =
 > the coord branch.
 
-## ▶ P2 in-flight (2026-06-21) — serial-split tap (hardware design)
+## ▶ P2 close (2026-06-21) — serial-split tap (hardware design, BUILD PAUSED pending #1)
 
-Active arc: **`serial-split-tap`** — an isolated, listen-only serial tap so the Pi 4B can ingest a
-live DAQ stream without disturbing the system that already consumes that serial. **Design is locked;
-build is paused on one measurement.** Full spec:
+Arc: **`serial-split-tap`** — an isolated, listen-only serial tap so the Pi 4B can ingest a live DAQ
+stream without disturbing the system that already consumes that serial. **Design locked + spec landed
+on `main` (PR #7, `1b942eb`); build PAUSED pending operator measurement #1.** Full spec:
 [`docs/changes/serial-split-tap/scope.md`](../changes/serial-split-tap/scope.md).
 
 - **Topology:** 6N137 opto front-end → **Pi GPIO UART** (bypassing the USB-serial adapter). Input
@@ -28,7 +28,9 @@ build is paused on one measurement.** Full spec:
 - **Resume = 3 steps** (scope doc §Build & test): solder → bench replay → real-wire on Pi → coexistence.
 - **Open Qs to confirm with operator:** (a) #1 value; (b) one-way link (consumer never TX's to DAQ?);
   (c) Pi-GPIO vs keep-Waveshare output path (GPIO chosen, confirm).
-- Branch: `peter/p2-serial-split-scope` (this scope doc). coord: P2 claim = this arc.
+- Scope doc merged to `main` (PR #7); branch deleted. coord: P2 **closed**, claim reset to **idle**.
+- **Resume trigger:** operator returns with #1 (and parts arrive) → new arc `peter/p2-serial-split-build`
+  → solder + bench replay → real-wire on Pi → coexistence, per the scope doc's §"Build & test plan".
 
 ## ✅ P1 result (2026-06-21)
 
