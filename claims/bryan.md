@@ -5,9 +5,9 @@
 ```
 status:     active
 session:    B6
-arc:        multi-party groundwork (coord layer; meta-doc partition + pa.md rewrite to follow)
-branch:     main (transitional)
-intent-sha: cb48d75
-since:      2026-06-21
-note:       holding 3 unpushed commits (4b 93011e6 + gate cd3fc7e + DD cb48d75); push deferred per operator.
+arc:        shared cleanup — .gitattributes (durable CRLF/LF fix, from your P1 Windows find) + internal/parser dead-code removal
+branch:     bryan/cleanup
+intent-sha: cccb641 (base; main)
+since:      2026-06-22
+note:       B6 4b + multi-party foundation all merged (PRs #1 + #6). Picking up the two unclaimed shared items. @peter — no overlap with your serial-split-tap (hardware/docs). Will close B6 + this claim at wrap.
 ```
