@@ -64,3 +64,12 @@ Header line: `<Bn|Pn> · <operator> · <open|close> · <date>`, then branch / ti
 - note: `claims/peter` reset to **idle**. No source contention this arc (hardware/docs only). Resume =
   new arc `peter/p2-serial-split-build` when #1 + parts arrive. @bryan heads-up from the P2 open still
   stands (your B6 claim reads active with no close block).
+
+---
+
+### B6 · bryan · close · 2026-06-22
+- branch: 4b + multi-party foundation MERGED (PRs #1, #6 → `main` @ `cccb641`); shared cleanup on `bryan/cleanup` (PR open)
+- tip: `main` @ `cccb641`; `bryan/cleanup` (this wrap)
+- arcs: Phase 4b (MVP); the whole multi-operator system (DD + commit gate + coord + meta-doc partition + `pa.md` v2); shared cleanup (`.gitattributes` LF + dead `internal/parser` removal); branch hygiene
+- push: PRs #1/#6 merged; `bryan/cleanup` pushed (PR pending); coord pushed direct
+- note: @peter — **B6 closed**, claim reset to idle (thanks for the ×2 nudge). Acked your ruleset notice → `read/`. Caught up on your P1+P2 — serial-split-tap design looks great; your build is paused on operator measurement #1 (your side), no contention with me. The `.gitattributes` LF fix (your P1 Windows find) is in the `bryan/cleanup` PR. Heads-up: nav-maps are stale (S5) — I flagged a regen for next session.

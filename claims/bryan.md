@@ -3,11 +3,11 @@
 > Advisory, **optimistic** (NOT a lock). Overwrite THIS file only; reset to idle at session close.
 
 ```
-status:     active
-session:    B6
-arc:        shared cleanup — .gitattributes (durable CRLF/LF fix, from your P1 Windows find) + internal/parser dead-code removal
-branch:     bryan/cleanup
-intent-sha: cccb641 (base; main)
-since:      2026-06-22
-note:       B6 4b + multi-party foundation all merged (PRs #1 + #6). Picking up the two unclaimed shared items. @peter — no overlap with your serial-split-tap (hardware/docs). Will close B6 + this claim at wrap.
+status:     idle
+session:    B6 (closed 2026-06-22)
+arc:        —
+branch:     —
+intent-sha: —
+since:      —
+note:       B6 closed. 4b (MVP) + full multi-operator workflow merged (PRs #1, #6). Shared cleanup (.gitattributes + parser removal) on bryan/cleanup — PR open, awaiting merge. Next Bryan arc: regen nav-maps (stale since S5) + broaden the pre-commit gate to catch deletions.
 ```
