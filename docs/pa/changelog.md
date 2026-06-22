@@ -5,6 +5,48 @@ the human-discoverable session narrative). Newest block on top.
 
 ---
 
+## 2026-06-21/22 — Bryan B6 · Phase 4b (MVP) + the entire multi-operator orchestration system
+
+The largest single session: shipped the **Phase-4b printable report** (project MVP) and then, when the
+operator brought **Peter Oliver** on as a co-equal committer, designed + built the **whole multi-party PA
+workflow** from scratch — DD → coord substrate → meta-doc partition → `pa.md` overlay **v2** → and proved
+it working live against Peter's parallel P1/P2 sessions.
+
+- **Phase 4b (`93011e6`, merged PR #1):** `internal/printcfg` (bundled company default + per-job override,
+  value-semantic merge, axis-layout-not-a-knob) + `GET/PUT /api/jobs/{id}/print-config` (store-only) +
+  `print_config` JSON column on `jobs` (idempotent migration) + the **Report tab** (`web/src/report.ts`:
+  3b job header + recorded chart + minimal override editor + `window.print()` / `@media print`). Folded in
+  2 cosmetics (new-job-form collapse; `job.number` flat-trace). PDF = browser Save-as-PDF only (D-pdf).
+  Built by `cementer-go-engineer` (worktree, opus); PA-verified E2E + Playwright (screen + print media).
+- **Multi-party DD (R2, `cb48d75`):** `docs/deep-dives/multi-party-pa-orchestration-2026-06-21.md`. Scope
+  locked with the operator (co-equal · async · autonomous PA-to-PA handshake · git-model researched).
+  Ruled directly: **PR-flow (A)** — no debate — because the repo has no CI; peer review is the safety gate.
+- **Shared commit gate (`cd3fc7e`):** `scripts/git-hooks/` (source-controlled, `make hooks`) — pre-commit
+  gofmt/vet/build/test, pre-push `make build` when web changed. Both operators run the identical gate.
+- **Coord substrate (`coord` orphan branch):** `ledger.md` (append-only) + `claims/<op>.md` (optimistic,
+  not locks) + `inbox/<op>/` (create-only). Conflict-free by construction; pushed direct, off `main`'s
+  PR-flow (`make coord` → `.coord/`).
+- **Meta-doc partition + `pa.md` v2 (`5abf2c4` + `da33524`, merged PR #6):** per-operator `hand-off-<op>` /
+  `user-voice-<op>` (symmetric rename) + `status.md` section-owned + `.github/CODEOWNERS` (→ `@poliver-cement`).
+  `pa.md` overlay **v1→v2**: §topology (two co-equal operators), §4 (coord handshake on session open + wrap),
+  §7 (land-on-branch + main-leak guard), §9 (gate installed), §10 (cross-operator graph).
+- **Ruleset saga:** the operator's branch-protection was repeatedly too broad (caught `bryan/**` + `coord`);
+  resolved after several iterations (a no-slash `s6-foundation` workaround branch proved the pattern was
+  slash-based; eventually scoped to default-branch-only). Peter independently hit + filed the same (issue #3).
+- **Coordination PROVEN live:** caught up via the coord ledger — Peter ran **P1** (onboarded, Windows
+  toolchain, verified 4b on Windows/Edge) + **P2** (serial-split-tap design). His parallel work **did not
+  collide** (clean merge of PR #6) — the partition held. Acked his ruleset inbox notice → `read/`.
+- **Shared cleanup (`bryan/cleanup` PR):** `.gitattributes` (`* text=auto eol=lf` — durable fix for the
+  Windows CRLF/gofmt break Peter found) + **removed dead `internal/parser`** (nothing imported it; daqformat
+  replaced it Phase 2) + updated all refs (README/anti-patterns/status/pa.md).
+- **Branch hygiene:** deleted merged `bryan/s6-phase4b-multiparty` + the `s6-foundation` workaround.
+- **Tests (wrap):** `gofmt -l` clean · `go vet ./...` · `go test ./... -count=1` (api/daqformat/printcfg/
+  store) · `go build ./...` all ✅.
+- **Left:** the `bryan/cleanup` PR awaits merge; **nav-maps are stale** (S5 stamp `1465bd9` — 4b +
+  multi-party + parser-removal all post-date them → regen next session); pre-commit `--diff-filter=ACM`
+  skips pure deletions (broaden to include `D`). Peter's serial-split-tap **build** is paused on his field
+  measurement #1 (DAQ TXD idle voltage).
+
 ## 2026-06-21 — Peter P2 · serial-split tap (isolated DAQ→Pi serial ingest) — design + scope landed
 
 Hardware-design arc (`serial-split-tap`): a non-invasive, galvanically-isolated **listen-only** serial

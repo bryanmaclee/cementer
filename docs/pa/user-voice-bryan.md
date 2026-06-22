@@ -193,3 +193,87 @@ confirmed the seconds fix + varied data + no stacking. Saved to auto-memory.)_
 
 _(Full 8-step wrap: tests green, status/changelog/hand-off/user-voice updated, nav-maps regenerated,
 committed + pushed.)_
+
+---
+
+## Session 6 (coord id B6) — 2026-06-21/22
+
+_(Linux garage desktop. Started as a normal Phase-4b session; mid-way the operator brought **Peter Oliver**
+on as a co-equal committer, turning it into the largest session — built the entire multi-operator workflow.
+Renamed from `user-voice.md` to `user-voice-bryan.md` in this session's `pa.md` v2 rewrite.)_
+
+> read pa.md and start session
+
+> hey fire that server up so I can see it
+
+> go ahead with phase 4b
+
+_(Phase 4b dispatched to `cementer-go-engineer` (worktree, opus); landed `93011e6`, PA-verified E2E +
+Playwright. Merged later via PR #1.)_
+
+> where is pa-base.md
+
+> I am working on this project with Peter Oliver. he will also be comitting and pushing to this repo. we need to workout a flow for multi-party PA project orchestration. possibly start with some sort of hand-shake, lets DD it.
+
+_(R2 deep-dive. Scope-locked via AskUserQuestion: **git model = research both; co-equal peers; autonomous
+PA-to-PA handshake; mostly sequential/async.** Then ruled directly: **PR-flow (A)**, no debate. Baseline
+actions chosen: install commit gate + settle Peter's GitHub access.)_
+
+> start on the coord
+
+> coord branch, continue with the meta-doc partition
+
+_(Built the `coord` orphan branch (ledger/claims/inbox) + the meta-doc partition. Decided coord lives on its
+own unprotected branch for low-latency, off main's PR-flow.)_
+
+> do the pa.md rewrite next
+
+_(pa.md overlay v1→v2: topology, §4 coord handshake, §7 land-on-branch + main-leak guard, §9 gate-installed,
+§10 cross-operator graph; symmetric `-bryan`/`-peter` rename + downstream ref updates.)_
+
+> push so that peter can fetch
+
+> where is codeOwners?
+
+> Peter Oliver, his github is poliver-cement
+
+_(Fixed CODEOWNERS placeholder → `@poliver-cement`.)_
+
+> fixed the ruleset, push it    [then: "push it" · "Disabled the ruleset, push it" · "try again" · "push"]
+
+_(The branch-protection ruleset was repeatedly too broad — it caught the slash-named `bryan/**` branches
+(and `coord`), rejecting pushes with "Changes must be made through a pull request." Several iterations to
+scope it; diagnosed it as slash-pattern-based, not the disabled ruleset alone (a legacy Branch-protection
+rule was also biting).)_
+
+> go    [authorize the no-slash workaround]
+
+_(Pushed the work under a no-slash branch `s6-foundation` — slipped past the slash-based rule, confirming
+the diagnosis.)_
+
+> no I changed something try with the slash again
+
+_(Slash branch `bryan/s6-phase4b-multiparty` then pushed — operator scoped the ruleset to default-branch-only.)_
+
+> go    [catch up on Peter + sync]
+
+_(Caught up via the coord ledger: Peter ran **P1** (onboarded, Windows toolchain, verified 4b on
+Windows/Edge, filed ruleset issue #3) + **P2** (serial-split-tap hardware design, build paused on a field
+measurement). My PR #6 merged cleanly — the partition prevented collision.)_
+
+> do the unclaimed shared
+
+_(Did both unclaimed shared items on `bryan/cleanup`: `.gitattributes` (durable LF — fixes Peter's Windows
+CRLF break) + removed dead `internal/parser`. Claimed the arc in coord + acked Peter's ruleset inbox notice.)_
+
+> delete the bryan branch, I dont know what the s6 foundation is.
+
+> yes, delete it
+
+_(Deleted the merged `bryan/s6-phase4b-multiparty` + the redundant `s6-foundation` workaround branch.)_
+
+> wrap and push
+
+_(Full v2 wrap: tests green; status/changelog/hand-off-bryan/user-voice-bryan updated; coord B6-close block
++ claim reset to idle; wrap docs on `bryan/cleanup` → pushed/PR. nav-maps regen deferred to next session
+(flagged). B6 closed.)_

@@ -21,9 +21,12 @@ coordination (claims, push intents, notices) is on the **coord branch** — `mak
 `.coord/` (the at-a-glance "who's doing what"). Layout: [`README.md`](README.md).
 
 ### Bryan
-- **Phase 4b** (printable per-job report) **LANDED** `93011e6` (unpushed). Multi-party groundwork:
-  commit gate ✅, DD ✅, coord branch ✅, meta-doc partition (in progress). Holding 4+ unpushed
-  commits on `main` pending the PR-flow cutover (Peter access + branch protection).
+- **B6 complete (wrapped 2026-06-22).** Phase 4b (MVP) merged (**PR #1**); the full multi-operator
+  workflow — DD, commit gate, `coord` branch, meta-doc partition, **`pa.md` overlay v2** — merged (**PR #6**).
+  Shared cleanup (`.gitattributes` + dead-`internal/parser` removal) on **`bryan/cleanup` (PR open, awaiting
+  merge)**. Coordination proven live against Peter's P1/P2 (clean merge — partition held). Claim reset to idle.
+- **Next (Bryan):** merge `bryan/cleanup`; **regenerate nav-maps** (stale at S5 `1465bd9`); broaden the
+  pre-commit gate to catch deletions (`--diff-filter` incl. `D`). Idle otherwise.
 
 ### Peter
 - **P1 (2026-06-21, Windows field laptop):** adopted the S6 multi-party model (PR-flow + coord +
