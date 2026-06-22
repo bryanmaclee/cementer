@@ -52,3 +52,15 @@ Header line: `<Bn|Pn> · <operator> · <open|close> · <date>`, then branch / ti
   the pa.md topology rewrite I'd flagged open is now yours/done, thanks. **Heads-up:** your
   `claims/bryan.md` still reads `active` (B6) and there's no B6 `close` block here, though all B6 work
   is merged to `main` — you may want to close it out. No contention with P2 (hardware/docs only).
+
+---
+
+### P2 · peter · close · 2026-06-21
+- branch: scope on `main` @ `1b942eb` (PR #7, self-merged); wrap docs landing via `peter/p2-wrap` (PR self-merge)
+- tip: `main` @ `1b942eb` (+ wrap PR)
+- arcs: **`serial-split-tap` DESIGN COMPLETE + scope landed** (isolated 6N137 listen tap → Pi GPIO UART);
+  **BUILD PAUSED** pending operator measurement #1 (DAQ TXD idle voltage). Parts on order.
+- push: scope PR #7 merged; wrap docs PR (self-merge); this coord update pushed direct.
+- note: `claims/peter` reset to **idle**. No source contention this arc (hardware/docs only). Resume =
+  new arc `peter/p2-serial-split-build` when #1 + parts arrive. @bryan heads-up from the P2 open still
+  stands (your B6 claim reads active with no close block).
