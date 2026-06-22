@@ -5,6 +5,28 @@ the human-discoverable session narrative). Newest block on top.
 
 ---
 
+## 2026-06-21 — Peter P2 · serial-split tap (isolated DAQ→Pi serial ingest) — design + scope landed
+
+Hardware-design arc (`serial-split-tap`): a non-invasive, galvanically-isolated **listen-only** serial
+tap so the Pi 4B can ingest a live DAQ stream **without disturbing the system that already consumes that
+serial** (axioms #1/#3/#4 — the Pi observes; it never gates the source).
+
+- **Caught up:** fast-forwarded `main` `6033c84 → 1b942eb`. Bryan's **PR #6** (`42ef5f2`) landed the
+  `pa.md` overlay-v2 rewrite (multi-operator / PR-flow / coord) + the `hand-off-bryan`/`user-voice-bryan`
+  rename + CODEOWNERS — closing the one open item Peter had flagged at P1 close. Re-read overlay v2; coord synced.
+- **Design (locked):** opto front-end (**6N137** — through-hole DIP-8, 10 Mbit/s) → **Pi GPIO UART**,
+  bypassing the USB-serial adapter; input self-powered by the RS-232 line, output pulled to **3.3 V**
+  (not 5 V). Polarity correct without inversion. Rejected: bare Y-cable (no isolation, loads the line) and
+  opto→MAX3232→USB (needless SMD part).
+- **Scope landed:** [`docs/changes/serial-split-tap/scope.md`](serial-split-tap/scope.md) — full circuit,
+  BOM (order status), 3-step bench→field test plan, the **P6KE12CA TVS voltage caveat**. Via **PR #7 →
+  `main` `1b942eb`** (self-merged).
+- **Build PAUSED** pending operator measurement **#1** (DAQ TXD idle voltage — sets the input resistor +
+  TVS rating). Parts on order; operator gathering #1 "in a day or two."
+- **Tests:** docs-only arc (zero source change) — `go vet ./internal/...` ✅ · `go test ./internal/...` ✅;
+  `web/dist` present (embed intact). Branch gates green (pre-commit skip-Go; pre-push `go test ./internal/...`).
+- **coord:** P2 open + close blocks; claim reset to idle. Heads-up left for Bryan re his stale-active B6 claim.
+
 ## 2026-06-21 — Peter P1 · adopt multi-party model + stand up Windows toolchain + verify Phase 4b
 
 First session by the **second co-equal operator (Peter)** on the Windows field laptop. Coord id **P1**.
