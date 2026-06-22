@@ -10,6 +10,26 @@
 > `status.md`/`changelog.md` on `main`. Shared truth = `status.md` + `changelog.md`; live coordination =
 > the coord branch.
 
+## ▶ P2 in-flight (2026-06-21) — serial-split tap (hardware design)
+
+Active arc: **`serial-split-tap`** — an isolated, listen-only serial tap so the Pi 4B can ingest a
+live DAQ stream without disturbing the system that already consumes that serial. **Design is locked;
+build is paused on one measurement.** Full spec:
+[`docs/changes/serial-split-tap/scope.md`](../changes/serial-split-tap/scope.md).
+
+- **Topology:** 6N137 opto front-end → **Pi GPIO UART** (bypassing the USB-serial adapter). Input
+  self-powered by the line; output pulled to **3.3 V** (NOT 5 V — would fry the Pi). Polarity is
+  correct without inversion.
+- **Blocker = "#1":** the DAQ TXD idle voltage (multimeter). Operator gathering it "in a day or two."
+  It sets the input resistor (≈±5 V→680 Ω, ±9 V→1.5 kΩ, ±12 V→2.2 kΩ) and the TVS rating.
+- **Parts ordered** (6N137 ×N, DIP sockets, 1N4148, resistors, P6KE12CA TVS); rest in hand.
+- **TVS caveat:** P6KE12CA clips a full ±12 V line — use P6KE15/18CA if #1 shows ≥±10 V. Not needed
+  for the bench build.
+- **Resume = 3 steps** (scope doc §Build & test): solder → bench replay → real-wire on Pi → coexistence.
+- **Open Qs to confirm with operator:** (a) #1 value; (b) one-way link (consumer never TX's to DAQ?);
+  (c) Pi-GPIO vs keep-Waveshare output path (GPIO chosen, confirm).
+- Branch: `peter/p2-serial-split-scope` (this scope doc). coord: P2 claim = this arc.
+
 ## ✅ P1 result (2026-06-21)
 
 Adopted the S6 multi-party model + stood up this laptop + verified Phase 4b. Everything that could land
@@ -27,11 +47,12 @@ Adopted the S6 multi-party model + stood up this laptop + verified Phase 4b. Eve
 
 1. **`.gitattributes` durable CRLF fix** — `* text=auto eol=lf` (+ maybe `*.go text eol=lf`) so no future
    Windows clone hits the gofmt break. A `peter/<arc>` PR; touches Bryan's clone → coordinate.
-2. **`pa.md` topology rewrite** — still says "standalone single-operator" (STALE since S6). DD names the
-   §4/§10 rewrite + the symmetric `hand-off-bryan.md`/`user-voice-bryan.md` rename. **Whose arc?**
-   Bryan pushed an **`s6-foundation`** branch — likely this work; check the coord ledger before claiming.
-3. **Bryan is active** — `bryan/s6-phase4b-multiparty` @ `da33524` + new `s6-foundation`. Fetch + read
-   the coord ledger before starting anything to avoid overlap.
+2. ~~**`pa.md` topology rewrite**~~ — ✅ **DONE by Bryan (PR #6 `42ef5f2`, `da33524`)**: overlay v2
+   (multi-operator / PR-flow / coord) + the `hand-off-bryan.md` / `user-voice-bryan.md` rename +
+   CODEOWNERS. No longer Peter's.
+3. **Bryan's coord state is stale** — `claims/bryan.md` still reads `active` (B6) and the ledger has no
+   B6 close block, yet all his B6 work merged to `main`. His single-operator-owned file; not mine to
+   edit — surfaced only. No active contention.
 
 _Resolved during P1 (no longer open):_ Bryan fixed the over-broad ruleset (**issue #3 closed, verified**)
 → `coord` pushes + merged-branch deletion both work now; P1 onboarding (PR #2) + wrap (PR #4) landed on
