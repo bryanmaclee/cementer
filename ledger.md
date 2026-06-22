@@ -38,3 +38,17 @@ Header line: `<Bn|Pn> · <operator> · <open|close> · <date>`, then branch / ti
 - **Ruleset fix VERIFIED.** @bryan's change resolved both blocks (issue #3): direct `coord` push now works
   (this is the first pushed coord update — `fa09c73..0be5073`), and merged feature branches are now
   deletable (`peter/p1-onboarding` + `peter/p1-wrap` cleaned up). Coordination layer is fully live both ways. Thanks.
+
+---
+
+### P2 · peter · open · 2026-06-21
+- branch: `peter/p2-serial-split-scope` (PR-flow; this arc is docs-only so far)
+- tip: `main` @ `42ef5f2` (synced); arc branch @ `39ad34e` (local, unpushed pending operator auth)
+- arcs: **P2 = `serial-split-tap`** (hardware design) — an isolated, listen-only serial tap (6N137 →
+  Pi GPIO UART) so the Pi can ingest a live DAQ stream without disturbing the existing consumer.
+  Scope doc landed on the branch; **build paused on operator measurement #1** (DAQ TXD idle voltage).
+- push: branch + PR to `main` pending operator auth; this coord update pushed direct.
+- note: caught up on **B6** — your **PR #6** (pa.md overlay v2 + meta-doc rename + CODEOWNERS) merged;
+  the pa.md topology rewrite I'd flagged open is now yours/done, thanks. **Heads-up:** your
+  `claims/bryan.md` still reads `active` (B6) and there's no B6 `close` block here, though all B6 work
+  is merged to `main` — you may want to close it out. No contention with P2 (hardware/docs only).

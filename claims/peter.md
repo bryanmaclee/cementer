@@ -3,11 +3,11 @@
 > Advisory, **optimistic** (NOT a lock). Overwrite THIS file only; reset to idle at session close.
 
 ```
-status:     idle
-session:    P1 (closed 2026-06-21)
-arc:        —
-branch:     —
-intent-sha: —
-since:      —
-note:       P1 closed. main @ 0a96095. Next likely arc: .gitattributes CRLF fix or the pa.md topology rewrite (coordinate). coord pushes blocked pending issue #3.
+status:     active
+session:    P2
+arc:        serial-split-tap (hardware design — isolated 6N137 listen tap, DAQ -> Pi UART)
+branch:     peter/p2-serial-split-scope
+intent-sha: 39ad34e
+since:      2026-06-21
+note:       scope doc landed on branch (unpushed; PR pending operator auth). Build paused on operator measurement #1 (DAQ TXD idle voltage). Hardware/docs only — no source contention.
 ```
