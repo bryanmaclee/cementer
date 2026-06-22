@@ -131,7 +131,7 @@ Each heading is a base `{{slot}}`; the fill is cementer's concrete instantiation
 >    (Intellisense / MD Totco), recording-vs-live-vs-raw separation, the two chart-config scopes.
 > 2. README *Architecture* + *Reliability rule* — the one-binary durability spine.
 > 3. The package-doc comments (`// Package …`) in `internal/*` and `cmd/cementer/main.go` — the
->    pipeline: source → rawlog (layer 1) → parser → store (SQLite WAL, layer 2) → hub (drops slow
+>    pipeline: source → rawlog (layer 1) → daqformat → store (SQLite WAL, layer 2) → hub (drops slow
 >    clients) → WebSocket → embedded SPA.
 > After these the PA is the second-foremost expert on cementer. This read is not parallelizable-away.
 
@@ -296,7 +296,7 @@ Each heading is a base `{{slot}}`; the fill is cementer's concrete instantiation
 > - **Symptom-check (NOT "tests pass"):** hit `GET /debug/stats` (JSON row counts) and/or watch the
 >   `GET /ws/live` stream / the browser readout; for the store, count rows
 >   (`sqlite3 data/cementer.db 'select count(*),count(distinct channel) from samples'`).
-> - **Pipeline stages:** source → rawlog → parser → store → hub → WebSocket → SPA. A synthesized
+> - **Pipeline stages:** source → rawlog → daqformat → store → hub → WebSocket → SPA. A synthesized
 >   parser-unit test passing does NOT prove the real serial→store path; re-run the real replay end-to-end
 >   before claiming a pipeline class fixed. The PA runs its own independent empirical check at landing
 >   before flipping a gap OPEN→RESOLVED. "Human verified" (run + output-checked) is USER-only.
@@ -358,7 +358,7 @@ Each heading is a base `{{slot}}`; the fill is cementer's concrete instantiation
 
 **`{{dogfood_fills}}`**
 > Tier-3 dog-food target: run cementer against `testdata/sample-stream.txt` (`make run`) and exercise
-> the **real** end-to-end path — serial-replay → rawlog → parser → store → hub → WebSocket → browser
+> the **real** end-to-end path — serial-replay → rawlog → daqformat → store → hub → WebSocket → browser
 > readout at `http://localhost:8080`. Arc-relevant variant beats random: feed a stream shaped like the
 > arc under test (multi-unit/multi-channel lines for dynamic-channel work; malformed/partial lines for
 > parser hardening; a high line-rate for batch-commit / slow-client-drop behavior).

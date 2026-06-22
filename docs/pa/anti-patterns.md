@@ -21,8 +21,10 @@ Counter the Java/Python/JS reflexes:
   writePump/readPump and the store's writeLoop are the pattern — a new goroutine must show its exit.
 - **Single-writer discipline for the store is sacred.** All DB writes funnel through the one writer
   goroutine (WAL, `SetMaxOpenConns(1)`). Never open a second writer or write from a handler.
-- **Keep protocol-specific code in `internal/parser` only.** Per project axiom #2, format adaptation is
-  config, not code — don't scatter format assumptions into store/hub/web.
+- **Format adaptation is config, not code (axiom #2).** The generic `internal/daqformat` engine is the
+  only parse path; a new pump format is a `DaqFormat` value (data), never new code — don't scatter format
+  assumptions into store/hub/web. (The old positional `internal/parser` was removed in B6; `daqformat`
+  fully replaced it.)
 - **`gofmt` + `go vet` clean, always.** Errors wrapped with `%w` and context (`fmt.Errorf("open store:
   %w", err)`), as `main.go` already does.
 - **Prefer the standard library + the three deps** (`gorilla/websocket`, `go.bug.st/serial`,
