@@ -1,0 +1,19 @@
+# Normalize ALL text to LF in the repo and check it out LF on every platform (Windows
+# included). Go tooling (gofmt) is LF-only, so a CRLF checkout breaks the pre-commit gate —
+# this prevents that regardless of a clone's core.autocrlf. (Root cause found P1 on the
+# Windows field laptop; this is the durable cross-clone fix.)
+* text=auto eol=lf
+
+# Shell scripts + git hooks must stay LF (they run on the Pi / via sh).
+*.sh        text eol=lf
+scripts/git-hooks/*  text eol=lf
+
+# Explicit binaries — never normalize, never diff as text.
+*.bin       binary
+*.db        binary
+*.db-wal    binary
+*.db-shm    binary
+*.png       binary
+*.jpg       binary
+*.pdf       binary
+*.ino       text eol=lf

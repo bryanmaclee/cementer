@@ -21,9 +21,12 @@ coordination (claims, push intents, notices) is on the **coord branch** — `mak
 `.coord/` (the at-a-glance "who's doing what"). Layout: [`README.md`](README.md).
 
 ### Bryan
-- **Phase 4b** (printable per-job report) **LANDED** `93011e6` (unpushed). Multi-party groundwork:
-  commit gate ✅, DD ✅, coord branch ✅, meta-doc partition (in progress). Holding 4+ unpushed
-  commits on `main` pending the PR-flow cutover (Peter access + branch protection).
+- **B6 complete (wrapped 2026-06-22).** Phase 4b (MVP) merged (**PR #1**); the full multi-operator
+  workflow — DD, commit gate, `coord` branch, meta-doc partition, **`pa.md` overlay v2** — merged (**PR #6**).
+  Shared cleanup (`.gitattributes` + dead-`internal/parser` removal) on **`bryan/cleanup` (PR open, awaiting
+  merge)**. Coordination proven live against Peter's P1/P2 (clean merge — partition held). Claim reset to idle.
+- **Next (Bryan):** merge `bryan/cleanup`; **regenerate nav-maps** (stale at S5 `1465bd9`); broaden the
+  pre-commit gate to catch deletions (`--diff-filter` incl. `D`). Idle otherwise.
 
 ### Peter
 - **P1 (2026-06-21, Windows field laptop):** adopted the S6 multi-party model (PR-flow + coord +
@@ -89,8 +92,7 @@ the living spec; don't let deltas accumulate here. No separate as-built spec doc
 - ~~Computed/derived channels~~ — ✅ engine has a sum/mean compute pass (no-op for Intellisense, which
   field-maps its aggregates).
 - ~~Parser vs real format mismatch~~ — ✅ resolved: `internal/daqformat` is the format engine; `internal/parser`
-  is now **off the main path** (kept only for its Phase-1 test). **Cleanup candidate:** delete parser or
-  fold its cases into a daqformat test.
+  was **removed in B6** (`bryan/cleanup`) — dead code (nothing imported it; `daqformat` has its own coverage).
 - `internal/api/` and `web/src/chart/` are now **populated** (3a/3b/4a) — no longer placeholders.
 - **`job.number` charts as a flat trace** — its profile scope is `job` (role `meta`), so the live chart's
   `scope!=="meta"` filter doesn't exclude it. Harmless flat-0 line; minor follow-up.
@@ -118,17 +120,17 @@ the living spec; don't let deltas accumulate here. No separate as-built spec doc
 
 ## Near-term actions (not yet done)
 
-1. **`.gitattributes` durable CRLF fix** (`* text=auto eol=lf`) — a `peter/<arc>` PR; coordinate.
+1. ~~**`.gitattributes` durable CRLF fix**~~ ✅ added (Bryan, `bryan/cleanup` PR).
 2. **`serial-split-tap` build** (Peter P2 — **PAUSED**) — solder the isolated 6N137 tap + bench/field test
    per [`serial-split-tap/scope.md`](../changes/serial-split-tap/scope.md); resumes when the operator
    returns with measurement #1 (DAQ TXD idle voltage) + parts. Scope landed (PR #7).
-3. **Parser cleanup** (delete/fold the off-path `internal/parser`).
+3. ~~**Parser cleanup**~~ ✅ removed the off-path `internal/parser` (Bryan, `bryan/cleanup` PR).
 4. **Totco preset** — when a Totco unit is reachable (same direct-laptop capture method).
 5. ~~Phase 4b~~ ✅ (Bryan, PR #1). ~~Install commit gate~~ ✅ (S6). ~~Fix repo ruleset~~ ✅ (issue #3).
 
 ## Test surface
 
-- `go test ./...`: `internal/daqformat`, `internal/parser`, `internal/store`, `internal/api` have tests;
+- `go test ./...`: `internal/daqformat`, `internal/store`, `internal/api` have tests;
   others report "no test files". Web has no unit suite (tsc-strict + Playwright screenshot are the checks).
 - **P2 wrap run (2026-06-21, Windows):** docs-only arc (zero source change) — `go vet ./internal/...` ✅ ·
   `go test ./internal/...` ✅; `web/dist` present (embed intact).

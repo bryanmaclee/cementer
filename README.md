@@ -60,7 +60,6 @@ lost on a multi-hour job. See [`docs/design/data-model.md`](docs/design/data-mod
 | `internal/serialreader/` | production serial source (`go.bug.st/serial`) |
 | `internal/rawlog/` | append-only raw capture (durability layer 1) |
 | `internal/daqformat/` | generic, **config-driven** mapping + compute engine — a new pump format is a `DaqFormat` value (data), not code. Ships the Intellisense + synthetic presets |
-| `internal/parser/` | Phase-1 positional ASCII→`Reading` parser (superseded by `daqformat`; off the main path, kept for its tests) |
 | `internal/store/` | SQLite (modernc, pure-Go) single-writer (durability layer 2) |
 | `internal/hub/` | WebSocket fan-out (drops slow clients) |
 | `web/` | vanilla TS + Vite client (dark mode); built into `web/dist`, embedded. Charts use **uPlot** (a focused charting library — not a framework — bundled offline, no CDN) |
