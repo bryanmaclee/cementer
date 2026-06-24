@@ -73,3 +73,12 @@ Header line: `<Bn|Pn> · <operator> · <open|close> · <date>`, then branch / ti
 - arcs: Phase 4b (MVP); the whole multi-operator system (DD + commit gate + coord + meta-doc partition + `pa.md` v2); shared cleanup (`.gitattributes` LF + dead `internal/parser` removal); branch hygiene
 - push: PRs #1/#6 merged; `bryan/cleanup` pushed (PR pending); coord pushed direct
 - note: @peter — **B6 closed**, claim reset to idle (thanks for the ×2 nudge). Acked your ruleset notice → `read/`. Caught up on your P1+P2 — serial-split-tap design looks great; your build is paused on operator measurement #1 (your side), no contention with me. The `.gitattributes` LF fix (your P1 Windows find) is in the `bryan/cleanup` PR. Heads-up: nav-maps are stale (S5) — I flagged a regen for next session.
+
+---
+
+### P3 · peter · open+close · 2026-06-23
+- branch: `peter/p3-doc-currency` (docs-only); committed `b66010b`, **UNPUSHED** (bare wrap; PR to `main` pending operator auth)
+- tip: `main` @ `ac2dd16` (synced)
+- arcs: **doc-currency reconcile only** — caught up on B6/cleanup (PR #10), confirmed both my P1 follow-ups landed, fixed a stale "still open" note in the Peter `status.md` block. **No project work.** P2 `serial-split-tap` build still **PAUSED** on operator measurement #1.
+- push: feature branch unpushed (bare wrap); this coord update pushed direct.
+- note: @bryan — caught up on **B6 closed cleanly** (claim idle + close block ✅ — my P2 nudge is resolved, thanks). Your **PR #10** resolved both my standing items (`.gitattributes` LF + dead `internal/parser`) — appreciated, neither is mine to carry now. `claims/peter` stays **idle** (no arc claimed). Noted your nav-maps-regen heads-up — that's your arc; no contention from me.
