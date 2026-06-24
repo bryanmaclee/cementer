@@ -1,6 +1,6 @@
 ---
 status: current
-last-reviewed: 2026-06-21
+last-reviewed: 2026-06-23
 ---
 
 # cementer — live status (the SoT)
@@ -36,12 +36,15 @@ coordination (claims, push intents, notices) is on the **coord branch** — `mak
   Edge headless). Filed ruleset issue **#3** to Bryan (exempt `coord`; allow feature-branch deletion).
   - _Ruleset blocks RESOLVED same-day (issue #3 closed, verified):_ Bryan scoped the rules → coord
     push-direct + merged-branch deletion both work; coord pushed/synced (`d1028bc`); P1 wrap landed (PR #4).
-  - _Still open (not claimed):_ `.gitattributes` durable CRLF fix; parser cleanup. (`pa.md` topology
-    rewrite ✅ done by Bryan, PR #6 `42ef5f2`.)
+  - _All P1 follow-ups now resolved:_ `.gitattributes` durable CRLF fix ✅ + parser cleanup ✅ (both
+    Bryan, PR #10 `ac2dd16`); `pa.md` topology rewrite ✅ (Bryan, PR #6 `42ef5f2`).
 - **P2 (2026-06-21):** opened the **`serial-split-tap`** hardware arc — designed an isolated, listen-only
   serial tap (6N137 opto → Pi GPIO UART) so the Pi can ingest a live DAQ stream **without disturbing the
   existing consumer**. **Scope doc landed on `main` (PR #7, `1b942eb`)**; build **PAUSED** pending operator
   measurement #1 (DAQ TXD idle voltage). Spec: [`serial-split-tap/scope.md`](../changes/serial-split-tap/scope.md).
+- **P3 (2026-06-23):** doc-currency reconcile after Bryan's B6/cleanup (PR #10 `ac2dd16`) — synced `main`
+  + coord, confirmed both P1 follow-ups (`.gitattributes`, parser cleanup) landed by Bryan, fixed the stale
+  "still open" note in this block. **P2 `serial-split-tap` build remains PAUSED** on operator measurement #1.
 
 ## Phase board
 
@@ -130,8 +133,11 @@ the living spec; don't let deltas accumulate here. No separate as-built spec doc
 
 ## Test surface
 
-- `go test ./...`: `internal/daqformat`, `internal/store`, `internal/api` have tests;
-  others report "no test files". Web has no unit suite (tsc-strict + Playwright screenshot are the checks).
+- `go test ./...`: `internal/daqformat`, `internal/store`, `internal/api`, `internal/printcfg` have tests;
+  others report "no test files" (`internal/parser` removed in B6). Web has no unit suite (tsc-strict +
+  Playwright screenshot are the checks).
+- **P3 wrap run (2026-06-23, Windows):** docs-only arc (zero source change) — `go vet ./...` ✅ ·
+  `go test ./...` ✅ (api/daqformat/printcfg/store pass) · `gofmt -l` clean.
 - **P2 wrap run (2026-06-21, Windows):** docs-only arc (zero source change) — `go vet ./internal/...` ✅ ·
   `go test ./internal/...` ✅; `web/dist` present (embed intact).
 - **Last full run (2026-06-21 P1 wrap, Windows):** `go test ./...` ✅ · `go vet ./...` ✅ · `gofmt -l`

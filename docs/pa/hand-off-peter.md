@@ -1,6 +1,6 @@
 # Hand-off — Peter (live)
 
-`as of: P2 close · 2026-06-21 · operator: peter` (machine: **Windows field laptop** — `C:\Users\pjoli\Documents\GitHub\cementer`)
+`as of: P3 close · 2026-06-23 · operator: peter` (machine: **Windows field laptop** — `C:\Users\pjoli\Documents\GitHub\cementer`)
 
 > Peter's per-operator hand-off (multi-operator partition, S6). Optimize for Peter's next-session pickup.
 > Peter's PA rewrites this at his wraps; Bryan does not edit it (CODEOWNERS → Peter).
@@ -9,6 +9,23 @@
 > `.coord/ledger.md` tail + `.coord/claims/bryan.md` + `.coord/inbox/peter/` → THEN this file +
 > `status.md`/`changelog.md` on `main`. Shared truth = `status.md` + `changelog.md`; live coordination =
 > the coord branch.
+
+## ▶ P3 close (2026-06-23) — doc-currency reconcile (no project work)
+
+Short docs-only session. Caught up on Bryan's **B6/cleanup (PR #10 `ac2dd16`)** and reconciled the SoT.
+
+- **Synced:** `main` ff `cccb641 → ac2dd16`; coord ff `04ee9c3 → 2876de7`. Both claims idle, inbox clean,
+  no contention. Bryan's **B6 now closed cleanly** (claim reset + close block added) — the stale-claim nudge
+  from P2 is resolved; nothing left to flag there.
+- **Bryan's PR #10 closed two of my standing items:** `.gitattributes` durable LF fix (my P1 Windows CRLF
+  find) + removal of the dead off-path `internal/parser`. **Neither is mine to carry anymore.**
+- **Fixed the only stale note:** the Peter block in `status.md` still listed those two as "still open" →
+  reconciled. Added P3 lines to `status.md` + `changelog.md` + this hand-off; bumped `last-reviewed`.
+- **Off-repo (not a repo change):** Enter key was broken — `~/.claude/keybindings.json` had remapped submit
+  to double-Enter (`enter`→null, `enter enter`→submit). Reset to defaults; Enter submits again. *Needs a
+  Claude Code restart to take effect.*
+- **Landing:** P3 docs committed to branch `peter/p3-doc-currency` (bare wrap — feature branch **NOT pushed**;
+  PR to `main` pending operator auth). Coord close pushed direct.
 
 ## ▶ P2 close (2026-06-21) — serial-split tap (hardware design, BUILD PAUSED pending #1)
 
@@ -47,18 +64,17 @@ Adopted the S6 multi-party model + stood up this laptop + verified Phase 4b. Eve
 
 ## ⚠ OPEN — next session
 
-1. **`.gitattributes` durable CRLF fix** — `* text=auto eol=lf` (+ maybe `*.go text eol=lf`) so no future
-   Windows clone hits the gofmt break. A `peter/<arc>` PR; touches Bryan's clone → coordinate.
-2. ~~**`pa.md` topology rewrite**~~ — ✅ **DONE by Bryan (PR #6 `42ef5f2`, `da33524`)**: overlay v2
-   (multi-operator / PR-flow / coord) + the `hand-off-bryan.md` / `user-voice-bryan.md` rename +
-   CODEOWNERS. No longer Peter's.
-3. **Bryan's coord state is stale** — `claims/bryan.md` still reads `active` (B6) and the ledger has no
-   B6 close block, yet all his B6 work merged to `main`. His single-operator-owned file; not mine to
-   edit — surfaced only. No active contention.
+1. **`peter/p3-doc-currency` is committed but UNPUSHED** — bare wrap. Push + open a PR to `main` when
+   authorized (it's docs-only, trivial). Or fold into the next arc's PR.
+2. **`serial-split-tap` build (P2)** — **PAUSED** pending operator measurement **#1** (DAQ TXD idle
+   voltage) + parts. Resume = new arc `peter/p2-serial-split-build` → solder → bench replay → real-wire on
+   Pi → coexistence, per [`scope.md`](../changes/serial-split-tap/scope.md) §"Build & test plan". See the
+   P2-close section below for the full hardware context.
+3. **Totco preset** — low-priority; when a Totco unit is reachable (same direct-laptop capture method).
 
-_Resolved during P1 (no longer open):_ Bryan fixed the over-broad ruleset (**issue #3 closed, verified**)
-→ `coord` pushes + merged-branch deletion both work now; P1 onboarding (PR #2) + wrap (PR #4) landed on
-`main`; coord pushed + synced; merged `peter/*` branches cleaned up.
+_Resolved (no longer open):_ `.gitattributes` durable CRLF fix + dead `internal/parser` removal (Bryan,
+PR #10 `ac2dd16`); `pa.md` topology rewrite (Bryan, PR #6); Bryan's stale B6 coord claim (closed in B6);
+P1 ruleset blocks (issue #3 closed, verified) — coord push-direct + branch deletion both work.
 
 ## Project work (none claimed by Peter; project MVP effectively reached)
 
@@ -87,20 +103,21 @@ _Resolved during P1 (no longer open):_ Bryan fixed the over-broad ruleset (**iss
 
 ## Coord state (the .coord worktree — RETAINED across sessions on purpose)
 
-- `.coord` worktree on branch `coord`, **pushed + synced** (`origin/coord = local = d1028bc`).
-- My `claims/peter.md` = **idle** (reset at P1 close). My P1 ledger has open + close + addendum blocks.
-- **Do NOT remove the `.coord` worktree** — it's the live coordination channel (now works both ways).
+- `.coord` worktree on branch `coord`, **pushed + synced** (P3 close pushed direct; `origin/coord = local`).
+- My `claims/peter.md` = **idle** (still idle through P3 — no project work claimed).
+- **Do NOT remove the `.coord` worktree** — it's the live coordination channel (works both ways).
 
-## State as of P1 close
+## State as of P3 close
 
 | Item | State |
 |---|---|
-| `main` | `a854b38` (P1 onboarding + wrap merged; synced) |
-| Multi-party model | ADOPTED; full PR-flow cycles done (#2, #4) |
+| `main` | `ac2dd16` (synced; Bryan's B6/cleanup PR #10 merged) |
+| `peter/p3-doc-currency` | committed, **UNPUSHED** (bare wrap; PR pending auth) |
+| Multi-party model | ADOPTED; full PR-flow cycles done; B6 closed cleanly |
 | Windows toolchain | ✅ Go 1.26.4 + Node 24.17.0; full gate green; CRLF fixed |
 | Commit gate | ✅ installed |
-| Phase 4b | ✅ DONE (Bryan PR #1), PA-verified E2E here |
-| P1 onboarding + wrap docs | ✅ landed (PR #2 + PR #4) |
-| coord | ✅ pushed + synced (`d1028bc`); works both ways |
-| Ruleset blocks | ✅ RESOLVED + verified (issue #3 closed) |
-| Tests (P1 wrap) | `go test`/`vet`/`gofmt`/`go build`/web build all ✅ |
+| Phase 4b / project MVP | ✅ DONE (Bryan PR #1), PA-verified E2E here |
+| P1 follow-ups (.gitattributes, parser) | ✅ resolved (Bryan PR #10) |
+| P2 serial-split-tap | design done; **build PAUSED** on operator measurement #1 |
+| coord | ✅ pushed + synced; works both ways |
+| Tests (P3 wrap) | `go vet ./...` ✅ · `go test ./...` ✅ · `gofmt -l` clean |

@@ -132,3 +132,30 @@ _(Outcome: designed the isolated **6N137** listen-tap (Arch 1: opto → Pi GPIO 
 adapter); produced a component purchase list; captured the full design to
 `docs/changes/serial-split-tap/scope.md` and landed it on `main` via **PR #7** (`1b942eb`, self-merged).
 Build **PAUSED** pending measurement **#1** (DAQ TXD idle voltage). Then wrapped P2.)_
+
+---
+
+## Session 3 — 2026-06-23
+
+_(Peter's P3 session, Windows field laptop. Coord id = **P3**. Short docs-only session: started on overlay
+v2, caught up on Bryan's B6/cleanup (PR #10) which resolved two standing Peter items, reconciled the SoT,
+and wrapped. No project work — P2 serial-split build still paused on operator measurement #1.)_
+
+> read pa.md and start session
+
+> my enter button isn't working for your last quetion so I had to esc and type this. it might be because the double enter .json adjust to keybindings. we might need to undo that and see if it is working
+
+_(Found `~/.claude/keybindings.json` had remapped submit to double-Enter — `enter`→null, `enter enter`→`chat:submit` — so a single Enter did nothing. Reset bindings to `[]` (stock: Enter submits). Needs a Claude Code restart to take effect. Off-repo change, not part of cementer.)_
+
+> continue the session start
+
+_(Finished the coord handshake: ff `main` `cccb641→ac2dd16` + coord `04ee9c3→2876de7`; both claims idle,
+inbox clean, B6 closed cleanly. Bryan's PR #10 resolved my `.gitattributes` + parser-cleanup items.)_
+
+> fix the status.md stale note now
+
+> commit this and wrap
+
+_(Reconciled the stale "still open" note in the Peter `status.md` block; then bare-wrapped P3 — hand-off +
+status + changelog + user-voice + coord close. Tests green (vet/test/gofmt). Docs committed to
+`peter/p3-doc-currency`; feature branch left UNPUSHED (bare wrap); coord close pushed direct.)_

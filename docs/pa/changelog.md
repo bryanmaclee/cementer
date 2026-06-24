@@ -5,6 +5,22 @@ the human-discoverable session narrative). Newest block on top.
 
 ---
 
+## 2026-06-23 — Peter P3 · doc-currency reconcile (post-B6 cleanup)
+
+Short docs-only session. Caught up on Bryan's B6/cleanup (PR #10 `ac2dd16`), which resolved two of Peter's
+standing P1 follow-ups, and reconciled the SoT to reflect it.
+
+- **Sync:** local `main` ff `cccb641 → ac2dd16`; coord worktree ff `04ee9c3 → 2876de7`. Coord handshake —
+  both claims idle, inbox clean, B6 closed cleanly (Bryan reset his claim + added the close block, resolving
+  the stale-claim nudge Peter left in P2). No contention.
+- **PR #10 (`bryan/cleanup`) resolved two Peter items:** `.gitattributes` durable LF fix (Peter's P1 Windows
+  CRLF find) + removal of the dead off-path `internal/parser`. Neither is Peter's to carry anymore.
+- **Doc-currency fix:** the Peter in-flight block in `status.md` still listed ".gitattributes + parser
+  cleanup" as *still open* — stale. Reconciled to "all P1 follow-ups resolved."
+- **Off-repo:** fixed a broken Enter key — `~/.claude/keybindings.json` had remapped submit to double-Enter
+  (`enter` → null, `enter enter` → submit); reset to defaults (Enter submits). Not a repo change.
+- Tests: docs-only arc. `go vet ./...` + `go test ./...` recorded at wrap.
+
 ## 2026-06-21/22 — Bryan B6 · Phase 4b (MVP) + the entire multi-operator orchestration system
 
 The largest single session: shipped the **Phase-4b printable report** (project MVP) and then, when the
