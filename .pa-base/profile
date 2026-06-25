@@ -1,0 +1,40 @@
+# cementer — flobase profile
+# Persisted by /flobase 2026-06-25 (reconcile mode — a mature PA already exists).
+# Every later boot rehydrates from this cheaply; do NOT re-detect / re-mine.
+# Re-run `/flobase reinit` only when the stack/scope changes.
+
+mode: reconcile            # an existing scrml/flogence PA was detected; flobase pins gate+profile, owns only the fenced region of .claude/CLAUDE.md
+operator: bryan            # this run; Peter's per-operator partition left untouched (dpa-012 multi-party)
+
+stack:
+  - go:    { version: "1.26.4", role: "single-binary DAQ appliance", pkgs: "internal/{api,daqformat,hub,model,printcfg,rawlog,serialreader,source,store} + cmd/cementer", deps: "gorilla/websocket, go.bug.st/serial, modernc.org/sqlite (pure-Go, CGO-free)", loc: 6087, tests: 11 }
+  - ts:    { variant: "vanilla, NO framework", build: "vite + tsc-strict + uplot", embed: "assets.go", path: "web/src", loc: 1936 }
+
+stage: mid-flight          # active multi-phase dev; P1->4b done; 3c deferred; serial-split-tap paused on field measurement
+scope: medium              # ~10 pkgs + embedded client, ~8k LOC, 2 co-equal operators (Bryan + Peter, since S6)
+multi_party: true          # dpa-012: per-operator partition is the Vintage source; PR-flow + coord branch + CODEOWNERS
+
+gate:
+  build:   "make build (web tsc&&vite -> embed -> CGO_ENABLED=0 go build ./cmd/cementer); make server (Go-only); make pi (arm64)"
+  test:    "pre-commit hook = gofmt + go vet + build + go test ./...  (core.hooksPath=scripts/git-hooks; make hooks). NEVER --no-verify w/o authorization."
+  types:   "go vet ./...  |  cd web && npx tsc --noEmit"
+  runtime: "make run (synthetic 4-ch)  |  make demo (Intellisense replay :8080)  |  Playwright headless (playwright@1.60.0) for web paint"
+
+modules:
+  init:    [CORE, individualisation, stack-pack-go, stack-pack-ts, role-pa, continuity, maps, vcs-drive]
+  runtime: [role-vpa, role-spa, role-dpa, deliberation]   # available via /vpa /spa /dpa /debate /forge; not baked at init
+  dropped: [stack-pack-scrml, role-cpa, dock]              # not-scrml / single-project / 0-coverage
+
+authority:
+  pa_contract:   "pa.md (overlay v2) + pa-base.md (pa-base v1)"   # read first on a deliberate PA boot
+  live_sot:      "docs/pa/status.md"
+  layout:        "docs/pa/README.md"
+  normative:     "docs/design/data-model.md + README architecture"
+  maps:          ".claude/maps/"
+  dev_agent:     "cementer-go-engineer (isolation:worktree, model:opus)"
+
+conventions:
+  - "web client is vanilla TS, NO framework (docs/pa/anti-patterns.md Part B)"
+  - "pure-Go SQLite, CGO-free -> single-binary + cross-compile-to-Pi"
+  - "axiom: raw-capture / live / recording strictly independent (recording is a marker, never gates ingest)"
+  - "landing discipline: fold realized schema/WS/API back into data-model.md at each landing (S5)"
