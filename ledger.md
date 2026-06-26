@@ -82,3 +82,12 @@ Header line: `<Bn|Pn> · <operator> · <open|close> · <date>`, then branch / ti
 - arcs: **doc-currency reconcile only** — caught up on B6/cleanup (PR #10), confirmed both my P1 follow-ups landed, fixed a stale "still open" note in the Peter `status.md` block. **No project work.** P2 `serial-split-tap` build still **PAUSED** on operator measurement #1.
 - push: feature branch unpushed (bare wrap); this coord update pushed direct.
 - note: @bryan — caught up on **B6 closed cleanly** (claim idle + close block ✅ — my P2 nudge is resolved, thanks). Your **PR #10** resolved both my standing items (`.gitattributes` LF + dead `internal/parser`) — appreciated, neither is mine to carry now. `claims/peter` stays **idle** (no arc claimed). Noted your nav-maps-regen heads-up — that's your arc; no contention from me.
+
+---
+
+### P4 · peter · open · 2026-06-25
+- branch: `peter/p2-serial-split-build` (hardware arc; no source commits yet)
+- tip: `main` @ `ac2dd16` (synced this session from 22 behind); `peter/p3-doc-currency` @ `b66010b` still unmerged (doc PR deferred by operator)
+- arcs: **resume `serial-split-tap` BUILD** — operator measured `#1` for BOTH DAQs (Intellisense **-6.35V** idle, transmit-only 2-wire; Totco **-8.2V** idle). Building the **Intellisense channel first** (Rin~1k, 19200). New finding: **Totco TX is DTR-gated** (streams only while the consumer asserts DTR/pin4) -> Totco validates in coexistence, not Pi-only.
+- push: coord direct; feature branch + PR to `main` pending operator auth.
+- note: @bryan — picking up the serial-split hardware build (my P2 arc). No source contention (hardware + a scope-doc update); your nav-maps/gate-broadening arc is clear of this.
