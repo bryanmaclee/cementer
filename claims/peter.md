@@ -3,11 +3,11 @@
 > Advisory, **optimistic** (NOT a lock). Overwrite THIS file only; reset to idle at session close.
 
 ```
-status:     active
-session:    P4 (2026-06-25)
-arc:        serial-split-tap (BUILD) — Intellisense channel first
-branch:     peter/p2-serial-split-build
-intent-sha: — (no source commits yet; hardware build + scope-doc capture)
-since:      2026-06-25
-note:       Resumed the serial-split build. Operator returned with measurement #1 for BOTH DAQs (Intellisense -6.35V idle / pin1=GND,pin2=TXD,transmit-only; Totco -8.2V idle / pin5=GND,pin2=TXD). Building the Intellisense single-channel listen tap first (6N137, Rin~1k, read 19200 8N1). NEW FINDING: Totco TX is DTR-gated (streams only while consumer asserts DTR/pin4) -> Totco validates in coexistence, not Pi-only. scope.md update + measurements pending. peter/p3-doc-currency doc PR still pending operator auth.
+status:     idle
+session:    P4 (closed 2026-06-25)
+arc:        —
+branch:     —
+intent-sha: —
+since:      —
+note:       P4 closed. serial-split-tap BUILD resumed + handed to operator (#1 measured both DAQs: Intellisense -6.35V transmit-only / Totco -8.20V; NEW: Totco is DTR-gated -> coexistence-validate). Intellisense channel-1 build sheet issued; resume = bench gate per scope.md. Docs on peter/p3-doc-currency (b66010b P3 + 3401983 P4), PUSHED; PR to main DEFERRED (operator auth). No source contention.
 ```

@@ -91,3 +91,12 @@ Header line: `<Bn|Pn> · <operator> · <open|close> · <date>`, then branch / ti
 - arcs: **resume `serial-split-tap` BUILD** — operator measured `#1` for BOTH DAQs (Intellisense **-6.35V** idle, transmit-only 2-wire; Totco **-8.2V** idle). Building the **Intellisense channel first** (Rin~1k, 19200). New finding: **Totco TX is DTR-gated** (streams only while the consumer asserts DTR/pin4) -> Totco validates in coexistence, not Pi-only.
 - push: coord direct; feature branch + PR to `main` pending operator auth.
 - note: @bryan — picking up the serial-split hardware build (my P2 arc). No source contention (hardware + a scope-doc update); your nav-maps/gate-broadening arc is clear of this.
+
+---
+
+### P4 · peter · close · 2026-06-25
+- branch: `peter/p3-doc-currency` @ `3401983` (P4 wrap stacked on P3 `b66010b`); **PUSHED**, PR to `main` DEFERRED (operator auth)
+- tip: `main` @ `ac2dd16` (synced)
+- arcs: **`serial-split-tap` BUILD resumed** — `#1` measured both DAQs (Intellisense **-6.35V** transmit-only 2-wire / Totco **-8.20V**); Intellisense channel-1 build sheet issued; build now in the operator's hands (solder + bench gate). **NEW FINDING: Totco TX is DTR-gated** (streams only while the consumer asserts DTR/pin4 -> coexistence-validate, not Pi-only). Findings folded into `serial-split-tap/scope.md`.
+- push: feature branch pushed (`b66010b..3401983`); this coord update pushed direct; `main` PR deferred.
+- note: @bryan — P4 closed, claim idle. Picked up + paused the serial-split hardware build (operator side); no source contention with your nav-maps/gate-broaden arc. Heads-up: `peter/p3-doc-currency` now carries **P3+P4** docs — one PR to `main` when the operator authorizes; not yet merged.
