@@ -159,3 +159,55 @@ inbox clean, B6 closed cleanly. Bryan's PR #10 resolved my `.gitattributes` + pa
 _(Reconciled the stale "still open" note in the Peter `status.md` block; then bare-wrapped P3 — hand-off +
 status + changelog + user-voice + coord close. Tests green (vet/test/gofmt). Docs committed to
 `peter/p3-doc-currency`; feature branch left UNPUSHED (bare wrap); coord close pushed direct.)_
+
+---
+
+## Session 4 -- 2026-06-25
+
+_(Peter's P4 session, Windows field laptop. Coord id = **P4**. Opened **22 commits behind** (offline laptop);
+ff'd `main` `3240588 -> ac2dd16` and re-read the live overlay-v2 docs. Resumed the P2 `serial-split-tap`
+arc -- operator returned with measurement **#1** for BOTH DAQ units, unblocking the build. Produced the
+Intellisense channel-1 build sheet + a Totco serial-behavior analysis. Build now in the operator's hands;
+wrapped before soldering.)_
+
+> read pa.md
+
+> ...and start session
+
+_(Via AskUserQuestion "What's the focus for this session?" -> **Resume serial-split build**.)_
+
+> So to be clear I have two systems that I am trying to split with either one splitter that is capable of dealing with both or two separate splitters.
+>
+> The first is the Intellisense Daq unit: Connecting the negative of the multimeter on pin 1 (GND) and the positive of the multimeter to pin 2 (TXD) = -6.35v was the biggest number. No other pins read voltage. It appeared to be sending signal the whole time since the daq unit finished booting. It appeared to bounce between -5.25v & -6.35v whether it was running the software or not.
+>
+> The second is the TotcoMD Daq unit: Connecting the negative of the multimeter on pin 5 (Best guess for GND) and the positive of the multimeter going through the pins with the USB unplugged, the pins on the DB9 connection read: 1 = 0v, 2 = -8.20v, 4 = -0.24v, 6 = 0v, 7 = -0.24v, 8 = 0v, 9 = 0v. As soon as I plugged in the USB there was about 10 second window of activity: 1 = 0v, 2 = -8.20v, 3 = -8.88 for 10s then 0v, 4 = bouncing between -4v & -7v for 10s then -9.14v, 6 = 0v, 7 = -0.24v to 7v for 6s then -9.14 for 4s then 0v, 8 = 0v, 9 = 0v. When starting the program and plugged/'connected' pins read: 1 = 0v, 2 = solid -8.18v for 5s then bounced to ~5.2v for 1-2s then back to -.18v and repeat (assuming this is TXD), 3 = -8.88v, 4 = 9.25v, 6 = 0v, 7 = -9.12v, 8 = 0v, 9 = 0v.
+>
+> As much as I would love to have a 2-in-1 splitter system, I don't want to wait for more parts to come in the mail to start this build. Let me know what you think, I can go over a parts list, if its possible and I have the materials awesome! If not, lets go to the two separate splitters and begin with the Intellisense build first. I do want to hear what your theory is on what may be going on with the TotcoMD serial before we get into the build. Everything I witnessed points to a dependency on the software the tell it when to send data, but give me your non biased opinion please.
+
+_(`#1` resolved: Intellisense idle **-6.35 V** (transmit-only 2-wire: pin1=GND, pin2=TXD; no handshake pins
+active) -> `Rin` 1 kohm; Totco idle **-8.20 V** (pin5=GND, pin2=TXD) -> `Rin` 1.5 kohm; P6KE12CA TVS covers
+both. **Totco theory (evidence-based, given as unbiased):** TX driver always alive (-8.2 V mark even
+USB-unplugged); data appears on pin 2 ONLY when pin 4 = +9.25 V (consumer asserts **DTR**) while pin 3/RXD
+stays idle (no command bytes) -> **DTR-gated streaming, NOT command-polled**. -> listen tap works in
+coexistence; Pi-only standalone needs DTR. **2-in-1 verdict:** electrically just 2x the identical circuit,
+buildable with parts in hand -- recommended **Intellisense single-channel first** to de-risk.)_
+
+> For resistors I have: ja90002x300 kit + a BOJACK 1000 Pcs 25 Values Resistor Kit 1 Ohm-1M Ohm with 5% 1/4W Carbon Film Resistors Assortment
+
+_(1 kohm confirmed the workhorse (Intellisense `Rin` + `Rpu`; 1.5 kohm for Totco) -- all stocked. Issued the
+channel-1 build sheet.)_
+
+> The only change from this set of steps is that I am not going to be using a Waveshare RS-232. The normal run for these serial cable goes from a 6 pin amphenol connector to a DB9 connector to a DB9 to USB adapter. So I have [Jienk DB9 male-to-female terminal-block breakout] which I can run between the cable and adapter (this is how I took the readings in the field). --- For the final 2nd version, I will be going from a 6pin amphenol connector to the splitter protoboard, which splits through to another amphenol connctor to continue running its normal path, and the other split goes through opto and to the pi
+
+_(Revised the bench: fake-DAQ = the **field DB9->USB adapter run as a transmitter** (no Waveshare) -- its
+TXD = **DB9 pin 3** (NOT the field-read pin 2) + GND pin 5 into the opto input, via the Jienk breakout.
+Confirmed **v2 pass-through topology** (Amphenol in -> board -> Amphenol out continues the normal run; opto
+branches off the same node -- the consumer sees only the ~5 mA tap load = the step-3 coexistence test).
+v2 prereq: map the 6-pin Amphenol pinout.)_
+
+> I have to wrap here and come back to it tomorrow.
+
+_(Bare wrap P4: hand-off rewritten, status/changelog/user-voice updated, `#1` values + Totco DTR finding +
+pin-3 bench note + v2 topology folded into `serial-split-tap/scope.md`. Coord P4 open+close pushed, claim
+idle. Docs committed to `peter/p3-doc-currency` (stacked on the unmerged P3 `b66010b`); feature branch left
+UNPUSHED (bare wrap) -> push + ONE PR to `main` next session, pending operator auth.)_

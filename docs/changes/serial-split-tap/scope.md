@@ -4,12 +4,12 @@ last-reviewed: 2026-06-21
 change-id: serial-split-tap
 operator: peter
 phase: hardware (field-ingest enabler; not a numbered software phase)
-depends-on: a multimeter reading of the DAQ TXD idle voltage ("#1", pending)
+depends-on: "#1" (DAQ TXD idle voltage) -- MEASURED 2026-06-25 (Intellisense -6.35V, Totco -8.20V)
 ---
 
 # Serial-split tap — scope (isolated DAQ → Pi listen tap)
 
-> **Status: design locked, build pending one measurement.** This captures a hardware-design chat
+> **Status: `#1` MEASURED 2026-06-25 (both DAQs); build in progress -- Intellisense channel first.** This captures a hardware-design chat
 > (P2, 2026-06-21) so the next session resumes from a written spec, not from re-derivation. The
 > only open input is **#1** (the DAQ line idle voltage), which sets one resistor value. Parts are
 > on order; everything else is decided.
@@ -117,11 +117,51 @@ load the driver — step up to **P6KE15CA / P6KE18CA**. If the line is **~±5–
 12 V part is correct. **Do not populate the TVS until #1 confirms the swing** — and the TVS is **not
 needed for the bench build** at all (field hardening only).
 
+## DAQ behavior + measurements -- `#1` RESOLVED (P4, 2026-06-25)
+
+Operator measured both DAQ TXD idle voltages (multimeter, TXD vs GND; reads negative = RS-232 mark):
+
+| Unit | GND / TXD | Idle (mark) | `Rin`=(V-1.5)/5mA | Pick | Read | TVS |
+|---|---|---|---|---|---|---|
+| **Intellisense** | pin1 / pin2 -- **transmit-only, 2-wire** (no handshake pins) | **-6.35 V** | 970 ohm | **1 kohm** | 19200 8N1 | P6KE12CA |
+| **Totco** | pin5 / pin2 | **-8.20 V** | 1.34 kohm | **1.5 kohm** | 9600 8N1 | P6KE12CA |
+
+Both lines are <+-10 V, so the **P6KE12CA TVS covers both** (no P6KE15/18CA upgrade) -- field only, skip on bench.
+
+### Totco is DTR-gated (not command-polled) -- evidence-based finding
+Totco pin 2 (TXD) is driven at -8.2 V mark whenever the unit is powered (even USB unplugged) -> the
+transmitter is always alive. DATA appears on pin 2 ONLY while the consumer software runs, and exactly then
+**pin 4 -> +9.25 V (DTR asserted)** while **pin 3 (RXD) stays idle mark -- no command bytes ever go in.** So
+the Totco streams **only while the consumer asserts DTR**, not on a command.
+- **Listen-tap implication:** works in **coexistence** (consumer holds DTR -> Totco streams -> we listen); a
+  **Pi-only standalone read sees silence** unless the Pi asserts DTR. -> **validate Totco via the coexistence
+  test (step 3), not the Pi-only step 2.** (Intellisense, transmit-only, streams standalone.)
+- **Confirm test:** disconnect the consumer, jumper **pin 4 -> +5..9.25 V**, watch pin 2 -- streams =
+  confirmed DTR-gate; silence = wrong, dig further. Likely also explains the S3 "total silence on COM6".
+
+### Multi-DAQ: one board or two?
+A "2-in-1" is electrically just **2x this identical circuit** (different `Rin` + read-baud per channel),
+buildable with parts in hand. **Recommended: build/validate the Intellisense channel first** (the sure
+thing), then add Totco as a 2nd opto channel (same board or separate). Keep the **three ground domains
+separate** (Intellisense-GND, Totco-GND, Pi-GND never bridge).
+
+### v2 field form factor (operator's plan)
+6-pin Amphenol -> splitter protoboard (data + GND **pass straight through** to a 2nd Amphenol that continues
+the normal run) -> opto branch off the same node -> Pi. The pass-through is **continuous wire**, so the
+existing consumer's line is electrically unchanged except for the opto's ~5 mA tap load (= the step-3
+coexistence test). **v2 prereq: map the 6-pin Amphenol pinout (data + GND).**
+
+### Bench fake-DAQ source (no Waveshare)
+The operator has no Waveshare; use the **field DB9->USB adapter run as a transmitter**. Its data exits on
+**TXD = DB9 pin 3** (the field readings were on pin 2 = the adapter's RXD/receive side). Replay a captured
+`.bin` out the adapter COM port @19200; tap pin 3 + GND pin 5 into the opto input via the Jienk DB9 breakout.
+
 ## Build & test plan (each step a go/no-go gate)
 
-1. **Solder + bench (no pump).** Populate Rin for the measured #1 voltage. Use a 2nd USB-serial
-   adapter (the Waveshare or PL2303) as a *fake DAQ* replaying a captured `.bin` into the tap input;
-   read on the Pi at 19200. **Gate: clean ASCII matching the capture.**
+1. **Solder + bench (no pump).** Populate Rin for the measured #1 voltage. Use the **field DB9->USB
+   adapter run as a transmitter** (operator has no Waveshare) as the *fake DAQ*: replay a captured `.bin`
+   out its COM port; tap its **TXD = DB9 pin 3** (NOT the field-read pin 2) + GND pin 5 into the opto
+   input via the Jienk DB9 breakout; read on the Pi at 19200. **Gate: clean ASCII matching the capture.**
    - Pi UART setup: `raspi-config` → serial **hardware ON**, serial **console OFF**; device =
      `/dev/serial0` (`/dev/ttyAMA0`).
 2. **Real wire, Pi-only.** Tap the live DAQ with no other consumer attached.
@@ -133,9 +173,9 @@ needed for the bench build** at all (field hardening only).
 
 ## Open items / risks
 
-- **#1 — DAQ TXD idle voltage** (the only blocker): operator to measure (multimeter on TXD vs GND at
-  idle; reads negative). Sets Rin and the TVS rating. Pending; operator gathering it "in the next day
-  or two."
+- ~~**#1 — DAQ TXD idle voltage**~~ -- DONE, **MEASURED 2026-06-25:** Intellisense **-6.35 V** (pin1=GND,
+  pin2=TXD; **transmit-only 2-wire**, no handshake pins), Totco **-8.20 V** (pin5=GND, pin2=TXD). Both
+  <+-10 V -> P6KE12CA adequate; `Rin` = 1 kohm / 1.5 kohm. See "DAQ behavior + measurements" above.
 - **Confirm one-way:** the existing consumer only *receives* from the DAQ (never transmits to it).
   The headerless continuous stream strongly implies this — confirm, since it's what makes a
   single-channel listen tap sufficient.

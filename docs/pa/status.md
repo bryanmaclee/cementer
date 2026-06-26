@@ -1,6 +1,6 @@
 ---
 status: current
-last-reviewed: 2026-06-23
+last-reviewed: 2026-06-25
 ---
 
 # cementer — live status (the SoT)
@@ -45,6 +45,11 @@ coordination (claims, push intents, notices) is on the **coord branch** — `mak
 - **P3 (2026-06-23):** doc-currency reconcile after Bryan's B6/cleanup (PR #10 `ac2dd16`) — synced `main`
   + coord, confirmed both P1 follow-ups (`.gitattributes`, parser cleanup) landed by Bryan, fixed the stale
   "still open" note in this block. **P2 `serial-split-tap` build remains PAUSED** on operator measurement #1.
+- **P4 (2026-06-25):** **resumed the `serial-split-tap` BUILD** -- operator measured **#1** for BOTH
+  DAQs (Intellisense **-6.35 V** / Totco **-8.20 V** idle), clearing the blocker. Issued the Intellisense
+  channel-1 build sheet; **new finding: Totco TX is DTR-gated** (streams only while the consumer asserts
+  DTR/pin4 -- listen tap validates in coexistence, not Pi-only). Build now in the operator's hands;
+  findings folded into [`serial-split-tap/scope.md`](../changes/serial-split-tap/scope.md). Wrapped before solder.
 
 ## Phase board
 
@@ -124,9 +129,10 @@ the living spec; don't let deltas accumulate here. No separate as-built spec doc
 ## Near-term actions (not yet done)
 
 1. ~~**`.gitattributes` durable CRLF fix**~~ ✅ added (Bryan, `bryan/cleanup` PR).
-2. **`serial-split-tap` build** (Peter P2 — **PAUSED**) — solder the isolated 6N137 tap + bench/field test
-   per [`serial-split-tap/scope.md`](../changes/serial-split-tap/scope.md); resumes when the operator
-   returns with measurement #1 (DAQ TXD idle voltage) + parts. Scope landed (PR #7).
+2. **`serial-split-tap` build** (Peter — **IN BUILD, resumed P4**) — **#1 measured 2026-06-25** (Intellisense
+   -6.35 V / Totco -8.20 V); building the **Intellisense channel first** (6N137, `Rin` 1 kohm, read 19200) per
+   [`serial-split-tap/scope.md`](../changes/serial-split-tap/scope.md) "Build & test plan". Totco = 2nd channel
+   after (DTR-gated -- coexistence-validate). Scope landed (PR #7) + P4 findings folded in.
 3. ~~**Parser cleanup**~~ ✅ removed the off-path `internal/parser` (Bryan, `bryan/cleanup` PR).
 4. **Totco preset** — when a Totco unit is reachable (same direct-laptop capture method).
 5. ~~Phase 4b~~ ✅ (Bryan, PR #1). ~~Install commit gate~~ ✅ (S6). ~~Fix repo ruleset~~ ✅ (issue #3).
@@ -136,6 +142,8 @@ the living spec; don't let deltas accumulate here. No separate as-built spec doc
 - `go test ./...`: `internal/daqformat`, `internal/store`, `internal/api`, `internal/printcfg` have tests;
   others report "no test files" (`internal/parser` removed in B6). Web has no unit suite (tsc-strict +
   Playwright screenshot are the checks).
+- **P4 wrap run (2026-06-25, Windows):** docs-only arc (zero source change) -- `go vet ./internal/...` ok ·
+  `go test ./internal/...` ok; `web/dist` present (embed intact).
 - **P3 wrap run (2026-06-23, Windows):** docs-only arc (zero source change) — `go vet ./...` ✅ ·
   `go test ./...` ✅ (api/daqformat/printcfg/store pass) · `gofmt -l` clean.
 - **P2 wrap run (2026-06-21, Windows):** docs-only arc (zero source change) — `go vet ./internal/...` ✅ ·

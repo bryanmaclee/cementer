@@ -5,6 +5,27 @@ the human-discoverable session narrative). Newest block on top.
 
 ---
 
+## 2026-06-25 -- Peter P4 - serial-split build resumed (`#1` measured both DAQs)
+
+Resumed the paused P2 `serial-split-tap` hardware arc. Operator returned with measurement **#1** for BOTH
+DAQ units, clearing the only blocker; produced the Intellisense channel-1 build sheet + a Totco
+serial-behavior analysis. Build now in the operator's hands (soldering + bench gate); wrapped before solder.
+
+- **`#1` measured:** Intellisense idle **-6.35 V** (pin1=GND, pin2=TXD; **transmit-only 2-wire**, no
+  handshake) -> `Rin` 1 kohm; Totco idle **-8.20 V** (pin5=GND, pin2=TXD) -> `Rin` 1.5 kohm. P6KE12CA TVS
+  covers both (<+-10 V). Pull-up 1 kohm -> 3.3 V.
+- **New finding -- Totco TX is DTR-gated:** transmitter always alive (-8.2 V mark even USB-unplugged); data
+  flows only while the consumer asserts **DTR (pin 4 -> +9.25 V)** with pin 3/RXD idle (no command bytes).
+  -> listen tap works in coexistence; Pi-only standalone needs DTR. Likely explains the S3 COM6 silence.
+- **Bench plan revised:** fake-DAQ = the field DB9->USB adapter run as a transmitter (no Waveshare); tap its
+  TXD = DB9 pin 3 (not the field-read pin 2) via the Jienk breakout. v2 = Amphenol pass-through board + opto
+  branch.
+- Caught up: ff'd this offline laptop `3240588 -> ac2dd16` (was 22 behind). Coord P4 open+close pushed.
+- Findings folded into `docs/changes/serial-split-tap/scope.md`. Docs on `peter/p3-doc-currency` (stacked on
+  P3 `b66010b`), UNPUSHED (bare wrap) -> push + ONE PR to `main` next session. No source change; gate green.
+
+---
+
 ## 2026-06-23 — Peter P3 · doc-currency reconcile (post-B6 cleanup)
 
 Short docs-only session. Caught up on Bryan's B6/cleanup (PR #10 `ac2dd16`), which resolved two of Peter's

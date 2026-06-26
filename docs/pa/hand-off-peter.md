@@ -1,123 +1,114 @@
 # Hand-off — Peter (live)
 
-`as of: P3 close · 2026-06-23 · operator: peter` (machine: **Windows field laptop** — `C:\Users\pjoli\Documents\GitHub\cementer`)
+`as of: P4 close · 2026-06-25 · operator: peter` (machine: **Windows field laptop** — `C:\Users\poliv\Documents\GitHub\cementer`)
 
 > Peter's per-operator hand-off (multi-operator partition, S6). Optimize for Peter's next-session pickup.
-> Peter's PA rewrites this at his wraps; Bryan does not edit it (CODEOWNERS → Peter).
+> Peter's PA rewrites this at his wraps; Bryan does not edit it (CODEOWNERS -> Peter).
 >
-> **Session-start order (multi-operator):** fetch → `git worktree add .coord coord` → read
-> `.coord/ledger.md` tail + `.coord/claims/bryan.md` + `.coord/inbox/peter/` → THEN this file +
+> **Session-start order (multi-operator):** fetch -> `git worktree add .coord coord` (if absent) -> read
+> `.coord/ledger.md` tail + `.coord/claims/bryan.md` + `.coord/inbox/peter/` -> THEN this file +
 > `status.md`/`changelog.md` on `main`. Shared truth = `status.md` + `changelog.md`; live coordination =
 > the coord branch.
 
-## ▶ P3 close (2026-06-23) — doc-currency reconcile (no project work)
+## > P4 close (2026-06-25) -- serial-split BUILD resumed; `#1` measured both DAQs; Intellisense channel ready to solder
 
-Short docs-only session. Caught up on Bryan's **B6/cleanup (PR #10 `ac2dd16`)** and reconciled the SoT.
+**RESUME POINT for P5 (tomorrow):** the operator is physically building **Intellisense channel 1** and
+running the **bench gate (step 1)**. Pick up by asking what the Pi saw at the gate -- clean 14-col lines /
+garbage / silence -- then proceed to **step 2** (real wire on the Pi). Full design + new findings are folded
+into [`docs/changes/serial-split-tap/scope.md`](../changes/serial-split-tap/scope.md).
 
-- **Synced:** `main` ff `cccb641 → ac2dd16`; coord ff `04ee9c3 → 2876de7`. Both claims idle, inbox clean,
-  no contention. Bryan's **B6 now closed cleanly** (claim reset + close block added) — the stale-claim nudge
-  from P2 is resolved; nothing left to flag there.
-- **Bryan's PR #10 closed two of my standing items:** `.gitattributes` durable LF fix (my P1 Windows CRLF
-  find) + removal of the dead off-path `internal/parser`. **Neither is mine to carry anymore.**
-- **Fixed the only stale note:** the Peter block in `status.md` still listed those two as "still open" →
-  reconciled. Added P3 lines to `status.md` + `changelog.md` + this hand-off; bumped `last-reviewed`.
-- **Off-repo (not a repo change):** Enter key was broken — `~/.claude/keybindings.json` had remapped submit
-  to double-Enter (`enter`→null, `enter enter`→submit). Reset to defaults; Enter submits again. *Needs a
-  Claude Code restart to take effect.*
-- **Landing:** P3 docs committed to branch `peter/p3-doc-currency` (bare wrap — feature branch **NOT pushed**;
-  PR to `main` pending operator auth). Coord close pushed direct.
+### `#1` MEASURED -- the blocker is cleared
+Operator measured both DAQ TXD idle voltages (multimeter, TXD vs GND; reads negative = RS-232 mark):
 
-## ▶ P2 close (2026-06-21) — serial-split tap (hardware design, BUILD PAUSED pending #1)
+| Unit | GND / TXD pins | Idle (mark) | `Rin`=(V-1.5)/5mA | Pick | Read baud |
+|---|---|---|---|---|---|
+| **Intellisense** | pin1 / pin2 -- **transmit-only, 2-wire** (no handshake pins active) | **-6.35 V** | 970 ohm | **1 kohm** | 19200 8N1 |
+| **Totco** | pin5 / pin2 | **-8.20 V** | 1.34 kohm | **1.5 kohm** | 9600 8N1 |
 
-Arc: **`serial-split-tap`** — an isolated, listen-only serial tap so the Pi 4B can ingest a live DAQ
-stream without disturbing the system that already consumes that serial. **Design locked + spec landed
-on `main` (PR #7, `1b942eb`); build PAUSED pending operator measurement #1.** Full spec:
-[`docs/changes/serial-split-tap/scope.md`](../changes/serial-split-tap/scope.md).
+- Pull-up `Rpu` = **1 kohm -> 3.3 V** (both). To 3.3 V NOT 5 V (Pi not 5 V-tolerant).
+- **TVS P6KE12CA covers BOTH** (both lines <+-10 V) -- field hardening only, skip on the bench.
+- Resistors in hand: BOJACK 1000-pc 25-value kit (1ohm-1Mohm) + a "ja90002x300" kit -> 1k & 1.5k stocked.
 
-- **Topology:** 6N137 opto front-end → **Pi GPIO UART** (bypassing the USB-serial adapter). Input
-  self-powered by the line; output pulled to **3.3 V** (NOT 5 V — would fry the Pi). Polarity is
-  correct without inversion.
-- **Blocker = "#1":** the DAQ TXD idle voltage (multimeter). Operator gathering it "in a day or two."
-  It sets the input resistor (≈±5 V→680 Ω, ±9 V→1.5 kΩ, ±12 V→2.2 kΩ) and the TVS rating.
-- **Parts ordered** (6N137 ×N, DIP sockets, 1N4148, resistors, P6KE12CA TVS); rest in hand.
-- **TVS caveat:** P6KE12CA clips a full ±12 V line — use P6KE15/18CA if #1 shows ≥±10 V. Not needed
-  for the bench build.
-- **Resume = 3 steps** (scope doc §Build & test): solder → bench replay → real-wire on Pi → coexistence.
-- **Open Qs to confirm with operator:** (a) #1 value; (b) one-way link (consumer never TX's to DAQ?);
-  (c) Pi-GPIO vs keep-Waveshare output path (GPIO chosen, confirm).
-- Scope doc merged to `main` (PR #7); branch deleted. coord: P2 **closed**, claim reset to **idle**.
-- **Resume trigger:** operator returns with #1 (and parts arrive) → new arc `peter/p2-serial-split-build`
-  → solder + bench replay → real-wire on Pi → coexistence, per the scope doc's §"Build & test plan".
+### NEW FINDING -- Totco TX is **DTR-gated** (not command-polled)
+Evidence: pin 2 (Totco TXD) sits at -8.2 V mark whenever the unit is powered (even USB unplugged) -> its
+transmitter is **always alive**. DATA appears on pin 2 only when the consumer software runs, and exactly
+then **pin 4 -> +9.25 V (DTR asserted)** while **pin 3 (RXD) stays idle mark -- no command bytes ever go
+in.** So the Totco streams **only while the consumer asserts DTR**, not in response to a command.
+- **Listen-tap implication:** perfect in **coexistence** (existing consumer holds DTR -> Totco streams ->
+  we listen). But a **Pi-only standalone read sees silence** unless the Pi asserts DTR. -> **Totco validates
+  via the COEXISTENCE test (step 3), not the Pi-only step 2.** (Intellisense, transmit-only, is standalone.)
+- **Decisive confirm test (operator):** disconnect consumer, jumper **pin 4 -> +5..9.25 V**, watch pin 2.
+  Streams = confirmed; silence = theory wrong, dig further. Also likely explains the **S3 "total silence on
+  COM6"** (nothing was asserting DTR).
 
-## ✅ P1 result (2026-06-21)
+### Build plan -- Intellisense channel FIRST
+Build/validate Intellisense single-channel before adding Totco (Intellisense = the sure thing; Totco has the
+unconfirmed DTR behavior; separate input domains = cleaner isolation). A "2-in-1" (two opto channels on one
+board) is electrically just **2x the identical circuit** and buildable with parts in hand -- but de-risk by
+proving channel 1 first.
+- **Wiring + the inviolable rule (DAQ-GND != Pi-GND, gap down the board): scope.md "The circuit" + build
+  sheet there.** `Rin` 1k -> 6N137 pin2(anode); pin3(cathode)->DAQ GND; 1N4148 antiparallel; Pi side
+  pin8(Vcc)->Pi 5V, **pin7(VE)->pin8** (or output disabled), pin5->Pi GND, 0.1uF pin8->pin5, pin6(Vo)->`Rpu`
+  1k->3.3V and pin6->Pi pin10 (GPIO15/RXD).
+- **Bench fake-DAQ = the field DB9->USB adapter run as a TRANSMITTER** (operator has NO Waveshare). Laptop
+  replays a captured Intellisense `.bin` out the adapter COM port @19200; pick it off the **Jienk DB9
+  terminal breakout** at the adapter's **TXD = DB9 pin 3** (NOT pin 2 -- pin 2 was the *read* side in the
+  field) + GND pin 5 -> opto input. Read on Pi `/dev/serial0` @19200. **Gate = clean 14-col ASCII.**
+- **v2 final form factor:** 6-pin Amphenol -> splitter protoboard (data+GND **pass straight through** to a
+  2nd Amphenol that continues the normal run) -> opto branch off the same node -> Pi. Pass-through =
+  continuous wire, so the consumer's line is electrically unchanged except the opto's ~5 mA tap load (= the
+  step-3 coexistence test). **v2 prereq: map the 6-pin Amphenol pinout (data + GND) before cutover.**
 
-Adopted the S6 multi-party model + stood up this laptop + verified Phase 4b. Everything that could land
-**did land** (`main` `0a96095`); everything still pending is **blocked on Bryan's repo-config**, not on me.
+### Resume = scope.md "Build & test plan" -- 3 go/no-go gates
+1. solder + bench replay (above) -> 2. real-wire on Pi (`cementer -source /dev/serial0 -format intellisense`,
+watch `/debug/stats` rows climb -- **never yet proven on real wire**) -> 3. coexistence (tap in parallel with
+the live consumer; Pi powered / unpowered / physically yanked -> **zero disturbance** to production).
+Pi UART: `raspi-config` -> serial hardware **ON**, console **OFF**; device `/dev/serial0` (`ttyAMA0`).
 
-- **Adopted** PR-flow + coord + meta-doc partition. Fast-forwarded to Bryan's PR #1 (`c952c54`).
-- **Windows toolchain UP:** Go 1.26.4 + Node 24.17.0/npm 11.13.0 (winget). Commit gate installed
-  (`core.hooksPath=scripts/git-hooks`). Fixed the CRLF/gofmt break (`autocrlf=false` + LF renormalize).
-  Full gate green on Windows.
-- **Phase 4b PA-verified E2E** (built/ran/recorded → Report tab + print render via headless Edge).
-- **P1 onboarding docs landed:** PR #2 → `main` `0a96095`.
-- **Bryan notified** (issue #3 + coord `inbox/bryan/` notice) of the ruleset problems.
+## ! OPEN -- for P5
+1. **Pending doc PR (unmerged).** This wrap's docs sit on **`peter/p3-doc-currency`** (`b66010b` P3 + the
+   P4 commit), **LOCAL / UNPUSHED** (bare wrap). The P3 PR was deferred by the operator "to fold in more
+   progress" -- P4 is that progress. **Next: push the branch + open ONE PR -> `main`** (needs operator auth).
+   Carries Peter's P3+P4 session bookkeeping + the scope.md update; **no source code.**
+2. **Serial-split build** -- in the operator's hands (soldering + bench gate). Resume per above.
+3. **Totco** -- second channel after Intellisense proves out; run the **pin-4 DTR jumper confirm test**; map
+   the 6-pin Amphenol pinout for v2.
 
-## ⚠ OPEN — next session
+## Coord state (the `.coord` worktree -- RETAINED across sessions on purpose)
+- `.coord` worktree on branch `coord`, pushed/synced (P4 **open** + **close** blocks appended this session).
+- `claims/peter.md` reset to **idle** at this close.
+- **Do NOT remove the `.coord` worktree** -- it's the live coordination channel. (Recreate on a fresh clone
+  with `git worktree add .coord coord`.)
+- **Bryan:** idle, B6 closed cleanly. Next arc = nav-maps regen (stale since S5) + broaden the pre-commit
+  gate to catch deletions. **No contention** with the serial-split hardware arc.
 
-1. **`peter/p3-doc-currency` is committed but UNPUSHED** — bare wrap. Push + open a PR to `main` when
-   authorized (it's docs-only, trivial). Or fold into the next arc's PR.
-2. **`serial-split-tap` build (P2)** — **PAUSED** pending operator measurement **#1** (DAQ TXD idle
-   voltage) + parts. Resume = new arc `peter/p2-serial-split-build` → solder → bench replay → real-wire on
-   Pi → coexistence, per [`scope.md`](../changes/serial-split-tap/scope.md) §"Build & test plan". See the
-   P2-close section below for the full hardware context.
-3. **Totco preset** — low-priority; when a Totco unit is reachable (same direct-laptop capture method).
-
-_Resolved (no longer open):_ `.gitattributes` durable CRLF fix + dead `internal/parser` removal (Bryan,
-PR #10 `ac2dd16`); `pa.md` topology rewrite (Bryan, PR #6); Bryan's stale B6 coord claim (closed in B6);
-P1 ruleset blocks (issue #3 closed, verified) — coord push-direct + branch deletion both work.
-
-## Project work (none claimed by Peter; project MVP effectively reached)
-
-- **Phase 4b is DONE** (Bryan, PR #1) — verified here. Do not rebuild.
-- Parser cleanup (`internal/parser` off-path); Totco preset (unit not accessible). Both low-priority.
-
-## Environment caveats (Windows field laptop) — IMPORTANT, reusable
-
-- **Toolchain:** Go + Node are on the **machine PATH** → a freshly-launched shell auto-resolves them. But
-  the **Bash _tool_ runs non-interactively** and a session's shell may predate that; if `go`/`npm` don't
-  resolve, prepend: `export PATH="/c/Program Files/Go/bin:/c/Program Files/nodejs:$PATH"`.
-- **`make` is NOT installed.** Run recipes directly: `make hooks` → `git config core.hooksPath
-  scripts/git-hooks`; `make coord` → `git worktree add .coord coord`; `make web` → `cd web && npm install
-  && npm run build`; `make build` → web build + `go build ./cmd/cementer`; `make demo`/`make run` → run
+## Environment caveats (Windows field laptop) -- IMPORTANT, reusable
+- **This clone path:** `C:\Users\poliv\Documents\GitHub\cementer` (prior hand-offs cited `C:\Users\pjoli\...`
+  -- same operator; account/path label differs, not load-bearing).
+- **Toolchain:** Go + Node on the machine PATH. The **Bash _tool_ runs non-interactively** -- if `go`/`npm`
+  don't resolve, prepend: `export PATH="/c/Program Files/Go/bin:/c/Program Files/nodejs:$PATH"`.
+- **`make` is NOT installed** -- run recipes directly: `make hooks`->`git config core.hooksPath
+  scripts/git-hooks`; `make coord`->`git worktree add .coord coord`; `make web`->`cd web && npm install &&
+  npm run build`; `make build`->web build + `go build ./cmd/cementer`; `make demo`/`run`->
   `./cementer.exe -source testdata/... -format ... -data-dir <tmp> -addr :8080`.
-- **`gh` is NOT installed.** Drive GitHub via the REST API with the cached token:
-  `cred=$(printf "protocol=https\nhost=github.com\n\n" | git credential fill); TOKEN=$(... sed -n 's/^password=//p')`.
-  (Used this for the PR #2 merge and issue #3.) External writes (issues/PRs) need explicit user OK.
-- **Headless UI verify on Windows:** `cd /tmp/pw && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm i
-  playwright@1.60.0`, then `chromium.launch({channel:'msedge', headless:true})` (system Edge — no browser
-  download). `page.pdf()` produces the actual Save-as-PDF artifact.
-- **Git config (this clone):** `core.autocrlf=false`, `core.hooksPath=scripts/git-hooks`. Remote = HTTPS,
-  credential cached (credential.helper=manager; the one-time prompt is done).
-- **Avoid em-dashes in `curl -d` JSON bodies** — the shell mangles them → GitHub "Problems parsing JSON".
-  Use ASCII, a JSON file, or node + `JSON.stringify`.
+- **`gh` is NOT installed** -- drive GitHub via REST with the cached git token (`git credential fill`).
+  External writes (issues/PRs) need explicit user OK.
+- **Headless UI verify:** `cd /tmp/pw && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm i playwright@1.60.0`, then
+  `chromium.launch({channel:'msedge', headless:true})` (system Edge -- no download); `page.pdf()` = real PDF.
+- **Git (this clone):** `core.autocrlf=false`, `core.hooksPath=scripts/git-hooks`, remote HTTPS, credential
+  cached. **`.gitattributes` (`* text=auto eol=lf`) now on `main`** (Bryan PR #10) -- coord commits still
+  warn "LF->CRLF"; benign for `.md`.
+- **Avoid em-dashes in `curl -d` JSON** -- the shell mangles them -> GitHub "Problems parsing JSON". Use
+  ASCII / a JSON file / node `JSON.stringify`.
 
-## Coord state (the .coord worktree — RETAINED across sessions on purpose)
-
-- `.coord` worktree on branch `coord`, **pushed + synced** (P3 close pushed direct; `origin/coord = local`).
-- My `claims/peter.md` = **idle** (still idle through P3 — no project work claimed).
-- **Do NOT remove the `.coord` worktree** — it's the live coordination channel (works both ways).
-
-## State as of P3 close
-
+## State as of P4 close
 | Item | State |
 |---|---|
-| `main` | `ac2dd16` (synced; Bryan's B6/cleanup PR #10 merged) |
-| `peter/p3-doc-currency` | committed, **UNPUSHED** (bare wrap; PR pending auth) |
-| Multi-party model | ADOPTED; full PR-flow cycles done; B6 closed cleanly |
-| Windows toolchain | ✅ Go 1.26.4 + Node 24.17.0; full gate green; CRLF fixed |
-| Commit gate | ✅ installed |
-| Phase 4b / project MVP | ✅ DONE (Bryan PR #1), PA-verified E2E here |
-| P1 follow-ups (.gitattributes, parser) | ✅ resolved (Bryan PR #10) |
-| P2 serial-split-tap | design done; **build PAUSED** on operator measurement #1 |
-| coord | ✅ pushed + synced; works both ways |
-| Tests (P3 wrap) | `go vet ./...` ✅ · `go test ./...` ✅ · `gofmt -l` clean |
+| `main` | `ac2dd16` (synced; this laptop ff'd from **22 behind** at session open) |
+| Active arc | `serial-split-tap` **BUILD** -- Intellisense channel, in operator's hands |
+| `#1` (the blocker) | DONE -- **MEASURED** both DAQs (Intellisense -6.35 V / Totco -8.20 V) |
+| Pending docs | `peter/p3-doc-currency` (P3+P4), **LOCAL/UNPUSHED** -> push+PR next (operator auth) |
+| coord | P4 open+close pushed; `claims/peter` idle |
+| Phase 4b / MVP | DONE (Bryan PR #1) |
+| Tests | docs-only session (zero source change) -- `go vet`/`test ./internal/...` green (see status.md) |
+| Bryan | idle (B6 closed); next = nav-maps regen + gate-broaden |
