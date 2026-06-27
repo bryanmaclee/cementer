@@ -5,6 +5,41 @@ the human-discoverable session narrative). Newest block on top.
 
 ---
 
+## 2026-06-27 -- Peter P5 - serial-split tap PROVEN end-to-end (breadboard, step-1 bench gate)
+
+Long hands-on build session. Took the Intellisense opto channel from bare wiring to a **fully working
+listen-tap**, proven all the way into cementer + the live web chart over WiFi. Build still on breadboard;
+solder + field steps remain. Local-only wrap (push deferred to P6 by operator).
+
+- **Plan pivot:** operator acquired a **Waveshare USB->RS232** adapter -> bench source is now the Waveshare
+  run as a transmitter (real RS-232), superseding both the field-DB9-adapter plan and a briefly-considered
+  ESP32-TTL "Option B" (would have needed firmware UART inversion + ~330 ohm `Rin`). Real-RS-232 path keeps
+  `Rin`~1k-class and needs NO inversion.
+- **Debugged to working:** (1) **diode orientation** — 1N4148 was parallel (clamped anode at 0.69 V); fixed
+  antiparallel -> idle clamps to -0.68 V. (2) **DOA 6N137** — first chip's output stage was dead (LED driven
+  ~6 mA, Vcc/VE/GND all good, Vo never switched); a spare fixed it instantly. (3) **under-drive** — Waveshare
+  (~+5 V) at `Rin` 1k gave only ~4 mA (< the 6N137's ~5 mA threshold); dropped to **560 Ω** on the bench
+  (re-tune UP with the good chip before soldering). (4) **Pi baud trap** — `/dev/serial0 -> ttyS0` mini-UART
+  reset to 9600 on reboot -> garbage; console OFF + 19200 fixed it.
+- **cementer ingest proven:** built/cross-compiled a current `cementer-arm64-new` (the Pi's old binary
+  predated the `-format` flag), `scp`'d to the Pi; `/debug/stats` climbed 208 -> 1079 rows; live chart
+  painted over WiFi at `http://<pi-ip>:8080`. Full recipe folded into `serial-split-tap/scope.md`.
+- **Doc bug found + fixed (verify-against-code):** scope.md/hand-off said `cementer -source /dev/serial0` —
+  wrong. The device flag is **`-serial`** (`-source` is a replay file) and **`-baud 19200` is mandatory**
+  (the flag defaults to 9600; cementer sets the port baud itself, ignoring `stty`). Fixed in scope.md.
+- **Toolchain debt surfaced:** laptop Node was **18.12.1** (P1's "Node 24" hadn't stuck) — Vite needs 20+;
+  `winget install OpenJS.NodeJS.LTS` -> v24.18.0, rebuilt `web/dist` (was a stale 315-byte placeholder).
+  `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` set (PS script policy kept blocking the sender/npm).
+- **New tool:** `tools/intellisense-send.ps1` — PowerShell Intellisense frame generator (19200 8N1, CR/LF,
+  triangle wave). Committed this wrap.
+- Session-start hygiene: this clone's `core.hooksPath` was unset + `core.autocrlf=true` (drifted from the
+  documented state) — restored to `scripts/git-hooks` / `false`.
+- Tests: docs + tooling arc, zero Go/web *source* change (web/dist is a build artifact). `go vet ./...` +
+  `go test ./...` recorded at wrap. Docs committed to `peter/p3-doc-currency` (stacked on P3+P4),
+  **UNPUSHED** + coord close **UNPUSHED** (operator deferred all pushes to P6).
+
+---
+
 ## 2026-06-25 -- Peter P4 - serial-split build resumed (`#1` measured both DAQs)
 
 Resumed the paused P2 `serial-split-tap` hardware arc. Operator returned with measurement **#1** for BOTH

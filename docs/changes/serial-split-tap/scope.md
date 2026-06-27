@@ -1,6 +1,6 @@
 ---
 status: in-progress
-last-reviewed: 2026-06-21
+last-reviewed: 2026-06-27
 change-id: serial-split-tap
 operator: peter
 phase: hardware (field-ingest enabler; not a numbered software phase)
@@ -9,7 +9,9 @@ depends-on: "#1" (DAQ TXD idle voltage) -- MEASURED 2026-06-25 (Intellisense -6.
 
 # Serial-split tap — scope (isolated DAQ → Pi listen tap)
 
-> **Status: `#1` MEASURED 2026-06-25 (both DAQs); build in progress -- Intellisense channel first.** This captures a hardware-design chat
+> **Status: step-1 bench gate PASSED on breadboard 2026-06-27 (P5)** — full path proven end-to-end with a
+> Waveshare RS-232 source (see "P5 bench validation"). Next: solder the proto + re-run step 1, then field
+> steps 2-3. This captures a hardware-design chat
 > (P2, 2026-06-21) so the next session resumes from a written spec, not from re-derivation. The
 > only open input is **#1** (the DAQ line idle voltage), which sets one resistor value. Parts are
 > on order; everything else is decided.
@@ -158,18 +160,71 @@ The operator has no Waveshare; use the **field DB9->USB adapter run as a transmi
 
 ## Build & test plan (each step a go/no-go gate)
 
-1. **Solder + bench (no pump).** Populate Rin for the measured #1 voltage. Use the **field DB9->USB
-   adapter run as a transmitter** (operator has no Waveshare) as the *fake DAQ*: replay a captured `.bin`
-   out its COM port; tap its **TXD = DB9 pin 3** (NOT the field-read pin 2) + GND pin 5 into the opto
-   input via the Jienk DB9 breakout; read on the Pi at 19200. **Gate: clean ASCII matching the capture.**
-   - Pi UART setup: `raspi-config` → serial **hardware ON**, serial **console OFF**; device =
-     `/dev/serial0` (`/dev/ttyAMA0`).
+1. **Solder + bench (no pump). ✅ PASSED on BREADBOARD 2026-06-27 (P5)** — see "P5 bench validation"
+   below. Source: a **Waveshare USB->RS232 adapter** (operator now has one; supersedes the field-adapter
+   plan) driven by `tools/intellisense-send.ps1` (PC PowerShell, real RS-232). Tap its **TXD = DB9 pin 3**
+   (DTE) + GND pin 5 into the opto input; read on the Pi `/dev/serial0` @19200. **Gate met: cementer
+   ingested clean 14-field frames into the store (`/debug/stats` rows climbing) + the live chart painted
+   over WiFi.** Still to do: rebuild on the soldered protoboard and re-run this gate.
+   - Pi UART setup: `sudo raspi-config` → serial **hardware ON**, serial **console OFF** → reboot;
+     device = `/dev/serial0` (on a Pi 4 this is the **mini-UART `ttyS0`**, NOT `ttyAMA0`; `enable_uart=1`
+     from "hardware ON" locks the core clock so 19200 stays accurate — no Bluetooth-disable needed).
 2. **Real wire, Pi-only.** Tap the live DAQ with no other consumer attached.
-   `cementer -source /dev/serial0 -format intellisense`; watch rows climb at `/debug/stats`.
-   **Gate: real-wire end-to-end on the Pi** (never yet proven — prior validation was laptop-to-USB).
+   `cementer -serial /dev/serial0 -baud 19200 -format intellisense`; watch rows climb at `/debug/stats`.
+   **Gate: real-wire end-to-end on the Pi** (never yet proven — prior validation was laptop-to-USB / the
+   P5 bench used the Waveshare, not the pump). ⚠ cementer sets the port baud **itself** via `go.bug.st/serial`
+   (ignores `stty`); the `-baud` flag **defaults to 9600**, so passing `-baud 19200` is mandatory. The
+   device path is **`-serial`**, NOT `-source` (which is a replay *file*).
 3. **Coexistence.** Connect the tap **in parallel** with the existing system; verify it still reads
    perfectly with the Pi powered, unpowered, and physically yanked. **Gate: zero disturbance to the
-   production path.**
+   production path.** (P5's lower `Rin` raises the tap load to ~7-9 mA — validate here; MAX3232 buffer is
+   the documented fallback if it disturbs the consumer.)
+
+## P5 bench validation (2026-06-27) — step 1 PASSED on breadboard
+
+Full opto path proven end-to-end on the breadboard: **PC sender → Waveshare USB→RS232 → 6N137 opto → Pi
+mini-UART → cementer → SQLite → web UI over WiFi (live chart).** `/debug/stats` climbed steadily
+(208 → 1079 rows ≈ 14 rows/s = ~1 line/s × 13 channels). The bench source is the Waveshare adapter run as
+a transmitter (the field-DB9-adapter plan is superseded — operator acquired a Waveshare).
+
+**The working recipe (reuse for the soldered-proto re-test):**
+- **DAQ side (breadboard):** Waveshare DB9 **pin 3 (TXD)** → `Rin` → 6N137 pin 2 (anode); Waveshare DB9
+  **pin 5 (GND)** → 6N137 pin 3 (cathode); 1N4148 antiparallel (**band/cathode → pin 2**, anode → pin 3).
+- **Pi side:** pin 8 (Vcc) → Pi 5V (pin 2); pin 7 (VE) → tie to Vcc; pin 5 (GND) → Pi GND (pin 6);
+  0.1 µF across 8↔5; pin 6 (Vo) → `Rpu` 1 k → Pi 3.3V (pin 1) **and** → Pi pin 10 (GPIO15/RXD).
+  **Grounds never bridge** (opto + WiFi are the only couplings; PC and Pi share no ground).
+- **PC sender:** `tools/intellisense-send.ps1 -Port COM6` (PowerShell, .NET `SerialPort`, 19200 8N1,
+  CR/LF, ~1 line/s, triangle-wave so the chart moves). Needs `Set-ExecutionPolicy -Scope CurrentUser
+  RemoteSigned` once. Only ONE process can hold the COM port — close the window or `$sp.Close()` to free it.
+- **Pi read (eyeball gate):** `stty -F /dev/serial0 19200 raw -echo -crtscts; cat /dev/serial0` → clean
+  14-field lines. (Stop the login console first if it fights the port: raspi-config console OFF.)
+- **Pi ingest:** `~/cementer-arm64-new -serial /dev/serial0 -baud 19200 -format intellisense -data-dir
+  ~/cementer-splittest > ~/cementer.log 2>&1 &` then `curl -s localhost:8080/debug/stats`; browser =
+  `http://<pi-ip>:8080`.
+- **Binary:** the Pi has no Go/Node; cross-compile on the laptop: `$env:GOOS='linux'; $env:GOARCH='arm64';
+  $env:CGO_ENABLED='0'; go build -o cementer-arm64-new ./cmd/cementer` then `scp … serial123@<pi-ip>:~/`.
+  **Stop the running binary before scp** (a live ELF is "text file busy" → scp "dest open Failure").
+  The web UI needs a real `web/dist` (`cd web && npm run build`) embedded at build time — needs Node ≥ 20.
+
+**Findings / gotchas (cost real time — read before the proto build):**
+- **DOA optocoupler.** The first 6N137 had a **dead output stage** — LED driven correctly at ~6 mA, Vcc/VE/GND
+  all good, but Vo never switched. Swapping in a spare fixed it instantly. **Test each 6N137 before trusting
+  the build** (cheap optos have a real DOA rate). Diagnostic that isolated it: a continuous `0x00` flood
+  holds the line ~90% positive (DMM-visible); `BreakState` on the FTDI **does not transmit** a break, so use
+  the flood, not a break, to force a sustained LED-on.
+- **`Rin` re-tune pending.** Bench settled at **560 Ω** (Vo switches solidly), but that was reached while the
+  DOA chip was masking the real margin — so 560 Ω is likely lower than needed. The Waveshare is a *weaker*
+  driver (~+5 V space) than the real DAQ (+6.35 V), so **size `Rin` on the weak bench source, then the field
+  works with margin.** Before soldering, with the good chip, step `Rin` **up** (680 → 820 → 1 k) to the
+  highest value that still switches — minimizes field load (coexistence). 1 k gave only ~4 mA on the
+  Waveshare = under the 6N137's ~5 mA threshold (the original "doesn't switch" symptom, before the DOA chip
+  was even found).
+- **Polarity is correct with NO inversion** on the real-RS-232 path (Waveshare or real DAQ): idle mark
+  (negative) → LED off → Vo HIGH = UART idle. (The inversion + smaller `Rin` only applied to the abandoned
+  ESP32-TTL "Option B".)
+- **Pi 4 baud trap:** `/dev/serial0 → ttyS0` (mini-UART), and a reboot/console resets it to **9600** →
+  total garbage at 19200. Fix: console OFF + set 19200 (and cementer sets its own baud anyway). The PL011
+  Bluetooth-disable trick was *not* needed once `enable_uart=1` locked the clock.
 
 ## Open items / risks
 

@@ -211,3 +211,70 @@ _(Bare wrap P4: hand-off rewritten, status/changelog/user-voice updated, `#1` va
 pin-3 bench note + v2 topology folded into `serial-split-tap/scope.md`. Coord P4 open+close pushed, claim
 idle. Docs committed to `peter/p3-doc-currency` (stacked on the unmerged P3 `b66010b`); feature branch left
 UNPUSHED (bare wrap) -> push + ONE PR to `main` next session, pending operator auth.)_
+
+---
+
+## Session 5 — 2026-06-27
+
+_(Peter's P5 session, Windows field laptop + Pi `CementSerial`. Coord id = **P5**. A long hands-on build
+session: took the Intellisense opto tap from bare wiring to a fully working, end-to-end-proven listen tap
+(breadboard) — through a DOA optocoupler, a wrong-way diode, opto under-drive, a Pi baud trap, and a laptop
+toolchain (Node/exec-policy) detour. Ended on the live chart painting over WiFi. Local-only wrap.)_
+
+> read pa.md and start session
+
+_(Session-start: coord handshake (ledger/claims/inbox clean, no contention; Bryan idle). Fixed two drifted
+git-config items on this clone — `core.hooksPath` unset + `core.autocrlf=true` -> restored to
+`scripts/git-hooks` / `false`. Corrected a stale hand-off note: the P4 docs were already pushed; the open
+item was the un-opened PR.)_
+
+> I still need to build Intellisense channel 1, so lets have the wiring diagram. I will be pulling the GND and TXD from pins 1 and 2 form DB9 male to female with terminal block in the middle. From there how do I wire this safely for intended functionality.
+
+> I have the DAQ side done on a bread board with a power supply hooked to the DAQ side I should be able to toggle this side once wired to show 3.3v to the pi gpio15 in pin 10 if done wired correctly?
+
+> I think we are missing something here. It seems like to achieve ~5v into opto, we need 1.2 k ohms. Can we use 3.3v on the pi side for the Vcc & Ve & Vo? Why use 5v here?
+
+_(Delivered the Intellisense channel-1 wiring diagram (per scope.md values). Clarified the 6N137 is a 5 V
+part: Vcc=5 V, VE->Vcc, but **Vo is an open-collector OUTPUT pulled to 3.3 V** — that's what keeps it
+Pi-safe; the output rail is independent of the supply, which is why the 6N137 was chosen. `Rin` sizes the
+LED *current* (~5 mA), not a voltage.)_
+
+> no, that is fine the fact that the opto is 5v system makes sense. I am going to set up an esp32 to run a serial signal on the daq side. what was the baud rate for the intellisense so we can attempt to better emulate this.
+
+> Okay, lets go with option B. you'll have to step me throught that. & can you produce a sketch that can work for the is purpose?
+
+_(Intellisense wire contract: **19200 8N1**, CR/LF, ~1 line/s, 14 comma fields, headerless. Flagged that a
+bare ESP32 TTL pin is wrong polarity + too weak for the opto; gave Option A (MAX3232) vs Option B (direct +
+firmware UART inversion + `Rin`~330 Ω). Operator chose B; produced an ESP32 sketch emitting the 14-field
+frames. **Then superseded — see next.**)_
+
+> change of plans I have the waveshare rs232/usb adapter, so we can send from this pc to opto setup to pi back to pc via wifi.
+
+> I want to make sure we are clear. We need to send from the pc through the rs232/usb to the daq side of the opto. For testing proto, we won't be using the DB9 connector for now. once we have confirmed the wiring is good on bread board ... I will solder the protoboard to match ... Once confirmed solder proto is good, then I will take solder proto with DB9 terminal connector to the field and test actual unit.
+
+_(Pivoted to the **Waveshare USB->RS232** as the bench source — real RS-232, so `Rin`~1k-class and NO
+inversion (the opto un-inverts the driver's native inversion). Confirmed the 3-stage plan: breadboard ->
+soldered proto -> field, with the only per-stage change being which DB9 pins carry TXD/GND (Waveshare DTE
+pin3/pin5 vs real DAQ pin2/pin1). Wrote `tools/intellisense-send.ps1` (PowerShell .NET SerialPort sender).)_
+
+_(**Debug arc to working** (operator drove the bench, PA diagnosed from the readings): (1) anode read
+0.69 V then 5.66 V -> **1N4148 wired parallel**; fixed antiparallel -> idle clamp -0.68 V. (2) Vo stuck at
+3.3 V even at 6 mA LED drive -> ruled out via a `0x00` flood (FTDI BreakState doesn't transmit) that Vcc/VE/
+LED were all fine -> **DOA 6N137**; swapped a spare -> Vo dropped. (3) `Rin` 1k under-drove the weak
+Waveshare (~4 mA); dropped to 560 Ω (re-tune up with the good chip before solder). (4) `cat /dev/serial0`
+garbage -> Pi mini-UART `ttyS0` reset to **9600**; console OFF + 19200 -> clean 14-field lines.)_
+
+_(**Ingest + chart proven:** Pi's `cementer-arm64` was stale (no `-format`); cross-compiled a current
+`cementer-arm64-new` on the laptop + scp'd. Found + fixed a **doc bug** — the command is `cementer -serial
+/dev/serial0 -baud 19200 -format intellisense`, NOT `-source` (replay file) and `-baud` defaults to 9600.
+`/debug/stats` climbed 208->1079; **live chart painted over WiFi**. Laptop detour: Node was 18 (Vite needs
+20+) -> winget upgrade to 24.18.0 + rebuilt the stale `web/dist`; set `Set-ExecutionPolicy CurrentUser
+RemoteSigned`. Chart confirmed live by the operator.)_
+
+> wrap local-only, leave the push for tomorrow
+
+_(Wrap P5, LOCAL-ONLY — feature branch `peter/p3-doc-currency` committed (P3+P4+P5) but **UNPUSHED**, AND the
+coord close committed but **UNPUSHED** (operator deferred all pushes to P6). Fixed the `-serial`/`-baud` doc
+bug in scope.md; folded the full P5 bench recipe + DOA-chip/under-drive/baud-trap findings into scope.md;
+committed `tools/intellisense-send.ps1`; added `cementer-arm64*` to `.gitignore`. P6 resume = re-tune Rin +
+solder proto + field steps; push branch + open PR + push coord first thing.)_

@@ -1,6 +1,6 @@
 # Hand-off — Peter (live)
 
-`as of: P4 close · 2026-06-25 · operator: peter` (machine: **Windows field laptop** — `C:\Users\poliv\Documents\GitHub\cementer`)
+`as of: P5 close · 2026-06-27 · operator: peter` (machine: **Windows field laptop** — `C:\Users\poliv\Documents\GitHub\cementer`; Pi: **CementSerial** @ `10.0.0.105`, user `serial123`)
 
 > Peter's per-operator hand-off (multi-operator partition, S6). Optimize for Peter's next-session pickup.
 > Peter's PA rewrites this at his wraps; Bryan does not edit it (CODEOWNERS -> Peter).
@@ -10,105 +10,104 @@
 > `status.md`/`changelog.md` on `main`. Shared truth = `status.md` + `changelog.md`; live coordination =
 > the coord branch.
 
-## > P4 close (2026-06-25) -- serial-split BUILD resumed; `#1` measured both DAQs; Intellisense channel ready to solder
+## > P5 close (2026-06-27) -- serial-split tap PROVEN end-to-end on breadboard (step-1 bench gate PASSED)
 
-**RESUME POINT for P5 (tomorrow):** the operator is physically building **Intellisense channel 1** and
-running the **bench gate (step 1)**. Pick up by asking what the Pi saw at the gate -- clean 14-col lines /
-garbage / silence -- then proceed to **step 2** (real wire on the Pi). Full design + new findings are folded
-into [`docs/changes/serial-split-tap/scope.md`](../changes/serial-split-tap/scope.md).
+**RESUME POINT for P6:** the Intellisense opto tap **works end-to-end on the breadboard** — proven all the
+way: PC sender -> Waveshare RS-232 -> 6N137 opto -> Pi mini-UART -> cementer -> SQLite -> **live chart over
+WiFi**. The build is still on **breadboard**; the remaining arc is (a) re-tune `Rin`, (b) solder the proto +
+re-run the bench gate, (c) take it to the field (steps 2-3). **Full working recipe + every gotcha is in
+[`docs/changes/serial-split-tap/scope.md`](../changes/serial-split-tap/scope.md) "P5 bench validation" —
+read that first.**
 
-### `#1` MEASURED -- the blocker is cleared
-Operator measured both DAQ TXD idle voltages (multimeter, TXD vs GND; reads negative = RS-232 mark):
+### What's proven (step-1 bench gate)
+`/debug/stats` climbed 208 -> 1079 rows (~14 rows/s = ~1 line/s x 13 channels); live chart painted at
+`http://10.0.0.105:8080`. The whole electrical + software path is validated on breadboard with a **Waveshare
+USB->RS232** as the bench DAQ source (operator acquired one mid-session; this **supersedes** the field-DB9
+-adapter plan and a briefly-considered ESP32-TTL "Option B"). Real-RS-232 path => `Rin`~1k-class, **no
+inversion**, 1N4148 active.
 
-| Unit | GND / TXD pins | Idle (mark) | `Rin`=(V-1.5)/5mA | Pick | Read baud |
-|---|---|---|---|---|---|
-| **Intellisense** | pin1 / pin2 -- **transmit-only, 2-wire** (no handshake pins active) | **-6.35 V** | 970 ohm | **1 kohm** | 19200 8N1 |
-| **Totco** | pin5 / pin2 | **-8.20 V** | 1.34 kohm | **1.5 kohm** | 9600 8N1 |
+### Next actions for P6 (in order)
+1. **Re-tune `Rin` UP with the good chip.** Bench settled at **560 Ω**, but that was reached while a **DOA
+   6N137 was masking the real margin**. The Waveshare is a *weaker* driver (~+5 V space) than the real DAQ
+   (+6.35 V), so size `Rin` on the weak bench source then the field has margin. Step `Rin` up (680 -> 820 ->
+   1 k) to the highest value that still switches Vo solidly -> minimizes field tap load (coexistence). Verify
+   with the `0x00` flood (DMM-visible) or the live chart.
+2. **Solder the protoboard** to match the validated breadboard, then **re-run step 1** (same recipe).
+   Terminate the input as two labeled leads ("TXD-IN"/"GND-IN") — bench lands them on the Waveshare DB9
+   pin3/pin5; field lands them on the DAQ DB9 **pin2(TXD)/pin1(GND)** via the Jienk breakout.
+3. **Field steps 2-3:** step 2 = real wire, Pi-only (`cementer -serial /dev/serial0 -baud 19200 -format
+   intellisense`; never yet proven on a real pump wire). Step 3 = coexistence (tap in parallel with the live
+   consumer; Pi powered/unpowered/yanked -> zero disturbance). Watch the higher tap-load (~7-9 mA) here.
+4. **The chart is a 60-sec re-do if you want it again:** `scp cementer-arm64-new` to the Pi (stop the
+   running one first!), start it, open `http://10.0.0.105:8080`, run `tools/intellisense-send.ps1 -Port COM6`.
 
-- Pull-up `Rpu` = **1 kohm -> 3.3 V** (both). To 3.3 V NOT 5 V (Pi not 5 V-tolerant).
-- **TVS P6KE12CA covers BOTH** (both lines <+-10 V) -- field hardening only, skip on the bench.
-- Resistors in hand: BOJACK 1000-pc 25-value kit (1ohm-1Mohm) + a "ja90002x300" kit -> 1k & 1.5k stocked.
+### Findings that cost real time (don't re-pay)
+- **DOA 6N137.** First chip's output stage was dead — LED driven ~6 mA, Vcc/VE/GND all good, Vo stuck at
+  3.3 V. A spare fixed it instantly. **Test each opto.** Diagnostic: a continuous `0x00` flood holds the
+  line ~90% positive (DMM-visible); FTDI **`BreakState` does NOT transmit a break** — use the flood.
+- **1N4148 orientation.** Parallel-with-LED clamps the anode at 0.69 V (LED never lights). Antiparallel
+  (band/cathode -> pin 2) clamps the idle negative mark to -0.68 V — correct.
+- **Pi 4 baud trap.** `/dev/serial0 -> ttyS0` (mini-UART); a reboot/console resets it to **9600** -> garbage
+  at 19200. Fix: `sudo raspi-config` serial **console OFF + hardware ON** (the latter sets `enable_uart=1`,
+  locking the core clock so 19200 is accurate — Bluetooth-disable/PL011 trick NOT needed). cementer sets its
+  own port baud regardless (ignores stty).
 
-### NEW FINDING -- Totco TX is **DTR-gated** (not command-polled)
-Evidence: pin 2 (Totco TXD) sits at -8.2 V mark whenever the unit is powered (even USB unplugged) -> its
-transmitter is **always alive**. DATA appears on pin 2 only when the consumer software runs, and exactly
-then **pin 4 -> +9.25 V (DTR asserted)** while **pin 3 (RXD) stays idle mark -- no command bytes ever go
-in.** So the Totco streams **only while the consumer asserts DTR**, not in response to a command.
-- **Listen-tap implication:** perfect in **coexistence** (existing consumer holds DTR -> Totco streams ->
-  we listen). But a **Pi-only standalone read sees silence** unless the Pi asserts DTR. -> **Totco validates
-  via the COEXISTENCE test (step 3), not the Pi-only step 2.** (Intellisense, transmit-only, is standalone.)
-- **Decisive confirm test (operator):** disconnect consumer, jumper **pin 4 -> +5..9.25 V**, watch pin 2.
-  Streams = confirmed; silence = theory wrong, dig further. Also likely explains the **S3 "total silence on
-  COM6"** (nothing was asserting DTR).
-
-### Build plan -- Intellisense channel FIRST
-Build/validate Intellisense single-channel before adding Totco (Intellisense = the sure thing; Totco has the
-unconfirmed DTR behavior; separate input domains = cleaner isolation). A "2-in-1" (two opto channels on one
-board) is electrically just **2x the identical circuit** and buildable with parts in hand -- but de-risk by
-proving channel 1 first.
-- **Wiring + the inviolable rule (DAQ-GND != Pi-GND, gap down the board): scope.md "The circuit" + build
-  sheet there.** `Rin` 1k -> 6N137 pin2(anode); pin3(cathode)->DAQ GND; 1N4148 antiparallel; Pi side
-  pin8(Vcc)->Pi 5V, **pin7(VE)->pin8** (or output disabled), pin5->Pi GND, 0.1uF pin8->pin5, pin6(Vo)->`Rpu`
-  1k->3.3V and pin6->Pi pin10 (GPIO15/RXD).
-- **Bench fake-DAQ = the field DB9->USB adapter run as a TRANSMITTER** (operator has NO Waveshare). Laptop
-  replays a captured Intellisense `.bin` out the adapter COM port @19200; pick it off the **Jienk DB9
-  terminal breakout** at the adapter's **TXD = DB9 pin 3** (NOT pin 2 -- pin 2 was the *read* side in the
-  field) + GND pin 5 -> opto input. Read on Pi `/dev/serial0` @19200. **Gate = clean 14-col ASCII.**
-- **v2 final form factor:** 6-pin Amphenol -> splitter protoboard (data+GND **pass straight through** to a
-  2nd Amphenol that continues the normal run) -> opto branch off the same node -> Pi. Pass-through =
-  continuous wire, so the consumer's line is electrically unchanged except the opto's ~5 mA tap load (= the
-  step-3 coexistence test). **v2 prereq: map the 6-pin Amphenol pinout (data + GND) before cutover.**
-
-### Resume = scope.md "Build & test plan" -- 3 go/no-go gates
-1. solder + bench replay (above) -> 2. real-wire on Pi (`cementer -source /dev/serial0 -format intellisense`,
-watch `/debug/stats` rows climb -- **never yet proven on real wire**) -> 3. coexistence (tap in parallel with
-the live consumer; Pi powered / unpowered / physically yanked -> **zero disturbance** to production).
-Pi UART: `raspi-config` -> serial hardware **ON**, console **OFF**; device `/dev/serial0` (`ttyAMA0`).
-
-## ! OPEN -- for P5
-1. **Pending doc PR (unmerged).** This wrap's docs sit on **`peter/p3-doc-currency`** (`b66010b` P3 + the
-   P4 commit), **LOCAL / UNPUSHED** (bare wrap). The P3 PR was deferred by the operator "to fold in more
-   progress" -- P4 is that progress. **Next: push the branch + open ONE PR -> `main`** (needs operator auth).
-   Carries Peter's P3+P4 session bookkeeping + the scope.md update; **no source code.**
-2. **Serial-split build** -- in the operator's hands (soldering + bench gate). Resume per above.
-3. **Totco** -- second channel after Intellisense proves out; run the **pin-4 DTR jumper confirm test**; map
-   the 6-pin Amphenol pinout for v2.
+## ! OPEN -- for P6
+1. **ALL PUSHES DEFERRED (operator instruction P5 close: "wrap local-only, leave the push for tomorrow").**
+   - **Feature branch `peter/p3-doc-currency`** now carries **P3 + P4 + P5** docs (committed locally this
+     wrap, **UNPUSHED**). Next: `git push` the branch + open **ONE PR -> `main`** (needs operator auth).
+     No source code — PA docs + `serial-split-tap/scope.md` updates + `tools/intellisense-send.ps1` + a
+     `.gitignore` line.
+   - **Coord close UNPUSHED too.** The P5 open+close block is appended to `.coord/ledger.md` and committed
+     **locally** on the `coord` branch, but **NOT pushed** (operator deferred coord push as well —
+     unusual; normally coord pushes direct even on a no-push wrap). **Next session: `git push origin coord`
+     first thing** so Bryan sees P5. No contention tonight (Bryan idle; hardware/docs arc).
+2. **Serial-split build** — on breadboard, working. Resume per "Next actions for P6" above.
+3. **Totco** — second channel after Intellisense proto proves out; run the pin-4 DTR jumper confirm test;
+   map the 6-pin Amphenol pinout for v2.
 
 ## Coord state (the `.coord` worktree -- RETAINED across sessions on purpose)
-- `.coord` worktree on branch `coord`, pushed/synced (P4 **open** + **close** blocks appended this session).
-- `claims/peter.md` reset to **idle** at this close.
+- `.coord` worktree on branch `coord`. P5 open+close block appended + committed **LOCALLY**; **NOT pushed**
+  (see OPEN #1). `claims/peter.md` reset to **idle** at this close.
 - **Do NOT remove the `.coord` worktree** -- it's the live coordination channel. (Recreate on a fresh clone
   with `git worktree add .coord coord`.)
-- **Bryan:** idle, B6 closed cleanly. Next arc = nav-maps regen (stale since S5) + broaden the pre-commit
-  gate to catch deletions. **No contention** with the serial-split hardware arc.
+- **Bryan:** idle, B6 closed cleanly. Next Bryan arc = nav-maps regen (stale since S5) + broaden the
+  pre-commit gate to catch deletions. **No contention** with the serial-split hardware arc.
 
-## Environment caveats (Windows field laptop) -- IMPORTANT, reusable
-- **This clone path:** `C:\Users\poliv\Documents\GitHub\cementer` (prior hand-offs cited `C:\Users\pjoli\...`
-  -- same operator; account/path label differs, not load-bearing).
-- **Toolchain:** Go + Node on the machine PATH. The **Bash _tool_ runs non-interactively** -- if `go`/`npm`
-  don't resolve, prepend: `export PATH="/c/Program Files/Go/bin:/c/Program Files/nodejs:$PATH"`.
-- **`make` is NOT installed** -- run recipes directly: `make hooks`->`git config core.hooksPath
-  scripts/git-hooks`; `make coord`->`git worktree add .coord coord`; `make web`->`cd web && npm install &&
-  npm run build`; `make build`->web build + `go build ./cmd/cementer`; `make demo`/`run`->
-  `./cementer.exe -source testdata/... -format ... -data-dir <tmp> -addr :8080`.
-- **`gh` is NOT installed** -- drive GitHub via REST with the cached git token (`git credential fill`).
-  External writes (issues/PRs) need explicit user OK.
-- **Headless UI verify:** `cd /tmp/pw && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm i playwright@1.60.0`, then
-  `chromium.launch({channel:'msedge', headless:true})` (system Edge -- no download); `page.pdf()` = real PDF.
-- **Git (this clone):** `core.autocrlf=false`, `core.hooksPath=scripts/git-hooks`, remote HTTPS, credential
-  cached. **`.gitattributes` (`* text=auto eol=lf`) now on `main`** (Bryan PR #10) -- coord commits still
-  warn "LF->CRLF"; benign for `.md`.
-- **Avoid em-dashes in `curl -d` JSON** -- the shell mangles them -> GitHub "Problems parsing JSON". Use
-  ASCII / a JSON file / node `JSON.stringify`.
+## Environment caveats (Windows field laptop + Pi) -- IMPORTANT, reusable
+- **This clone path:** `C:\Users\poliv\Documents\GitHub\cementer`. **Pi:** `serial123@10.0.0.105`
+  (`CementSerial`); no Go/Node/repo on the Pi -> cross-compile on the laptop + `scp`.
+- **Git config drifts on this clone (re-check at session start):** P5 found `core.hooksPath` **unset** and
+  `core.autocrlf=true` (both drifted from the documented `scripts/git-hooks` / `false`). Restored at P5
+  start. Probe: `git config core.hooksPath` + `git config core.autocrlf`.
+- **Node:** was **18.12.1** at P5 start (P1's "Node 24" had not stuck); Vite needs 20+. Upgraded via
+  `winget install OpenJS.NodeJS.LTS` -> **24.18.0**. `where.exe node` -> `C:\Program Files\nodejs\node.exe`.
+- **PowerShell execution policy:** set **`Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`** at P5 (was
+  blocking `.ps1` scripts incl. npm + the sender every new window). Should persist now.
+- **`web/dist` is gitignored + was a stale 315-byte placeholder** until P5 rebuilt it (`cd web && npm run
+  build`). Rebuild it before any cross-compile that needs a working web UI (the SPA is `//go:embed`-ed).
+- **Cross-compile recipe (laptop PowerShell):** `$env:GOOS='linux'; $env:GOARCH='arm64';
+  $env:CGO_ENABLED='0'; go build -o cementer-arm64-new ./cmd/cementer` then `$env:GOOS=''; $env:GOARCH='';
+  $env:CGO_ENABLED=''`. CGO-free (modernc SQLite). **`scp cementer-arm64-new serial123@10.0.0.105:~/`** —
+  note the **`:~/`** (colon!) and **stop the running binary on the Pi first** (live ELF = "text file busy").
+- **Shell confusion is the #1 time-sink this session:** laptop = PowerShell (`$env:`, `.\`, `scp`, drive
+  letters); Pi = bash (`~/`, `kill`, `pkill`, `chmod`, `cat`, `stty`, `&`). Background a Pi process with
+  `... > ~/cementer.log 2>&1 &`; curl in a *second* shell or it blocks.
+- **`make`/`gh` NOT installed** on the laptop; run recipes directly; drive GitHub via REST with the cached
+  git token (external writes need operator OK).
+- **Avoid em-dashes in `curl -d` JSON** (shell mangles them). Toolchain (Go/Node) on machine PATH; the Bash
+  _tool_ is non-interactive (prepend PATH export if go/npm don't resolve).
 
-## State as of P4 close
+## State as of P5 close
 | Item | State |
 |---|---|
-| `main` | `ac2dd16` (synced; this laptop ff'd from **22 behind** at session open) |
-| Active arc | `serial-split-tap` **BUILD** -- Intellisense channel, in operator's hands |
-| `#1` (the blocker) | DONE -- **MEASURED** both DAQs (Intellisense -6.35 V / Totco -8.20 V) |
-| Pending docs | `peter/p3-doc-currency` (P3+P4), **LOCAL/UNPUSHED** -> push+PR next (operator auth) |
-| coord | P4 open+close pushed; `claims/peter` idle |
-| Phase 4b / MVP | DONE (Bryan PR #1) |
-| Tests | docs-only session (zero source change) -- `go vet`/`test ./internal/...` green (see status.md) |
+| `main` | `ac2dd16` (unchanged this session) |
+| Active arc | `serial-split-tap` — **step-1 bench gate PASSED on breadboard**; next = Rin re-tune + solder + field |
+| Bench source | **Waveshare USB->RS232** (real RS-232) + `tools/intellisense-send.ps1`; COM6 |
+| Pi binary | `~/cementer-arm64-new` (cross-compiled P5; old `~/cementer-arm64` was stale, no `-format`) |
+| Pi data | `~/cementer-splittest/` (1079+ rows proven); cementer may still be running -> `pkill -f cementer-arm64-new` |
+| Feature branch | `peter/p3-doc-currency` = P3+P4+P5 docs, **committed LOCAL / UNPUSHED** -> push + ONE PR next (auth) |
+| coord | P5 open+close committed **LOCAL / UNPUSHED** -> `git push origin coord` first thing P6; `claims/peter` idle |
+| New tool | `tools/intellisense-send.ps1` (committed); `cementer-arm64*` now gitignored |
+| Tests | docs+tooling arc (zero source change) -- `go vet`/`go test ./...` recorded (see status.md) |
 | Bryan | idle (B6 closed); next = nav-maps regen + gate-broaden |

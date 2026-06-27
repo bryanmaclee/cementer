@@ -50,6 +50,16 @@ coordination (claims, push intents, notices) is on the **coord branch** — `mak
   channel-1 build sheet; **new finding: Totco TX is DTR-gated** (streams only while the consumer asserts
   DTR/pin4 -- listen tap validates in coexistence, not Pi-only). Build now in the operator's hands;
   findings folded into [`serial-split-tap/scope.md`](../changes/serial-split-tap/scope.md). Wrapped before solder.
+- **P5 (2026-06-27):** **serial-split tap PROVEN end-to-end on breadboard (step-1 bench gate PASSED).**
+  Plan pivot: operator got a **Waveshare USB->RS232** -> bench source is now the Waveshare run as a
+  transmitter (real RS-232; superseded the field-adapter + a considered ESP32-TTL "Option B"). Debugged
+  through a **parallel-wired 1N4148** (fixed to antiparallel), a **DOA 6N137** (swapped a spare), opto
+  **under-drive** (`Rin` 1k->560 Ω on the weak Waveshare; re-tune UP with the good chip before solder), and
+  a **Pi mini-UART 9600 baud trap**. Cross-compiled a current `cementer-arm64-new` (Pi's old binary lacked
+  `-format`), proved ingest (`/debug/stats` 208->1079 rows) + the **live chart over WiFi**. Full recipe +
+  findings in [`serial-split-tap/scope.md`](../changes/serial-split-tap/scope.md) "P5 bench validation".
+  Local-only wrap; **all pushes deferred to P6** (feature branch + coord). **Next: solder the proto +
+  re-run step 1, then field steps 2-3.**
 
 ## Phase board
 
@@ -129,10 +139,13 @@ the living spec; don't let deltas accumulate here. No separate as-built spec doc
 ## Near-term actions (not yet done)
 
 1. ~~**`.gitattributes` durable CRLF fix**~~ ✅ added (Bryan, `bryan/cleanup` PR).
-2. **`serial-split-tap` build** (Peter — **IN BUILD, resumed P4**) — **#1 measured 2026-06-25** (Intellisense
-   -6.35 V / Totco -8.20 V); building the **Intellisense channel first** (6N137, `Rin` 1 kohm, read 19200) per
-   [`serial-split-tap/scope.md`](../changes/serial-split-tap/scope.md) "Build & test plan". Totco = 2nd channel
-   after (DTR-gated -- coexistence-validate). Scope landed (PR #7) + P4 findings folded in.
+2. **`serial-split-tap` build** (Peter — **step-1 bench gate PASSED on breadboard P5 2026-06-27**) —
+   Intellisense opto channel proven end-to-end (Waveshare RS-232 -> opto -> Pi -> cementer -> live chart over
+   WiFi; `/debug/stats` climbing). **Next: (a) re-tune `Rin` UP with the good chip (560 Ω was set under a DOA
+   chip; minimize field load), (b) solder the proto + re-run step 1, (c) field steps 2-3 (real wire, then
+   coexistence).** Full recipe + DOA-chip/under-drive/baud-trap findings in
+   [`serial-split-tap/scope.md`](../changes/serial-split-tap/scope.md) "P5 bench validation". Totco = 2nd
+   channel after (DTR-gated -- coexistence-validate).
 3. ~~**Parser cleanup**~~ ✅ removed the off-path `internal/parser` (Bryan, `bryan/cleanup` PR).
 4. **Totco preset** — when a Totco unit is reachable (same direct-laptop capture method).
 5. ~~Phase 4b~~ ✅ (Bryan, PR #1). ~~Install commit gate~~ ✅ (S6). ~~Fix repo ruleset~~ ✅ (issue #3).
@@ -142,6 +155,11 @@ the living spec; don't let deltas accumulate here. No separate as-built spec doc
 - `go test ./...`: `internal/daqformat`, `internal/store`, `internal/api`, `internal/printcfg` have tests;
   others report "no test files" (`internal/parser` removed in B6). Web has no unit suite (tsc-strict +
   Playwright screenshot are the checks).
+- **P5 wrap run (2026-06-27, Windows):** docs + tooling arc, zero Go/web *source* change (added
+  `tools/intellisense-send.ps1` + cross-compiled artifacts, both non-source) -- `go vet ./...` +
+  `go test ./...` recorded at wrap. NOTE: laptop `web/dist` was a stale 315-byte placeholder until P5
+  rebuilt it (needed Node 20+; laptop was on Node 18 -> upgraded to 24.18.0). The cross-compiled Pi binary
+  (`cementer-arm64-new`) embeds the rebuilt SPA.
 - **P4 wrap run (2026-06-25, Windows):** docs-only arc (zero source change) -- `go vet ./internal/...` ok ·
   `go test ./internal/...` ok; `web/dist` present (embed intact).
 - **P3 wrap run (2026-06-23, Windows):** docs-only arc (zero source change) — `go vet ./...` ✅ ·
