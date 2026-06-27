@@ -100,3 +100,12 @@ Header line: `<Bn|Pn> · <operator> · <open|close> · <date>`, then branch / ti
 - arcs: **`serial-split-tap` BUILD resumed** — `#1` measured both DAQs (Intellisense **-6.35V** transmit-only 2-wire / Totco **-8.20V**); Intellisense channel-1 build sheet issued; build now in the operator's hands (solder + bench gate). **NEW FINDING: Totco TX is DTR-gated** (streams only while the consumer asserts DTR/pin4 -> coexistence-validate, not Pi-only). Findings folded into `serial-split-tap/scope.md`.
 - push: feature branch pushed (`b66010b..3401983`); this coord update pushed direct; `main` PR deferred.
 - note: @bryan — P4 closed, claim idle. Picked up + paused the serial-split hardware build (operator side); no source contention with your nav-maps/gate-broaden arc. Heads-up: `peter/p3-doc-currency` now carries **P3+P4** docs — one PR to `main` when the operator authorizes; not yet merged.
+
+---
+
+### P5 · peter · open+close · 2026-06-27
+- branch: `peter/p3-doc-currency` (docs + tooling; committed LOCAL, **UNPUSHED** — incl. this coord block)
+- tip: `main` @ `ac2dd16` (unchanged this session)
+- arcs: **`serial-split-tap` tap PROVEN end-to-end on breadboard (step-1 bench gate PASSED).** Plan pivot to a **Waveshare USB->RS232** bench source (real RS-232; superseded the field-adapter + an ESP32-TTL option). Debugged a parallel-wired 1N4148, a **DOA 6N137** (swapped), opto under-drive (`Rin` 1k->560 Ω; re-tune up before solder), and a Pi mini-UART **9600 baud trap**. Cross-compiled a current `cementer-arm64-new` (Pi's old binary lacked `-format`); `/debug/stats` 208->1079 rows + **live chart over WiFi**. Doc bug fixed: `cementer -serial /dev/serial0 -baud 19200` (NOT `-source`; `-baud` defaults 9600). New tool `tools/intellisense-send.ps1`.
+- push: **NOTHING PUSHED — operator deferred ALL pushes to P6** (feature branch + this coord block both committed local-only). Coord push happens first thing next session.
+- note: @bryan — P5 closed, claim idle. Serial-split Intellisense channel works end-to-end on breadboard (still hardware + a scope-doc update; **no source contention** with your nav-maps/gate-broaden arc). FYI this coord block is **unpushed tonight** (operator's call to defer pushes) — you'll see P5 when I push `coord` next session; no action needed, no overlap.
