@@ -4,10 +4,10 @@
 
 ```
 status:     idle
-session:    P6 (closed 2026-06-28)
+session:    P7 (closed 2026-06-29)
 arc:        —
 branch:     —
 intent-sha: —
 since:      —
-note:       P6 closed. serial-split-tap step-1 gate PASSED on the SOLDERED proto; Rin locked at 1 k (gauged at +6.35 V; Vo 3.3V<->0.059V). Fixed a DAQ-GND->cathode open joint (Vo stuck high). Bench arc DONE. Next = FIELD test Intellisense DB9 split-off -> v2 Amphenol proto -> garage -> field; Intellisense MVP before Totco. P5 deferred-push backlog CLEARED: branch peter/p3-doc-currency (P3+P4+P5+P6) pushed + PR to main opened; P5+P6 coord blocks pushed direct. No source contention.
+note:       P7 closed (field laptop P-Tech1). serial-split-tap Intellisense DB9 split-off FIELD-VERIFIED on a real DAQ — steps 2+3 PASSED: real wire (DB9 pin2=TXD, pin5=GND, ~-5.5V) -> opto -> Pi UART -> cementer -> live chart over WiFi, clean 14-field lines, ZERO disturbance to the production consumer (Pi powered+unpowered). Rin=1k frames clean at field amplitude. End product = permanent inline pass-through (passive continuous through-wire; survives any Pi-side failure) broadcasting WiFi in parallel — NOT a removable branch. Next = v2 Amphenol pass-through prototype (map 6-pin pinout -> build -> garage gate -> field); Intellisense MVP before Totco. Branch peter/p3-doc-currency (P3-P7) pushed; PR to main refreshed (open, unmerged). No source contention.
 ```
