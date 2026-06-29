@@ -5,6 +5,142 @@ the human-discoverable session narrative). Newest block on top.
 
 ---
 
+## 2026-06-29 -- Peter P7 - Intellisense DB9 split-off FIELD-VERIFIED on a real DAQ (steps 2 + 3 PASSED)
+
+The serial-split tap's biggest milestone: proven on an **actual Intellisense pump DAQ** (not the bench),
+end-to-end with **zero disturbance to the production consumer**. First PA session on the real **field laptop**
+(`P-Tech1`/`pjoli`; P3-P6 were the garage desktop `poliv`). Operator called it "a hugely successful test."
+
+- **Field test PASSED (roadmap step 1 DONE).** Real Intellisense wire (DB9 **pin 2 = TXD, pin 5 = GND**,
+  ~-5.5 V) -> 6N137 opto -> Pi mini-UART -> cementer -> SQLite -> **live chart over WiFi** (phone hotspot),
+  clean 14-field lines. `Rin` = 1 k frames clean at the field amplitude (the +6.35 V tune has margin).
+- **Coexistence PASSED (step 3).** Consumer (the cementer laptop) stayed clean with the Pi tapping in parallel,
+  **powered and unpowered** — the ~5 mA opto load is harmless and the optical barrier keeps Pi-side activity
+  off the production line. Proves axiom #1 on a real wire.
+- **Design clarification (operator).** The end product is a **permanent inline pass-through** that broadcasts
+  WiFi in parallel — NOT a removable branch. Corrected design requirement: consumer data + GND pass through on
+  **passive, continuous conductors** (Pi-independent) so the production feed **survives any Pi-side failure**;
+  the opto adds galvanic isolation on top. (Earlier "removable tap" framing retracted.)
+- **Field gotchas captured (scope.md "P7 field validation"):** (1) **DMM is the wrong instrument on a live data
+  line** — Vo "3.3 -> 3.06 V bumping" is the *good* signature (mostly-idle ~1 line/s stream), not a fault; the
+  `0x00`-flood DMM trick is unavailable with a real DAQ -> the UART decode is the gate. (2) **WiFi with no
+  editable supplicant:** pull the microSD, mount the FAT32 boot partition on Windows (never format the ext4
+  prompt), drop a `wpa_supplicant.conf` with multiple `network={}` + `priority` + **`country=US`**; the Pi
+  auto-joins (confirms not Bookworm). (3) **`ERR_CONNECTION_REFUSED` = reachable but cementer not running.**
+- **Topology recorded:** three machines (garage desktop `poliv`, field laptop `P-Tech1`/`pjoli`, the
+  no-Claude cementer DAQ-consumer laptop); auto-ID via `hostname`+`whoami`. Fixed the P6 hand-off's mislabel
+  of the garage desktop as "field laptop."
+- **Process:** P7 started 3 commits behind `origin/peter/p3-doc-currency` (P4-P6 from the garage desktop) ->
+  fast-forwarded (cross-machine hygiene). Tests: `go vet ./...` + `go test ./...` ok (api/daqformat/printcfg/
+  store pass). Branch `peter/p3-doc-currency` (P3+P4+P5+P6+P7) pushed; **PR to `main` refreshed (still open,
+  unmerged)**; P7 coord close block pushed direct; `claims/peter` idle.
+- **Next (P8):** the v2 **Amphenol pass-through prototype** — map the 6-pin pinout, build the permanent-inline
+  passive pass-through, garage-gate, then field. Intellisense MVP before Totco.
+
+---
+
+## 2026-06-28 -- Peter P6 - serial-split tap PASSED on the SOLDERED proto; `Rin` locked 1 k; backlog pushed
+
+Hands-on bench session: re-tuned `Rin`, soldered the protoboard, and re-ran the full step-1 gate
+**end-to-end on the soldered hardware** (clean 14-field lines -> cementer ingest -> live chart over WiFi).
+The bench arc is DONE; the Intellisense channel moves to field testing. Branch + PR pushed (P3+P4+P5 backlog
+cleared).
+
+- **`Rin` locked at 1 k.** Re-tuned with the good chip by gauging at the **real +6.35 V DAQ amplitude** via a
+  static PSU inject (not the weaker Waveshare ~+5 V) -> Vo swings **3.3 V <-> 0.19 V** (breadboard) /
+  **<-> 0.059 V** (soldered), ~4.9 mA tap load. 1 k = lowest field tap load (coexistence); the stronger real
+  line only adds margin. Lesson recorded: gauge `Rin` at the field voltage, not the bench source.
+- **Soldered proto validated.** Bench-mocked the Pi side with two PSUs (3.3 V pull-up rail + 5 V Vcc, shared
+  Pi-GND) to prove switching standalone, then swapped to the real Pi for the dynamic data gate. Passed.
+- **Build defect found + fixed (the P6 time-sink): an open joint at DAQ-GND -> cathode (pin 3)** left the LED
+  return path open -> Vo stuck HIGH on a positive space, even though idle measured perfect (the mark path
+  through the antiparallel 1N4148 clamped pin 2 to -0.68 V; VE/Vcc/pull-up all good). Only the *space* path
+  through the LED needs a closed loop the mark path doesn't. Bridging the gap dropped Vo to 0.059 V instantly.
+  **Lesson: opto clamps the mark but won't switch on space -> check cathode->GND continuity first.**
+- **Continuity-mode red herring** cost time: a 1 k resistor reads ~1 k but does NOT beep in continuity mode
+  (threshold ~30-50 Ω) -> don't read "no beep" as "open" on any resistor ≳100 Ω.
+- **Operator directive (priority ordering):** field-test the Intellisense DB9 split-off -> build the v2
+  Amphenol pass-through prototype -> garage-test (same gate) -> field-test. **Get the Intellisense
+  parallel-splitter MVP done BEFORE moving to Totco** (Totco now explicitly deferred).
+- **Push backlog cleared:** `peter/p3-doc-currency` (P3+P4+P5+P6 docs) pushed + **PR to `main` opened** (was
+  deferred since P3); the P5 + P6 coord close blocks pushed direct. `claims/peter` idle.
+- Tests: hardware + docs arc, zero Go/web source change. `go vet ./...` ok · `go test ./...` ok. Findings
+  folded into `docs/changes/serial-split-tap/scope.md` "P6 soldered-proto validation".
+
+---
+
+## 2026-06-27 -- Peter P5 - serial-split tap PROVEN end-to-end (breadboard, step-1 bench gate)
+
+Long hands-on build session. Took the Intellisense opto channel from bare wiring to a **fully working
+listen-tap**, proven all the way into cementer + the live web chart over WiFi. Build still on breadboard;
+solder + field steps remain. Local-only wrap (push deferred to P6 by operator).
+
+- **Plan pivot:** operator acquired a **Waveshare USB->RS232** adapter -> bench source is now the Waveshare
+  run as a transmitter (real RS-232), superseding both the field-DB9-adapter plan and a briefly-considered
+  ESP32-TTL "Option B" (would have needed firmware UART inversion + ~330 ohm `Rin`). Real-RS-232 path keeps
+  `Rin`~1k-class and needs NO inversion.
+- **Debugged to working:** (1) **diode orientation** — 1N4148 was parallel (clamped anode at 0.69 V); fixed
+  antiparallel -> idle clamps to -0.68 V. (2) **DOA 6N137** — first chip's output stage was dead (LED driven
+  ~6 mA, Vcc/VE/GND all good, Vo never switched); a spare fixed it instantly. (3) **under-drive** — Waveshare
+  (~+5 V) at `Rin` 1k gave only ~4 mA (< the 6N137's ~5 mA threshold); dropped to **560 Ω** on the bench
+  (re-tune UP with the good chip before soldering). (4) **Pi baud trap** — `/dev/serial0 -> ttyS0` mini-UART
+  reset to 9600 on reboot -> garbage; console OFF + 19200 fixed it.
+- **cementer ingest proven:** built/cross-compiled a current `cementer-arm64-new` (the Pi's old binary
+  predated the `-format` flag), `scp`'d to the Pi; `/debug/stats` climbed 208 -> 1079 rows; live chart
+  painted over WiFi at `http://<pi-ip>:8080`. Full recipe folded into `serial-split-tap/scope.md`.
+- **Doc bug found + fixed (verify-against-code):** scope.md/hand-off said `cementer -source /dev/serial0` —
+  wrong. The device flag is **`-serial`** (`-source` is a replay file) and **`-baud 19200` is mandatory**
+  (the flag defaults to 9600; cementer sets the port baud itself, ignoring `stty`). Fixed in scope.md.
+- **Toolchain debt surfaced:** laptop Node was **18.12.1** (P1's "Node 24" hadn't stuck) — Vite needs 20+;
+  `winget install OpenJS.NodeJS.LTS` -> v24.18.0, rebuilt `web/dist` (was a stale 315-byte placeholder).
+  `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` set (PS script policy kept blocking the sender/npm).
+- **New tool:** `tools/intellisense-send.ps1` — PowerShell Intellisense frame generator (19200 8N1, CR/LF,
+  triangle wave). Committed this wrap.
+- Session-start hygiene: this clone's `core.hooksPath` was unset + `core.autocrlf=true` (drifted from the
+  documented state) — restored to `scripts/git-hooks` / `false`.
+- Tests: docs + tooling arc, zero Go/web *source* change (web/dist is a build artifact). `go vet ./...` +
+  `go test ./...` recorded at wrap. Docs committed to `peter/p3-doc-currency` (stacked on P3+P4),
+  **UNPUSHED** + coord close **UNPUSHED** (operator deferred all pushes to P6).
+
+---
+
+## 2026-06-25 -- Peter P4 - serial-split build resumed (`#1` measured both DAQs)
+
+Resumed the paused P2 `serial-split-tap` hardware arc. Operator returned with measurement **#1** for BOTH
+DAQ units, clearing the only blocker; produced the Intellisense channel-1 build sheet + a Totco
+serial-behavior analysis. Build now in the operator's hands (soldering + bench gate); wrapped before solder.
+
+- **`#1` measured:** Intellisense idle **-6.35 V** (pin1=GND, pin2=TXD; **transmit-only 2-wire**, no
+  handshake) -> `Rin` 1 kohm; Totco idle **-8.20 V** (pin5=GND, pin2=TXD) -> `Rin` 1.5 kohm. P6KE12CA TVS
+  covers both (<+-10 V). Pull-up 1 kohm -> 3.3 V.
+- **New finding -- Totco TX is DTR-gated:** transmitter always alive (-8.2 V mark even USB-unplugged); data
+  flows only while the consumer asserts **DTR (pin 4 -> +9.25 V)** with pin 3/RXD idle (no command bytes).
+  -> listen tap works in coexistence; Pi-only standalone needs DTR. Likely explains the S3 COM6 silence.
+- **Bench plan revised:** fake-DAQ = the field DB9->USB adapter run as a transmitter (no Waveshare); tap its
+  TXD = DB9 pin 3 (not the field-read pin 2) via the Jienk breakout. v2 = Amphenol pass-through board + opto
+  branch.
+- Caught up: ff'd this offline laptop `3240588 -> ac2dd16` (was 22 behind). Coord P4 open+close pushed.
+- Findings folded into `docs/changes/serial-split-tap/scope.md`. Docs on `peter/p3-doc-currency` (stacked on
+  P3 `b66010b`), UNPUSHED (bare wrap) -> push + ONE PR to `main` next session. No source change; gate green.
+
+---
+
+## 2026-06-23 — Peter P3 · doc-currency reconcile (post-B6 cleanup)
+
+Short docs-only session. Caught up on Bryan's B6/cleanup (PR #10 `ac2dd16`), which resolved two of Peter's
+standing P1 follow-ups, and reconciled the SoT to reflect it.
+
+- **Sync:** local `main` ff `cccb641 → ac2dd16`; coord worktree ff `04ee9c3 → 2876de7`. Coord handshake —
+  both claims idle, inbox clean, B6 closed cleanly (Bryan reset his claim + added the close block, resolving
+  the stale-claim nudge Peter left in P2). No contention.
+- **PR #10 (`bryan/cleanup`) resolved two Peter items:** `.gitattributes` durable LF fix (Peter's P1 Windows
+  CRLF find) + removal of the dead off-path `internal/parser`. Neither is Peter's to carry anymore.
+- **Doc-currency fix:** the Peter in-flight block in `status.md` still listed ".gitattributes + parser
+  cleanup" as *still open* — stale. Reconciled to "all P1 follow-ups resolved."
+- **Off-repo:** fixed a broken Enter key — `~/.claude/keybindings.json` had remapped submit to double-Enter
+  (`enter` → null, `enter enter` → submit); reset to defaults (Enter submits). Not a repo change.
+- Tests: docs-only arc. `go vet ./...` + `go test ./...` recorded at wrap.
+
 ## 2026-06-21/22 — Bryan B6 · Phase 4b (MVP) + the entire multi-operator orchestration system
 
 The largest single session: shipped the **Phase-4b printable report** (project MVP) and then, when the

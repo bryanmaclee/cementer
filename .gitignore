@@ -1,6 +1,6 @@
-# Go binary
+# Go binary (incl. cross-compiled Pi builds: cementer-arm64, cementer-arm64-new, ...)
 /cementer
-/cementer-arm64
+/cementer-arm64*
 
 # Runtime data (durable store + raw logs) — never commit
 /data/

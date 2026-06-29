@@ -132,3 +132,248 @@ _(Outcome: designed the isolated **6N137** listen-tap (Arch 1: opto → Pi GPIO 
 adapter); produced a component purchase list; captured the full design to
 `docs/changes/serial-split-tap/scope.md` and landed it on `main` via **PR #7** (`1b942eb`, self-merged).
 Build **PAUSED** pending measurement **#1** (DAQ TXD idle voltage). Then wrapped P2.)_
+
+---
+
+## Session 3 — 2026-06-23
+
+_(Peter's P3 session, Windows field laptop. Coord id = **P3**. Short docs-only session: started on overlay
+v2, caught up on Bryan's B6/cleanup (PR #10) which resolved two standing Peter items, reconciled the SoT,
+and wrapped. No project work — P2 serial-split build still paused on operator measurement #1.)_
+
+> read pa.md and start session
+
+> my enter button isn't working for your last quetion so I had to esc and type this. it might be because the double enter .json adjust to keybindings. we might need to undo that and see if it is working
+
+_(Found `~/.claude/keybindings.json` had remapped submit to double-Enter — `enter`→null, `enter enter`→`chat:submit` — so a single Enter did nothing. Reset bindings to `[]` (stock: Enter submits). Needs a Claude Code restart to take effect. Off-repo change, not part of cementer.)_
+
+> continue the session start
+
+_(Finished the coord handshake: ff `main` `cccb641→ac2dd16` + coord `04ee9c3→2876de7`; both claims idle,
+inbox clean, B6 closed cleanly. Bryan's PR #10 resolved my `.gitattributes` + parser-cleanup items.)_
+
+> fix the status.md stale note now
+
+> commit this and wrap
+
+_(Reconciled the stale "still open" note in the Peter `status.md` block; then bare-wrapped P3 — hand-off +
+status + changelog + user-voice + coord close. Tests green (vet/test/gofmt). Docs committed to
+`peter/p3-doc-currency`; feature branch left UNPUSHED (bare wrap); coord close pushed direct.)_
+
+---
+
+## Session 4 -- 2026-06-25
+
+_(Peter's P4 session, Windows field laptop. Coord id = **P4**. Opened **22 commits behind** (offline laptop);
+ff'd `main` `3240588 -> ac2dd16` and re-read the live overlay-v2 docs. Resumed the P2 `serial-split-tap`
+arc -- operator returned with measurement **#1** for BOTH DAQ units, unblocking the build. Produced the
+Intellisense channel-1 build sheet + a Totco serial-behavior analysis. Build now in the operator's hands;
+wrapped before soldering.)_
+
+> read pa.md
+
+> ...and start session
+
+_(Via AskUserQuestion "What's the focus for this session?" -> **Resume serial-split build**.)_
+
+> So to be clear I have two systems that I am trying to split with either one splitter that is capable of dealing with both or two separate splitters.
+>
+> The first is the Intellisense Daq unit: Connecting the negative of the multimeter on pin 1 (GND) and the positive of the multimeter to pin 2 (TXD) = -6.35v was the biggest number. No other pins read voltage. It appeared to be sending signal the whole time since the daq unit finished booting. It appeared to bounce between -5.25v & -6.35v whether it was running the software or not.
+>
+> The second is the TotcoMD Daq unit: Connecting the negative of the multimeter on pin 5 (Best guess for GND) and the positive of the multimeter going through the pins with the USB unplugged, the pins on the DB9 connection read: 1 = 0v, 2 = -8.20v, 4 = -0.24v, 6 = 0v, 7 = -0.24v, 8 = 0v, 9 = 0v. As soon as I plugged in the USB there was about 10 second window of activity: 1 = 0v, 2 = -8.20v, 3 = -8.88 for 10s then 0v, 4 = bouncing between -4v & -7v for 10s then -9.14v, 6 = 0v, 7 = -0.24v to 7v for 6s then -9.14 for 4s then 0v, 8 = 0v, 9 = 0v. When starting the program and plugged/'connected' pins read: 1 = 0v, 2 = solid -8.18v for 5s then bounced to ~5.2v for 1-2s then back to -.18v and repeat (assuming this is TXD), 3 = -8.88v, 4 = 9.25v, 6 = 0v, 7 = -9.12v, 8 = 0v, 9 = 0v.
+>
+> As much as I would love to have a 2-in-1 splitter system, I don't want to wait for more parts to come in the mail to start this build. Let me know what you think, I can go over a parts list, if its possible and I have the materials awesome! If not, lets go to the two separate splitters and begin with the Intellisense build first. I do want to hear what your theory is on what may be going on with the TotcoMD serial before we get into the build. Everything I witnessed points to a dependency on the software the tell it when to send data, but give me your non biased opinion please.
+
+_(`#1` resolved: Intellisense idle **-6.35 V** (transmit-only 2-wire: pin1=GND, pin2=TXD; no handshake pins
+active) -> `Rin` 1 kohm; Totco idle **-8.20 V** (pin5=GND, pin2=TXD) -> `Rin` 1.5 kohm; P6KE12CA TVS covers
+both. **Totco theory (evidence-based, given as unbiased):** TX driver always alive (-8.2 V mark even
+USB-unplugged); data appears on pin 2 ONLY when pin 4 = +9.25 V (consumer asserts **DTR**) while pin 3/RXD
+stays idle (no command bytes) -> **DTR-gated streaming, NOT command-polled**. -> listen tap works in
+coexistence; Pi-only standalone needs DTR. **2-in-1 verdict:** electrically just 2x the identical circuit,
+buildable with parts in hand -- recommended **Intellisense single-channel first** to de-risk.)_
+
+> For resistors I have: ja90002x300 kit + a BOJACK 1000 Pcs 25 Values Resistor Kit 1 Ohm-1M Ohm with 5% 1/4W Carbon Film Resistors Assortment
+
+_(1 kohm confirmed the workhorse (Intellisense `Rin` + `Rpu`; 1.5 kohm for Totco) -- all stocked. Issued the
+channel-1 build sheet.)_
+
+> The only change from this set of steps is that I am not going to be using a Waveshare RS-232. The normal run for these serial cable goes from a 6 pin amphenol connector to a DB9 connector to a DB9 to USB adapter. So I have [Jienk DB9 male-to-female terminal-block breakout] which I can run between the cable and adapter (this is how I took the readings in the field). --- For the final 2nd version, I will be going from a 6pin amphenol connector to the splitter protoboard, which splits through to another amphenol connctor to continue running its normal path, and the other split goes through opto and to the pi
+
+_(Revised the bench: fake-DAQ = the **field DB9->USB adapter run as a transmitter** (no Waveshare) -- its
+TXD = **DB9 pin 3** (NOT the field-read pin 2) + GND pin 5 into the opto input, via the Jienk breakout.
+Confirmed **v2 pass-through topology** (Amphenol in -> board -> Amphenol out continues the normal run; opto
+branches off the same node -- the consumer sees only the ~5 mA tap load = the step-3 coexistence test).
+v2 prereq: map the 6-pin Amphenol pinout.)_
+
+> I have to wrap here and come back to it tomorrow.
+
+_(Bare wrap P4: hand-off rewritten, status/changelog/user-voice updated, `#1` values + Totco DTR finding +
+pin-3 bench note + v2 topology folded into `serial-split-tap/scope.md`. Coord P4 open+close pushed, claim
+idle. Docs committed to `peter/p3-doc-currency` (stacked on the unmerged P3 `b66010b`); feature branch left
+UNPUSHED (bare wrap) -> push + ONE PR to `main` next session, pending operator auth.)_
+
+---
+
+## Session 5 — 2026-06-27
+
+_(Peter's P5 session, Windows field laptop + Pi `CementSerial`. Coord id = **P5**. A long hands-on build
+session: took the Intellisense opto tap from bare wiring to a fully working, end-to-end-proven listen tap
+(breadboard) — through a DOA optocoupler, a wrong-way diode, opto under-drive, a Pi baud trap, and a laptop
+toolchain (Node/exec-policy) detour. Ended on the live chart painting over WiFi. Local-only wrap.)_
+
+> read pa.md and start session
+
+_(Session-start: coord handshake (ledger/claims/inbox clean, no contention; Bryan idle). Fixed two drifted
+git-config items on this clone — `core.hooksPath` unset + `core.autocrlf=true` -> restored to
+`scripts/git-hooks` / `false`. Corrected a stale hand-off note: the P4 docs were already pushed; the open
+item was the un-opened PR.)_
+
+> I still need to build Intellisense channel 1, so lets have the wiring diagram. I will be pulling the GND and TXD from pins 1 and 2 form DB9 male to female with terminal block in the middle. From there how do I wire this safely for intended functionality.
+
+> I have the DAQ side done on a bread board with a power supply hooked to the DAQ side I should be able to toggle this side once wired to show 3.3v to the pi gpio15 in pin 10 if done wired correctly?
+
+> I think we are missing something here. It seems like to achieve ~5v into opto, we need 1.2 k ohms. Can we use 3.3v on the pi side for the Vcc & Ve & Vo? Why use 5v here?
+
+_(Delivered the Intellisense channel-1 wiring diagram (per scope.md values). Clarified the 6N137 is a 5 V
+part: Vcc=5 V, VE->Vcc, but **Vo is an open-collector OUTPUT pulled to 3.3 V** — that's what keeps it
+Pi-safe; the output rail is independent of the supply, which is why the 6N137 was chosen. `Rin` sizes the
+LED *current* (~5 mA), not a voltage.)_
+
+> no, that is fine the fact that the opto is 5v system makes sense. I am going to set up an esp32 to run a serial signal on the daq side. what was the baud rate for the intellisense so we can attempt to better emulate this.
+
+> Okay, lets go with option B. you'll have to step me throught that. & can you produce a sketch that can work for the is purpose?
+
+_(Intellisense wire contract: **19200 8N1**, CR/LF, ~1 line/s, 14 comma fields, headerless. Flagged that a
+bare ESP32 TTL pin is wrong polarity + too weak for the opto; gave Option A (MAX3232) vs Option B (direct +
+firmware UART inversion + `Rin`~330 Ω). Operator chose B; produced an ESP32 sketch emitting the 14-field
+frames. **Then superseded — see next.**)_
+
+> change of plans I have the waveshare rs232/usb adapter, so we can send from this pc to opto setup to pi back to pc via wifi.
+
+> I want to make sure we are clear. We need to send from the pc through the rs232/usb to the daq side of the opto. For testing proto, we won't be using the DB9 connector for now. once we have confirmed the wiring is good on bread board ... I will solder the protoboard to match ... Once confirmed solder proto is good, then I will take solder proto with DB9 terminal connector to the field and test actual unit.
+
+_(Pivoted to the **Waveshare USB->RS232** as the bench source — real RS-232, so `Rin`~1k-class and NO
+inversion (the opto un-inverts the driver's native inversion). Confirmed the 3-stage plan: breadboard ->
+soldered proto -> field, with the only per-stage change being which DB9 pins carry TXD/GND (Waveshare DTE
+pin3/pin5 vs real DAQ pin2/pin1). Wrote `tools/intellisense-send.ps1` (PowerShell .NET SerialPort sender).)_
+
+_(**Debug arc to working** (operator drove the bench, PA diagnosed from the readings): (1) anode read
+0.69 V then 5.66 V -> **1N4148 wired parallel**; fixed antiparallel -> idle clamp -0.68 V. (2) Vo stuck at
+3.3 V even at 6 mA LED drive -> ruled out via a `0x00` flood (FTDI BreakState doesn't transmit) that Vcc/VE/
+LED were all fine -> **DOA 6N137**; swapped a spare -> Vo dropped. (3) `Rin` 1k under-drove the weak
+Waveshare (~4 mA); dropped to 560 Ω (re-tune up with the good chip before solder). (4) `cat /dev/serial0`
+garbage -> Pi mini-UART `ttyS0` reset to **9600**; console OFF + 19200 -> clean 14-field lines.)_
+
+_(**Ingest + chart proven:** Pi's `cementer-arm64` was stale (no `-format`); cross-compiled a current
+`cementer-arm64-new` on the laptop + scp'd. Found + fixed a **doc bug** — the command is `cementer -serial
+/dev/serial0 -baud 19200 -format intellisense`, NOT `-source` (replay file) and `-baud` defaults to 9600.
+`/debug/stats` climbed 208->1079; **live chart painted over WiFi**. Laptop detour: Node was 18 (Vite needs
+20+) -> winget upgrade to 24.18.0 + rebuilt the stale `web/dist`; set `Set-ExecutionPolicy CurrentUser
+RemoteSigned`. Chart confirmed live by the operator.)_
+
+> wrap local-only, leave the push for tomorrow
+
+_(Wrap P5, LOCAL-ONLY — feature branch `peter/p3-doc-currency` committed (P3+P4+P5) but **UNPUSHED**, AND the
+coord close committed but **UNPUSHED** (operator deferred all pushes to P6). Fixed the `-serial`/`-baud` doc
+bug in scope.md; folded the full P5 bench recipe + DOA-chip/under-drive/baud-trap findings into scope.md;
+committed `tools/intellisense-send.ps1`; added `cementer-arm64*` to `.gitignore`. P6 resume = re-tune Rin +
+solder proto + field steps; push branch + open PR + push coord first thing.)_
+
+## Session 6 — 2026-06-28
+
+> read pa.md and start session
+
+_(Session-start: coord handshake — Bryan idle (B6 closed), inbox clean, no contention. Surfaced the P5
+deferred-push backlog (coord + branch both ahead 1, unpushed). Git config clean this start (hooksPath/autocrlf
+correct). Went straight to the hardware bench per operator.)_
+
+> I like the 1. option. That will allow me to confidently solder for the actual +/-6.35v DAQ. My biggest concern is that I cannot mess up the current DAQ system through this testing. So trying to be extra careful in the setup for this proto
+
+> I want to go right to 1k Ohms first, cause if that works, I won't need to do the 680 Ohm step.
+
+_(Re-tuned `Rin` by gauging at the real +6.35 V amplitude with a static PSU inject — 1 k switched Vo solidly
+LOW (0.19 V breadboard), so 1 k locked, skipping 820/680. Stressed the production-safety guarantees: the tap
+is galvanically isolated, listen-only, fixed ~4.9 mA load; bench/solder work is fully disconnected from any
+real pump, and the only production-contact moment is the step-3 coexistence test.)_
+
+> okay I have it soldered ... on the daq side I have the rs-232/usb hooked to db9 serial/terminal block to proto board; on the pi side I have one power supply sending 3.3 to mock power from pi, I have a second power supply supplying 5v to mock pi with shared ground.
+
+_(Walked the soldered-board bring-up live, operator on the DMM. Found a **DAQ-GND -> cathode (pin 3) open
+joint** — Vo stuck HIGH on a positive space while idle measured perfect (1N4148 clamped the mark to -0.68 V,
+VE=5 V, Vcc=5 V). Diagnosed via the anode-under-drive decision tree + VE↔Vcc tie check, and cleared a
+continuity-mode red herring (a 1 k resistor reads ~1 k but doesn't beep in continuity mode). Operator bridged
+the gap -> Vo dropped to 0.059 V -> clean lines + chart on the real Pi. Step-1 gate PASSED on solder.)_
+
+> wrap P6 here, push the branch and open the PR; Next step is to complete field test of Intellisense DAQ unit. once verified that DB9 split off is working, then I need to complete hardware prototype with the amphenol connectors. Test it through this same process in garage, then field test. We need to get the Inellisense parallel splitter unit MVP done before moving forward with Totco as on now.
+
+_(Wrap P6 + push. Branch `peter/p3-doc-currency` (P3+P4+P5+P6) pushed + PR to `main` opened (operator
+authorized); P5+P6 coord blocks pushed direct. Roadmap recorded as a priority ordering: Intellisense DB9
+field test -> v2 Amphenol pass-through prototype -> garage gate -> field. **Intellisense parallel-splitter MVP
+before Totco** — Totco deferred. Findings folded into scope.md "P6 soldered-proto validation".)_
+
+## Session 7 — 2026-06-29
+
+> We are doing the field test on the Intellisense. I plan to hook up the splitter and run the daq normally. check that its software is receiving fine on a separate laptop. Then I will hook up the pi and use this laptop to monitor pi and our charting.
+
+_(Field-test plan = the coexistence configuration directly: splitter inline -> confirm the production consumer
+(the "separate laptop") reads fine as the baseline -> then add the Pi tap + monitor over WiFi. Confirmed this
+is the safe ordering — prove the consumer survives the splitter before powering the Pi.)_
+
+> I just want to note, so we are clear, and maybe I will have to start specifying which computer I am using at the start of the sessions. Unless there is a way to track that via mac address or something. P's work was done in my garage/shop desktop computer and P7 is being done now on my field laptop. The other laptop that I referred to is a cementer specific laptop that has the daq software on it, that usually runs the data for the jobs that the pump does in the field. I am otherwise not using Claude on that cementer specific laptop.
+
+_(Machine topology clarified: **three** machines — garage/shop desktop (`poliv`, did P3-P6), field laptop
+(`P-Tech1`/`pjoli`, P7), and the cementer-specific laptop (production DAQ consumer, runs the Intellisense job
+software, never runs Claude). No MAC needed — `hostname`+`whoami` uniquely tags it; I'll state which machine
+in the caught-up report each session start so the operator never has to specify. Recorded to memory; fixed the
+P6 hand-off mislabel of the garage desktop as "field laptop".)_
+
+> so this db9 is ground in pin5 and pin2 is bumping -5.66v to -5.22v, but I don't have a way to change the wifi supplicant on the pi right now. is there a work around?
+
+_(Real DB9 = pin 5 GND / pin 2 TXD (standard DB9; differs from the earlier #1 "pin 1 GND" probe — trust the
+live reading); -5.5 V active line is within the proven `Rin`=1 k range. WiFi: the Pi doesn't need a network to
+*capture* — only to monitor; gave direct-Ethernet + headless-capture-then-verify options.)_
+
+> the signal line on the dmm is bumping from 3.3v to 3.06v, but it might be bump[ing too fast for dmm to acknowledge as we have run into before.
+
+_(Operator's read was right: Vo "3.3 -> 3.06 V bumping" is the GOOD signature — a real ~1 line/s stream is
+idle-HIGH most of the time so the DMM averages near 3.3 V with small dips (contrast P6's dead-solid stuck-HIGH
+fault). The `0x00`-flood DMM trick is unavailable with a real DAQ -> pushed to the UART decode as the gate.)_
+
+> okay, i don't have ethernet, but i found a microSD/USB adapter. I need to be able to add multiple, so if i am at my house, the field through my phone, or work, it will automatically connect. I will disconnect pi to change supplicant. line me out on what I need to do.
+
+_(Lined out the microSD route: mount the FAT32 `boot`/`bootfs` on Windows (never format the ext4 prompt), drop
+a `wpa_supplicant.conf` in the boot root with multiple `network={}` blocks + `priority=` (home > work > phone)
++ **`country=US`** (mandatory or the radio stays off), eject/reinsert/boot -> Pi auto-joins whichever is in
+range. Then Pi + laptop on the phone hotspot, reach via `cementserial.local`. Worked.)_
+
+> [browser] ERR_CONNECTION_REFUSED
+
+_(= the Pi is reachable (supplicant edit worked) but cementer isn't running — an active refusal, not a network
+failure. SSH'd in and started cementer; the reboot had cleared the prior instance.)_
+
+> 1. is clean 14 lines, good 2. count is climbing 3. live chart looks good!
+
+_(**Field step 2 PASSED** — real Intellisense wire -> opto -> Pi UART -> cementer -> SQLite -> live chart over
+WiFi. The first time on a real pump wire. `Rin`=1 k frames clean at -5.5 V.)_
+
+> powering off the pi stays clean on consumer laptop. I have the male to female db9 to terminal block inline with the consumers serial end that usually connects to the serial/usb adapter. so pulling it will interupt the consumers laptop
+
+_(**Coexistence (step 3) PASSED** — consumer clean with the Pi powered + unpowered (the ~5 mA opto load is
+present in both states regardless of Pi power -> proven harmless; the optical barrier holds). The "yank
+interrupts the consumer" is because the terminal block is wired *in series* with the consumer — an artifact of
+the temporary field rig, not the tap. The clean removal test = pull only the two opto-branch leads.)_
+
+> end product will stay inline and broadcast wifi in parallel. I thought that was understood
+
+_(Corrected my framing: the end product is a **permanent inline pass-through** that broadcasts WiFi in
+parallel, NOT a removable branch. The load-bearing requirement isn't removability — it's that the consumer's
+data + GND pass through on **passive, continuous conductors** (Pi-independent) so the production feed survives
+any Pi-side failure (proven at P7: Pi off -> consumer clean); the opto adds galvanic isolation on top. Folded
+the correction into scope.md's "v2 field form factor".)_
+
+> I would call this a hugely successful test. yes wrap p7 and push + refresh the PR
+
+_(Wrap P7 + push + refresh PR. Intellisense DB9 split-off FIELD-VERIFIED (steps 2+3). Folded the field result
++ the corrected inline/passive-pass-through design note into scope.md "P7 field validation"; updated hand-off
+/ status / changelog; appended the P7 coord close block + reset the claim idle. Branch pushed (P3-P7); PR to
+`main` refreshed, still open + unmerged.)_
