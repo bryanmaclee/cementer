@@ -1,6 +1,6 @@
 ---
 status: in-progress
-last-reviewed: 2026-06-27
+last-reviewed: 2026-06-28
 change-id: serial-split-tap
 operator: peter
 phase: hardware (field-ingest enabler; not a numbered software phase)
@@ -9,9 +9,11 @@ depends-on: "#1" (DAQ TXD idle voltage) -- MEASURED 2026-06-25 (Intellisense -6.
 
 # Serial-split tap — scope (isolated DAQ → Pi listen tap)
 
-> **Status: step-1 bench gate PASSED on breadboard 2026-06-27 (P5)** — full path proven end-to-end with a
-> Waveshare RS-232 source (see "P5 bench validation"). Next: solder the proto + re-run step 1, then field
-> steps 2-3. This captures a hardware-design chat
+> **Status: step-1 bench gate PASSED on the SOLDERED PROTO 2026-06-28 (P6)** — `Rin` re-tuned + locked at
+> **1 k** (validated at the real +6.35 V amplitude), proto soldered, full path re-proven end-to-end with the
+> Waveshare RS-232 source (clean lines → cementer ingest → live chart). See "P6 soldered-proto validation".
+> Breadboard gate passed first at P5 (see "P5 bench validation"). **Next: field steps 2-3** (real Intellisense
+> wire Pi-only, then coexistence), then the v2 Amphenol pass-through prototype. This captures a hardware-design chat
 > (P2, 2026-06-21) so the next session resumes from a written spec, not from re-derivation. The
 > only open input is **#1** (the DAQ line idle voltage), which sets one resistor value. Parts are
 > on order; everything else is decided.
@@ -160,12 +162,13 @@ The operator has no Waveshare; use the **field DB9->USB adapter run as a transmi
 
 ## Build & test plan (each step a go/no-go gate)
 
-1. **Solder + bench (no pump). ✅ PASSED on BREADBOARD 2026-06-27 (P5)** — see "P5 bench validation"
-   below. Source: a **Waveshare USB->RS232 adapter** (operator now has one; supersedes the field-adapter
-   plan) driven by `tools/intellisense-send.ps1` (PC PowerShell, real RS-232). Tap its **TXD = DB9 pin 3**
-   (DTE) + GND pin 5 into the opto input; read on the Pi `/dev/serial0` @19200. **Gate met: cementer
-   ingested clean 14-field frames into the store (`/debug/stats` rows climbing) + the live chart painted
-   over WiFi.** Still to do: rebuild on the soldered protoboard and re-run this gate.
+1. **Solder + bench (no pump). ✅ PASSED on BREADBOARD 2026-06-27 (P5) AND on the SOLDERED PROTO 2026-06-28
+   (P6)** — see "P5 bench validation" + "P6 soldered-proto validation" below. Source: a **Waveshare
+   USB->RS232 adapter** (operator now has one; supersedes the field-adapter plan) driven by
+   `tools/intellisense-send.ps1` (PC PowerShell, real RS-232). Tap its **TXD = DB9 pin 3** (DTE) + GND pin 5
+   into the opto input; read on the Pi `/dev/serial0` @19200. **Gate met (both boards): cementer ingested
+   clean 14-field frames into the store (`/debug/stats` rows climbing) + the live chart painted over WiFi.**
+   `Rin` **locked at 1 k** (validated at +6.35 V, the real DAQ amplitude). **Step 1 is DONE.**
    - Pi UART setup: `sudo raspi-config` → serial **hardware ON**, serial **console OFF** → reboot;
      device = `/dev/serial0` (on a Pi 4 this is the **mini-UART `ttyS0`**, NOT `ttyAMA0`; `enable_uart=1`
      from "hardware ON" locks the core clock so 19200 stays accurate — no Bluetooth-disable needed).
@@ -212,19 +215,53 @@ a transmitter (the field-DB9-adapter plan is superseded — operator acquired a 
   the build** (cheap optos have a real DOA rate). Diagnostic that isolated it: a continuous `0x00` flood
   holds the line ~90% positive (DMM-visible); `BreakState` on the FTDI **does not transmit** a break, so use
   the flood, not a break, to force a sustained LED-on.
-- **`Rin` re-tune pending.** Bench settled at **560 Ω** (Vo switches solidly), but that was reached while the
-  DOA chip was masking the real margin — so 560 Ω is likely lower than needed. The Waveshare is a *weaker*
-  driver (~+5 V space) than the real DAQ (+6.35 V), so **size `Rin` on the weak bench source, then the field
-  works with margin.** Before soldering, with the good chip, step `Rin` **up** (680 → 820 → 1 k) to the
-  highest value that still switches — minimizes field load (coexistence). 1 k gave only ~4 mA on the
-  Waveshare = under the 6N137's ~5 mA threshold (the original "doesn't switch" symptom, before the DOA chip
-  was even found).
+- **`Rin` re-tune — RESOLVED at P6: locked at 1 k.** P5 had settled at 560 Ω while a DOA chip masked the
+  margin. P6 re-tuned with the good chip using a **static +6.35 V PSU inject (the real DAQ amplitude, not the
+  weak Waveshare ~+5 V)** as the gauge: at 1 k / +6.35 V the LED draws ~4.9 mA and Vo switches **solidly LOW
+  (0.19 V breadboard, 0.059 V soldered)** — full clean swing 3.3 V ↔ ~0.1 V. **1 k is the field value** (lowest
+  tap load → best for coexistence; the stronger real DAQ only adds margin over the bench). Lesson: gauge `Rin`
+  at the *field voltage* (PSU), not the weaker bench source, to avoid over-specifying current.
 - **Polarity is correct with NO inversion** on the real-RS-232 path (Waveshare or real DAQ): idle mark
   (negative) → LED off → Vo HIGH = UART idle. (The inversion + smaller `Rin` only applied to the abandoned
   ESP32-TTL "Option B".)
 - **Pi 4 baud trap:** `/dev/serial0 → ttyS0` (mini-UART), and a reboot/console resets it to **9600** →
   total garbage at 19200. Fix: console OFF + set 19200 (and cementer sets its own baud anyway). The PL011
   Bluetooth-disable trick was *not* needed once `enable_uart=1` locked the clock.
+
+## P6 soldered-proto validation (2026-06-28) — step 1 PASSED on the SOLDERED board
+
+`Rin` re-tuned + locked at **1 k**, the protoboard soldered to match the validated breadboard, and the full
+step-1 gate re-run end-to-end on the soldered board: **clean 14-field lines → cementer ingest → live chart
+over WiFi.** Step 1 is DONE; the arc moves to the field.
+
+**`Rin` re-tune method (the right way to gauge it):**
+- Gauge at the **real DAQ amplitude with a bench PSU**, not the weaker Waveshare. Static inject +6.35 V across
+  the input through `Rin`; DMM on Vo. At **1 k**: Vo swings **3.3 V (idle, LED off) ↔ 0.19 V (driven, LED on)**
+  on the breadboard, **↔ 0.059 V** on the soldered board (harder saturation). LED current ~4.9 mA.
+- Then confirm **framing** dynamically on the Waveshare (real 19200 8N1 RS-232) → `cat /dev/serial0` clean
+  lines. The Waveshare's weaker ~+5 V (~3.5 mA at 1 k) is conservative: if it frames clean on the bench, the
+  +6.35 V field line has more margin. **1 k locked** — lowest tap load for coexistence.
+
+**Bench mock for the soldered board (before connecting the real Pi):** two PSUs supply the Pi side — **3.3 V**
+for the Vo pull-up rail + **5 V** for Vcc, sharing a common (Pi-side) ground. Keep that mock ground isolated
+from the DAQ-side ground (the Waveshare GND). This validates the proto's switching standalone, then swap to
+the real Pi for the dynamic data gate.
+
+**Findings / gotchas (soldered build — read before the v2 Amphenol build):**
+- **Open joint = output stuck HIGH (the P6 time-sink).** A **gap at the DAQ-GND → cathode (pin 3)** solder
+  joint left the LED's return path open, so on a positive *space* the LED couldn't conduct → Vo stuck at 3.3 V,
+  no switching. Everything measured *correct at idle* (VE=5 V, Vcc=5 V, the 1N4148 clamped the mark to −0.68 V
+  on pin 2) because the **mark path through the antiparallel diode was intact** — only the **space path through
+  the LED** needs a closed loop the mark path doesn't. **Lesson: if a soldered opto clamps the mark correctly
+  but won't switch on space, check LED-return (cathode→GND) continuity first.** Fix: bridge the gap → Vo
+  immediately dropped to 0.059 V.
+- **Continuity-mode red herring.** A **1 k resistor reads ~1 k in resistance mode but does NOT beep in
+  continuity mode** (beep threshold ~30–50 Ω). Don't read "no beep" as "open" on any resistor ≳100 Ω — measure
+  resistance. (Cost real time chasing a non-fault on the good pull-up.)
+- **Diagnostic decision tree that worked** (output stuck high, line driven positive): probe **anode (pin 2)
+  vs DAQ-GND** under drive → ~+1.5 V = LED conducting (fault is output-side / socket / chip); ~line-voltage,
+  no drop = LED loop open (cold joint / open return); ~0.69 V = 1N4148 wired parallel. Check **VE↔Vcc tie**
+  (pin 7 = 5 V) for a stuck-high before suspecting a DOA chip.
 
 ## Open items / risks
 

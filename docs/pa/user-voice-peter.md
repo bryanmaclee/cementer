@@ -278,3 +278,35 @@ coord close committed but **UNPUSHED** (operator deferred all pushes to P6). Fix
 bug in scope.md; folded the full P5 bench recipe + DOA-chip/under-drive/baud-trap findings into scope.md;
 committed `tools/intellisense-send.ps1`; added `cementer-arm64*` to `.gitignore`. P6 resume = re-tune Rin +
 solder proto + field steps; push branch + open PR + push coord first thing.)_
+
+## Session 6 — 2026-06-28
+
+> read pa.md and start session
+
+_(Session-start: coord handshake — Bryan idle (B6 closed), inbox clean, no contention. Surfaced the P5
+deferred-push backlog (coord + branch both ahead 1, unpushed). Git config clean this start (hooksPath/autocrlf
+correct). Went straight to the hardware bench per operator.)_
+
+> I like the 1. option. That will allow me to confidently solder for the actual +/-6.35v DAQ. My biggest concern is that I cannot mess up the current DAQ system through this testing. So trying to be extra careful in the setup for this proto
+
+> I want to go right to 1k Ohms first, cause if that works, I won't need to do the 680 Ohm step.
+
+_(Re-tuned `Rin` by gauging at the real +6.35 V amplitude with a static PSU inject — 1 k switched Vo solidly
+LOW (0.19 V breadboard), so 1 k locked, skipping 820/680. Stressed the production-safety guarantees: the tap
+is galvanically isolated, listen-only, fixed ~4.9 mA load; bench/solder work is fully disconnected from any
+real pump, and the only production-contact moment is the step-3 coexistence test.)_
+
+> okay I have it soldered ... on the daq side I have the rs-232/usb hooked to db9 serial/terminal block to proto board; on the pi side I have one power supply sending 3.3 to mock power from pi, I have a second power supply supplying 5v to mock pi with shared ground.
+
+_(Walked the soldered-board bring-up live, operator on the DMM. Found a **DAQ-GND -> cathode (pin 3) open
+joint** — Vo stuck HIGH on a positive space while idle measured perfect (1N4148 clamped the mark to -0.68 V,
+VE=5 V, Vcc=5 V). Diagnosed via the anode-under-drive decision tree + VE↔Vcc tie check, and cleared a
+continuity-mode red herring (a 1 k resistor reads ~1 k but doesn't beep in continuity mode). Operator bridged
+the gap -> Vo dropped to 0.059 V -> clean lines + chart on the real Pi. Step-1 gate PASSED on solder.)_
+
+> wrap P6 here, push the branch and open the PR; Next step is to complete field test of Intellisense DAQ unit. once verified that DB9 split off is working, then I need to complete hardware prototype with the amphenol connectors. Test it through this same process in garage, then field test. We need to get the Inellisense parallel splitter unit MVP done before moving forward with Totco as on now.
+
+_(Wrap P6 + push. Branch `peter/p3-doc-currency` (P3+P4+P5+P6) pushed + PR to `main` opened (operator
+authorized); P5+P6 coord blocks pushed direct. Roadmap recorded as a priority ordering: Intellisense DB9
+field test -> v2 Amphenol pass-through prototype -> garage gate -> field. **Intellisense parallel-splitter MVP
+before Totco** — Totco deferred. Findings folded into scope.md "P6 soldered-proto validation".)_

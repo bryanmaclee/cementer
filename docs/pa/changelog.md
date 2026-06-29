@@ -5,6 +5,36 @@ the human-discoverable session narrative). Newest block on top.
 
 ---
 
+## 2026-06-28 -- Peter P6 - serial-split tap PASSED on the SOLDERED proto; `Rin` locked 1 k; backlog pushed
+
+Hands-on bench session: re-tuned `Rin`, soldered the protoboard, and re-ran the full step-1 gate
+**end-to-end on the soldered hardware** (clean 14-field lines -> cementer ingest -> live chart over WiFi).
+The bench arc is DONE; the Intellisense channel moves to field testing. Branch + PR pushed (P3+P4+P5 backlog
+cleared).
+
+- **`Rin` locked at 1 k.** Re-tuned with the good chip by gauging at the **real +6.35 V DAQ amplitude** via a
+  static PSU inject (not the weaker Waveshare ~+5 V) -> Vo swings **3.3 V <-> 0.19 V** (breadboard) /
+  **<-> 0.059 V** (soldered), ~4.9 mA tap load. 1 k = lowest field tap load (coexistence); the stronger real
+  line only adds margin. Lesson recorded: gauge `Rin` at the field voltage, not the bench source.
+- **Soldered proto validated.** Bench-mocked the Pi side with two PSUs (3.3 V pull-up rail + 5 V Vcc, shared
+  Pi-GND) to prove switching standalone, then swapped to the real Pi for the dynamic data gate. Passed.
+- **Build defect found + fixed (the P6 time-sink): an open joint at DAQ-GND -> cathode (pin 3)** left the LED
+  return path open -> Vo stuck HIGH on a positive space, even though idle measured perfect (the mark path
+  through the antiparallel 1N4148 clamped pin 2 to -0.68 V; VE/Vcc/pull-up all good). Only the *space* path
+  through the LED needs a closed loop the mark path doesn't. Bridging the gap dropped Vo to 0.059 V instantly.
+  **Lesson: opto clamps the mark but won't switch on space -> check cathode->GND continuity first.**
+- **Continuity-mode red herring** cost time: a 1 k resistor reads ~1 k but does NOT beep in continuity mode
+  (threshold ~30-50 Ω) -> don't read "no beep" as "open" on any resistor ≳100 Ω.
+- **Operator directive (priority ordering):** field-test the Intellisense DB9 split-off -> build the v2
+  Amphenol pass-through prototype -> garage-test (same gate) -> field-test. **Get the Intellisense
+  parallel-splitter MVP done BEFORE moving to Totco** (Totco now explicitly deferred).
+- **Push backlog cleared:** `peter/p3-doc-currency` (P3+P4+P5+P6 docs) pushed + **PR to `main` opened** (was
+  deferred since P3); the P5 + P6 coord close blocks pushed direct. `claims/peter` idle.
+- Tests: hardware + docs arc, zero Go/web source change. `go vet ./...` ok · `go test ./...` ok. Findings
+  folded into `docs/changes/serial-split-tap/scope.md` "P6 soldered-proto validation".
+
+---
+
 ## 2026-06-27 -- Peter P5 - serial-split tap PROVEN end-to-end (breadboard, step-1 bench gate)
 
 Long hands-on build session. Took the Intellisense opto channel from bare wiring to a **fully working
