@@ -4,10 +4,10 @@
 
 ```
 status:     idle
-session:    P5 (closed 2026-06-27)
+session:    P6 (closed 2026-06-28)
 arc:        —
 branch:     —
 intent-sha: —
 since:      —
-note:       P5 closed. serial-split-tap tap PROVEN end-to-end on breadboard (step-1 bench gate PASSED) via a Waveshare RS-232 source -> opto -> Pi -> cementer -> live chart over WiFi. Through a DOA 6N137, wrong-way diode, under-drive (Rin 560), Pi 9600 baud trap. Next: re-tune Rin up + solder proto + field steps. ALL PUSHES DEFERRED to P6 (feature branch peter/p3-doc-currency = P3+P4+P5 local/unpushed; coord block local/unpushed -> push first thing). No source contention.
+note:       P6 closed. serial-split-tap step-1 gate PASSED on the SOLDERED proto; Rin locked at 1 k (gauged at +6.35 V; Vo 3.3V<->0.059V). Fixed a DAQ-GND->cathode open joint (Vo stuck high). Bench arc DONE. Next = FIELD test Intellisense DB9 split-off -> v2 Amphenol proto -> garage -> field; Intellisense MVP before Totco. P5 deferred-push backlog CLEARED: branch peter/p3-doc-currency (P3+P4+P5+P6) pushed + PR to main opened; P5+P6 coord blocks pushed direct. No source contention.
 ```
