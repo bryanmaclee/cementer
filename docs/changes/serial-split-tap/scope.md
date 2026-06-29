@@ -1,6 +1,6 @@
 ---
 status: in-progress
-last-reviewed: 2026-06-28
+last-reviewed: 2026-06-29
 change-id: serial-split-tap
 operator: peter
 phase: hardware (field-ingest enabler; not a numbered software phase)
@@ -9,14 +9,13 @@ depends-on: "#1" (DAQ TXD idle voltage) -- MEASURED 2026-06-25 (Intellisense -6.
 
 # Serial-split tap — scope (isolated DAQ → Pi listen tap)
 
-> **Status: step-1 bench gate PASSED on the SOLDERED PROTO 2026-06-28 (P6)** — `Rin` re-tuned + locked at
-> **1 k** (validated at the real +6.35 V amplitude), proto soldered, full path re-proven end-to-end with the
-> Waveshare RS-232 source (clean lines → cementer ingest → live chart). See "P6 soldered-proto validation".
-> Breadboard gate passed first at P5 (see "P5 bench validation"). **Next: field steps 2-3** (real Intellisense
-> wire Pi-only, then coexistence), then the v2 Amphenol pass-through prototype. This captures a hardware-design chat
-> (P2, 2026-06-21) so the next session resumes from a written spec, not from re-derivation. The
-> only open input is **#1** (the DAQ line idle voltage), which sets one resistor value. Parts are
-> on order; everything else is decided.
+> **Status: FIELD-VERIFIED on a real Intellisense DAQ wire 2026-06-29 (P7)** — steps 2 **and** 3 PASSED on an
+> actual pump DAQ: real wire → opto → Pi UART → cementer → SQLite → **live chart over WiFi (phone hotspot)**,
+> clean 14-field lines, **and zero disturbance to the production consumer** (Pi powered + unpowered). The
+> Intellisense DB9 split-off is proven. See "P7 field validation". Prior gates: soldered-proto step-1 PASSED
+> 2026-06-28 (P6); breadboard step-1 PASSED 2026-06-27 (P5). **Next: the v2 Amphenol pass-through prototype**
+> (permanent inline form factor — see the corrected "v2 field form factor" note). `#1` resolved; `Rin` locked
+> at 1 k; everything else decided.
 
 ## Goal
 
@@ -149,11 +148,19 @@ buildable with parts in hand. **Recommended: build/validate the Intellisense cha
 thing), then add Totco as a 2nd opto channel (same board or separate). Keep the **three ground domains
 separate** (Intellisense-GND, Totco-GND, Pi-GND never bridge).
 
-### v2 field form factor (operator's plan)
-6-pin Amphenol -> splitter protoboard (data + GND **pass straight through** to a 2nd Amphenol that continues
-the normal run) -> opto branch off the same node -> Pi. The pass-through is **continuous wire**, so the
-existing consumer's line is electrically unchanged except for the opto's ~5 mA tap load (= the step-3
-coexistence test). **v2 prereq: map the 6-pin Amphenol pinout (data + GND).**
+### v2 field form factor (operator's plan — PERMANENT INLINE pass-through)
+The end product is a **permanent inline device that stays in the signal path and broadcasts WiFi in parallel**
+— NOT a removable branch tap. 6-pin Amphenol -> splitter board (data + GND **pass straight through** to a 2nd
+Amphenol that continues the normal run to the consumer) -> opto branch off the same node -> Pi.
+
+**The load-bearing design requirement (corrected P7):** the consumer's data + GND pass through on **passive,
+continuous conductors** (straight copper, Amphenol-1 -> Amphenol-2) that do **not** route through the opto or
+any powered component. Because that path is passive and Pi-independent, **the production consumer keeps reading
+through any Pi-side failure** — power loss, crash, opto fault. This is exactly the behavior proven at P7
+(Pi powered off -> consumer clean). The opto adds **galvanic isolation** on top so a Pi-side fault can't cross
+into the production line while the device is inline. ("Removability" is NOT a goal — it's a permanent install;
+unplugging the whole inline device naturally interrupts the consumer, like unplugging any in-series device.)
+**v2 prereq: map the 6-pin Amphenol pinout (data + GND).**
 
 ### Bench fake-DAQ source (no Waveshare)
 The operator has no Waveshare; use the **field DB9->USB adapter run as a transmitter**. Its data exits on
@@ -172,16 +179,21 @@ The operator has no Waveshare; use the **field DB9->USB adapter run as a transmi
    - Pi UART setup: `sudo raspi-config` → serial **hardware ON**, serial **console OFF** → reboot;
      device = `/dev/serial0` (on a Pi 4 this is the **mini-UART `ttyS0`**, NOT `ttyAMA0`; `enable_uart=1`
      from "hardware ON" locks the core clock so 19200 stays accurate — no Bluetooth-disable needed).
-2. **Real wire, Pi-only.** Tap the live DAQ with no other consumer attached.
-   `cementer -serial /dev/serial0 -baud 19200 -format intellisense`; watch rows climb at `/debug/stats`.
-   **Gate: real-wire end-to-end on the Pi** (never yet proven — prior validation was laptop-to-USB / the
-   P5 bench used the Waveshare, not the pump). ⚠ cementer sets the port baud **itself** via `go.bug.st/serial`
-   (ignores `stty`); the `-baud` flag **defaults to 9600**, so passing `-baud 19200` is mandatory. The
-   device path is **`-serial`**, NOT `-source` (which is a replay *file*).
-3. **Coexistence.** Connect the tap **in parallel** with the existing system; verify it still reads
-   perfectly with the Pi powered, unpowered, and physically yanked. **Gate: zero disturbance to the
-   production path.** (P5's lower `Rin` raises the tap load to ~7-9 mA — validate here; MAX3232 buffer is
-   the documented fallback if it disturbs the consumer.)
+2. **Real wire, Pi-only. ✅ PASSED on a real Intellisense DAQ 2026-06-29 (P7)** — see "P7 field validation".
+   `cementer -serial /dev/serial0 -baud 19200 -format intellisense`; rows climbed at `/debug/stats`.
+   **Gate met: real-wire end-to-end on the Pi** (the first time on an actual pump wire — prior validation was
+   laptop-to-USB / the P5-P6 bench used the Waveshare, not the pump). ⚠ cementer sets the port baud **itself**
+   via `go.bug.st/serial` (ignores `stty`); the `-baud` flag **defaults to 9600**, so passing `-baud 19200`
+   is mandatory. The device path is **`-serial`**, NOT `-source` (which is a replay *file*).
+3. **Coexistence. ✅ PASSED 2026-06-29 (P7).** Tap connected **in parallel** with the production consumer
+   (the cementer laptop): consumer stayed clean with the Pi **powered** (tap drawing ~5 mA) **and unpowered**.
+   **Gate met: zero disturbance to the production path.** The opto LED sits on the DAQ side, so the ~5 mA tap
+   load is present whenever the tap is connected regardless of Pi power — and the consumer didn't care; the
+   optical barrier kept all Pi-side activity off the line. (`Rin` locked at 1 k = lowest tap load, not P5's
+   560 Ω.) **Note on "physically yanked":** in the temporary field rig the tap shared an *in-series* terminal
+   block with the consumer, so pulling the whole block interrupts the consumer — an artifact of the bench
+   wiring, **not** the tap. The v2 permanent-inline device makes this a non-issue (see below). MAX3232 buffer
+   remains the documented fallback if a weaker driver is ever disturbed.
 
 ## P5 bench validation (2026-06-27) — step 1 PASSED on breadboard
 
@@ -262,6 +274,41 @@ the real Pi for the dynamic data gate.
   vs DAQ-GND** under drive → ~+1.5 V = LED conducting (fault is output-side / socket / chip); ~line-voltage,
   no drop = LED loop open (cold joint / open return); ~0.69 V = 1N4148 wired parallel. Check **VE↔Vcc tie**
   (pin 7 = 5 V) for a stuck-high before suspecting a DOA chip.
+
+## P7 field validation (2026-06-29) — steps 2 + 3 PASSED on a real Intellisense DAQ
+
+The isolated tap was proven on an **actual pump DAQ wire** (field laptop `P-Tech1`; Pi on a phone hotspot).
+End-to-end: real Intellisense TXD -> opto -> Pi mini-UART -> cementer -> SQLite -> **live chart over WiFi**,
+clean 14-field lines, **with zero disturbance to the production consumer** (the cementer laptop). The
+Intellisense DB9 split-off is field-verified; the arc moves to the v2 Amphenol pass-through prototype.
+
+**Real DB9 pinout (this field unit):** **GND = pin 5, TXD = pin 2**, idle/active **-5.66 V .. -5.22 V** (the
+wobble = the line actively transmitting). Note this differs from the earlier #1 probe note ("pin 1 = GND") —
+the field unit uses **standard DB9 pin-5 ground**; trust the live reading. At `Rin` = 1 k the -5.5 V line
+draws ~4 mA and **frames clean** — confirms the 1 k value (tuned at +6.35 V) has margin to spare at the
+slightly lower field amplitude.
+
+**Sequence that worked:**
+1. **DMM is the wrong instrument on a live data line.** Opto Vo read **3.3 V bumping to ~3.06 V** — NOT a
+   fault. A real ~1 line/s stream leaves the line idle-HIGH most of the time with brief switching bursts, so a
+   DMM averages near 3.3 V with a small dip. (Contrast the P6 open-joint fault = dead-solid 3.3 V, *zero*
+   movement.) The P5/P6 `0x00`-flood trick to force a DMM-visible LOW is **unavailable with a real DAQ** (you
+   can't make the pump flood) -> **the UART decode is the gate, not the meter.**
+2. **`cat /dev/serial0` (19200 raw) = clean 14-field lines** -> framing proven on the real wire.
+3. **cementer ingest:** `/debug/stats` row count climbing + the **live chart painted** over the hotspot.
+4. **Coexistence:** consumer stayed clean with the Pi tapping in parallel, **powered and unpowered** (step 3).
+
+**WiFi-in-the-field workaround (reusable — the Pi had no field network configured):**
+- The Pi couldn't be reached because it wasn't on any field network, and the supplicant couldn't be edited
+  live. **Fix: pull the microSD, mount its FAT32 `boot`/`bootfs` partition on Windows (the only Windows-readable
+  partition — IGNORE the "format this disk" prompt for the ext4 root), drop a `wpa_supplicant.conf` in the boot
+  root with multiple `network={}` blocks + `priority=` + `country=US`** (home > work > phone-hotspot), eject,
+  reinsert, boot. The Pi copies it into `/etc` on boot and auto-joins whichever network is in range. (This
+  worked -> confirms the Pi is **not** Bookworm/NetworkManager, where the boot-drop is ignored.) `country=US`
+  is mandatory or the radio stays rfkill'd. Then put **both** the Pi and the laptop on the phone hotspot and
+  reach the Pi at `cementserial.local` (mDNS).
+- **`ERR_CONNECTION_REFUSED` on `:8080` = the Pi is reachable but cementer isn't running** (not a network
+  failure — the host actively refused). SSH in and start cementer; the reboot clears any prior instance.
 
 ## Open items / risks
 

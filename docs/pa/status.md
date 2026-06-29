@@ -1,6 +1,6 @@
 ---
 status: current
-last-reviewed: 2026-06-28
+last-reviewed: 2026-06-29
 ---
 
 # cementer — live status (the SoT)
@@ -64,8 +64,18 @@ coordination (claims, push intents, notices) is on the **coord branch** — `mak
   that left Vo stuck high (mark-path clamp intact, space-path LED loop open). Cleared the P3+P4+P5 push
   backlog: **branch pushed + PR to `main` opened.** Recipe + findings in
   [`serial-split-tap/scope.md`](../changes/serial-split-tap/scope.md) "P6 soldered-proto validation".
-  **Next (operator directive): FIELD-test the Intellisense DB9 split-off -> build the v2 Amphenol pass-through
-  prototype -> garage-test -> field. Intellisense parallel-splitter MVP BEFORE Totco.**
+- **P7 (2026-06-29, field laptop `P-Tech1`):** **Intellisense DB9 split-off FIELD-VERIFIED on a real DAQ —
+  steps 2 + 3 PASSED.** Real Intellisense wire (DB9 pin 2 = TXD, pin 5 = GND, ~-5.5 V) -> opto -> Pi mini-UART
+  -> cementer -> SQLite -> **live chart over WiFi** (phone hotspot), clean 14-field lines, **and zero
+  disturbance to the production consumer** (the cementer laptop, Pi powered + unpowered). `Rin` = 1 k frames
+  clean at the field amplitude. Field gotchas captured: the DMM is the wrong instrument on a live data line
+  (Vo "3.3->3.06 V bumping" is the *good* signature, not a fault); WiFi-via-microSD-boot-partition
+  `wpa_supplicant.conf` workaround (multi-network + `country=US`); `ERR_CONNECTION_REFUSED` = reachable but
+  cementer not running. **Design clarification (operator):** the end product is a **permanent inline
+  pass-through** (passive continuous through-wire so the consumer survives any Pi-side failure) that broadcasts
+  WiFi in parallel — NOT a removable branch. **Next: the v2 Amphenol pass-through prototype** (map the 6-pin
+  pinout -> build -> garage gate -> field). Intellisense parallel-splitter MVP BEFORE Totco. Findings folded
+  into [`serial-split-tap/scope.md`](../changes/serial-split-tap/scope.md) "P7 field validation".
 
 ## Phase board
 
@@ -145,15 +155,15 @@ the living spec; don't let deltas accumulate here. No separate as-built spec doc
 ## Near-term actions (not yet done)
 
 1. ~~**`.gitattributes` durable CRLF fix**~~ ✅ added (Bryan, `bryan/cleanup` PR).
-2. **`serial-split-tap` build** (Peter — **step-1 bench gate PASSED on the SOLDERED PROTO P6 2026-06-28;
-   `Rin` locked 1 k**) — Intellisense opto channel proven end-to-end on soldered hardware (Waveshare RS-232
-   -> opto -> Pi -> cementer -> live chart over WiFi). Bench arc DONE. **Next (operator directive, in order):
-   (a) FIELD-test the Intellisense DAQ via the DB9 split-off (real wire Pi-only, then coexistence — steps
-   2-3), (b) once verified, build the v2 hardware prototype with the Amphenol pass-through connectors, (c)
-   garage-test the Amphenol proto through this same gate, then field-test.** **Intellisense parallel-splitter
-   MVP must be done BEFORE Totco.** Recipe + soldered-build findings (the GND-cathode open joint;
-   continuity-mode gotcha) in [`serial-split-tap/scope.md`](../changes/serial-split-tap/scope.md) "P6
-   soldered-proto validation".
+2. **`serial-split-tap` build** (Peter — **Intellisense DB9 split-off FIELD-VERIFIED on a real DAQ, P7
+   2026-06-29; steps 2 + 3 PASSED**) — real wire -> opto -> Pi -> cementer -> live chart over WiFi, **zero
+   disturbance to the production consumer**. Field test (roadmap step 1) DONE. **Next (operator directive, in
+   order): (a) build the v2 hardware prototype with the Amphenol pass-through connectors — permanent inline,
+   passive continuous through-wire (prereq: map the 6-pin Amphenol pinout), (b) garage-test the Amphenol proto
+   through this same bench gate, then field-test.** **Intellisense parallel-splitter MVP must be done BEFORE
+   Totco.** Field recipe + findings (DMM-on-live-line; WiFi-via-SD `wpa_supplicant.conf`; the corrected
+   inline/passive-pass-through design note) in
+   [`serial-split-tap/scope.md`](../changes/serial-split-tap/scope.md) "P7 field validation".
 3. ~~**Parser cleanup**~~ ✅ removed the off-path `internal/parser` (Bryan, `bryan/cleanup` PR).
 4. **Totco preset / 2nd channel** — **DEFERRED behind the Intellisense parallel-splitter MVP** (operator
    directive P6). Resume only after Intellisense is field-proven: same circuit, 2nd 6N137, 9600 8N1, `Rin`
@@ -165,6 +175,9 @@ the living spec; don't let deltas accumulate here. No separate as-built spec doc
 - `go test ./...`: `internal/daqformat`, `internal/store`, `internal/api`, `internal/printcfg` have tests;
   others report "no test files" (`internal/parser` removed in B6). Web has no unit suite (tsc-strict +
   Playwright screenshot are the checks).
+- **P7 wrap run (2026-06-29, field laptop `P-Tech1`):** hardware + docs arc, zero Go/web *source* change --
+  `go vet ./...` ok · `go test ./...` ok (api/daqformat/printcfg/store pass; rest no test files). `web/dist`
+  present (embed intact); no cross-compile needed this wrap.
 - **P6 wrap run (2026-06-28, Windows):** hardware + docs arc, zero Go/web *source* change -- `go vet ./...`
   ok · `go test ./...` ok (api/daqformat/printcfg/store pass; rest no test files). `web/dist` present (embed
   intact); no cross-compile needed this wrap.

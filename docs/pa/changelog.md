@@ -5,6 +5,40 @@ the human-discoverable session narrative). Newest block on top.
 
 ---
 
+## 2026-06-29 -- Peter P7 - Intellisense DB9 split-off FIELD-VERIFIED on a real DAQ (steps 2 + 3 PASSED)
+
+The serial-split tap's biggest milestone: proven on an **actual Intellisense pump DAQ** (not the bench),
+end-to-end with **zero disturbance to the production consumer**. First PA session on the real **field laptop**
+(`P-Tech1`/`pjoli`; P3-P6 were the garage desktop `poliv`). Operator called it "a hugely successful test."
+
+- **Field test PASSED (roadmap step 1 DONE).** Real Intellisense wire (DB9 **pin 2 = TXD, pin 5 = GND**,
+  ~-5.5 V) -> 6N137 opto -> Pi mini-UART -> cementer -> SQLite -> **live chart over WiFi** (phone hotspot),
+  clean 14-field lines. `Rin` = 1 k frames clean at the field amplitude (the +6.35 V tune has margin).
+- **Coexistence PASSED (step 3).** Consumer (the cementer laptop) stayed clean with the Pi tapping in parallel,
+  **powered and unpowered** — the ~5 mA opto load is harmless and the optical barrier keeps Pi-side activity
+  off the production line. Proves axiom #1 on a real wire.
+- **Design clarification (operator).** The end product is a **permanent inline pass-through** that broadcasts
+  WiFi in parallel — NOT a removable branch. Corrected design requirement: consumer data + GND pass through on
+  **passive, continuous conductors** (Pi-independent) so the production feed **survives any Pi-side failure**;
+  the opto adds galvanic isolation on top. (Earlier "removable tap" framing retracted.)
+- **Field gotchas captured (scope.md "P7 field validation"):** (1) **DMM is the wrong instrument on a live data
+  line** — Vo "3.3 -> 3.06 V bumping" is the *good* signature (mostly-idle ~1 line/s stream), not a fault; the
+  `0x00`-flood DMM trick is unavailable with a real DAQ -> the UART decode is the gate. (2) **WiFi with no
+  editable supplicant:** pull the microSD, mount the FAT32 boot partition on Windows (never format the ext4
+  prompt), drop a `wpa_supplicant.conf` with multiple `network={}` + `priority` + **`country=US`**; the Pi
+  auto-joins (confirms not Bookworm). (3) **`ERR_CONNECTION_REFUSED` = reachable but cementer not running.**
+- **Topology recorded:** three machines (garage desktop `poliv`, field laptop `P-Tech1`/`pjoli`, the
+  no-Claude cementer DAQ-consumer laptop); auto-ID via `hostname`+`whoami`. Fixed the P6 hand-off's mislabel
+  of the garage desktop as "field laptop."
+- **Process:** P7 started 3 commits behind `origin/peter/p3-doc-currency` (P4-P6 from the garage desktop) ->
+  fast-forwarded (cross-machine hygiene). Tests: `go vet ./...` + `go test ./...` ok (api/daqformat/printcfg/
+  store pass). Branch `peter/p3-doc-currency` (P3+P4+P5+P6+P7) pushed; **PR to `main` refreshed (still open,
+  unmerged)**; P7 coord close block pushed direct; `claims/peter` idle.
+- **Next (P8):** the v2 **Amphenol pass-through prototype** — map the 6-pin pinout, build the permanent-inline
+  passive pass-through, garage-gate, then field. Intellisense MVP before Totco.
+
+---
+
 ## 2026-06-28 -- Peter P6 - serial-split tap PASSED on the SOLDERED proto; `Rin` locked 1 k; backlog pushed
 
 Hands-on bench session: re-tuned `Rin`, soldered the protoboard, and re-ran the full step-1 gate

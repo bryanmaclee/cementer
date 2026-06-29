@@ -310,3 +310,70 @@ _(Wrap P6 + push. Branch `peter/p3-doc-currency` (P3+P4+P5+P6) pushed + PR to `m
 authorized); P5+P6 coord blocks pushed direct. Roadmap recorded as a priority ordering: Intellisense DB9
 field test -> v2 Amphenol pass-through prototype -> garage gate -> field. **Intellisense parallel-splitter MVP
 before Totco** — Totco deferred. Findings folded into scope.md "P6 soldered-proto validation".)_
+
+## Session 7 — 2026-06-29
+
+> We are doing the field test on the Intellisense. I plan to hook up the splitter and run the daq normally. check that its software is receiving fine on a separate laptop. Then I will hook up the pi and use this laptop to monitor pi and our charting.
+
+_(Field-test plan = the coexistence configuration directly: splitter inline -> confirm the production consumer
+(the "separate laptop") reads fine as the baseline -> then add the Pi tap + monitor over WiFi. Confirmed this
+is the safe ordering — prove the consumer survives the splitter before powering the Pi.)_
+
+> I just want to note, so we are clear, and maybe I will have to start specifying which computer I am using at the start of the sessions. Unless there is a way to track that via mac address or something. P's work was done in my garage/shop desktop computer and P7 is being done now on my field laptop. The other laptop that I referred to is a cementer specific laptop that has the daq software on it, that usually runs the data for the jobs that the pump does in the field. I am otherwise not using Claude on that cementer specific laptop.
+
+_(Machine topology clarified: **three** machines — garage/shop desktop (`poliv`, did P3-P6), field laptop
+(`P-Tech1`/`pjoli`, P7), and the cementer-specific laptop (production DAQ consumer, runs the Intellisense job
+software, never runs Claude). No MAC needed — `hostname`+`whoami` uniquely tags it; I'll state which machine
+in the caught-up report each session start so the operator never has to specify. Recorded to memory; fixed the
+P6 hand-off mislabel of the garage desktop as "field laptop".)_
+
+> so this db9 is ground in pin5 and pin2 is bumping -5.66v to -5.22v, but I don't have a way to change the wifi supplicant on the pi right now. is there a work around?
+
+_(Real DB9 = pin 5 GND / pin 2 TXD (standard DB9; differs from the earlier #1 "pin 1 GND" probe — trust the
+live reading); -5.5 V active line is within the proven `Rin`=1 k range. WiFi: the Pi doesn't need a network to
+*capture* — only to monitor; gave direct-Ethernet + headless-capture-then-verify options.)_
+
+> the signal line on the dmm is bumping from 3.3v to 3.06v, but it might be bump[ing too fast for dmm to acknowledge as we have run into before.
+
+_(Operator's read was right: Vo "3.3 -> 3.06 V bumping" is the GOOD signature — a real ~1 line/s stream is
+idle-HIGH most of the time so the DMM averages near 3.3 V with small dips (contrast P6's dead-solid stuck-HIGH
+fault). The `0x00`-flood DMM trick is unavailable with a real DAQ -> pushed to the UART decode as the gate.)_
+
+> okay, i don't have ethernet, but i found a microSD/USB adapter. I need to be able to add multiple, so if i am at my house, the field through my phone, or work, it will automatically connect. I will disconnect pi to change supplicant. line me out on what I need to do.
+
+_(Lined out the microSD route: mount the FAT32 `boot`/`bootfs` on Windows (never format the ext4 prompt), drop
+a `wpa_supplicant.conf` in the boot root with multiple `network={}` blocks + `priority=` (home > work > phone)
++ **`country=US`** (mandatory or the radio stays off), eject/reinsert/boot -> Pi auto-joins whichever is in
+range. Then Pi + laptop on the phone hotspot, reach via `cementserial.local`. Worked.)_
+
+> [browser] ERR_CONNECTION_REFUSED
+
+_(= the Pi is reachable (supplicant edit worked) but cementer isn't running — an active refusal, not a network
+failure. SSH'd in and started cementer; the reboot had cleared the prior instance.)_
+
+> 1. is clean 14 lines, good 2. count is climbing 3. live chart looks good!
+
+_(**Field step 2 PASSED** — real Intellisense wire -> opto -> Pi UART -> cementer -> SQLite -> live chart over
+WiFi. The first time on a real pump wire. `Rin`=1 k frames clean at -5.5 V.)_
+
+> powering off the pi stays clean on consumer laptop. I have the male to female db9 to terminal block inline with the consumers serial end that usually connects to the serial/usb adapter. so pulling it will interupt the consumers laptop
+
+_(**Coexistence (step 3) PASSED** — consumer clean with the Pi powered + unpowered (the ~5 mA opto load is
+present in both states regardless of Pi power -> proven harmless; the optical barrier holds). The "yank
+interrupts the consumer" is because the terminal block is wired *in series* with the consumer — an artifact of
+the temporary field rig, not the tap. The clean removal test = pull only the two opto-branch leads.)_
+
+> end product will stay inline and broadcast wifi in parallel. I thought that was understood
+
+_(Corrected my framing: the end product is a **permanent inline pass-through** that broadcasts WiFi in
+parallel, NOT a removable branch. The load-bearing requirement isn't removability — it's that the consumer's
+data + GND pass through on **passive, continuous conductors** (Pi-independent) so the production feed survives
+any Pi-side failure (proven at P7: Pi off -> consumer clean); the opto adds galvanic isolation on top. Folded
+the correction into scope.md's "v2 field form factor".)_
+
+> I would call this a hugely successful test. yes wrap p7 and push + refresh the PR
+
+_(Wrap P7 + push + refresh PR. Intellisense DB9 split-off FIELD-VERIFIED (steps 2+3). Folded the field result
++ the corrected inline/passive-pass-through design note into scope.md "P7 field validation"; updated hand-off
+/ status / changelog; appended the P7 coord close block + reset the claim idle. Branch pushed (P3-P7); PR to
+`main` refreshed, still open + unmerged.)_
